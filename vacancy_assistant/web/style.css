@@ -454,6 +454,7 @@ pre.preview { background: var(--chip); border-radius: 8px; padding: 10px 12px; w
 :root[data-theme="dark"] .sec .cchanged { background: #3a2c14; color: #f0b968; }
 #btnRescore { position: relative; }
 #btnRescore .badge { position: absolute; top: -6px; right: -6px; min-width: 16px; height: 16px; padding: 0 4px; border-radius: 8px; background: #c77700; color: #fff; font-size: 10.5px; font-weight: 600; line-height: 16px; text-align: center; box-sizing: border-box; }
+#btnRescore .badge:empty { display: none; }                         /* нечего пересчитывать — без пустого кружка */
 @media (max-width: 600px) { .calbar { flex-wrap: wrap; } }
 .cloudform { margin-top: 8px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 8px; }
 .cloudform .calbar { margin: 6px 0 10px; }
