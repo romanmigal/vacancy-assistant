@@ -53,7 +53,7 @@
 | Mac на Intel | `VacancyAssistant-mac-x86_64.dmg` |
 | Windows | `VacancyAssistant-windows-setup.exe` |
 
-**Mac — проще всего одной командой.** Откройте Терминал (⌘ + пробел → «Терминал») и вставьте:
+**Mac — проще всего одной командой.** Откройте Терминал: Finder → «Программы» → «Утилиты» → «Терминал» (или Launchpad → поиск «Терминал») и вставьте:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/romanmigal/vacancy-assistant/main/packaging/install_mac.sh | bash
@@ -70,7 +70,7 @@ curl -fsSL https://raw.githubusercontent.com/romanmigal/vacancy-assistant/main/p
 
 Запуск — как у обычного приложения:
 
-- **Mac** — «Помощник по вакансиям» в «Программах», Launchpad или через Spotlight (⌘ + пробел). Удобно закрепить в Dock: правый щелчок по значку → «Параметры» → «Оставить в Dock».
+- **Mac** — «Помощник по вакансиям» в «Программах», Launchpad или через поиск Spotlight (значок лупы в строке меню). Удобно закрепить в Dock: правый щелчок по значку → «Параметры» → «Оставить в Dock».
 - **Windows** — меню «Пуск» или ярлык на рабочем столе.
 
 Откроется окно в браузере. Повторный запуск просто откроет окно ещё раз. Закрыть программу — «Параметры → Выйти из программы».

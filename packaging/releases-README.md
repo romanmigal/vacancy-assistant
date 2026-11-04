@@ -26,7 +26,7 @@
 
 ## Установка на Mac
 
-**Проще всего — одной командой.** Откройте Терминал (⌘ + пробел → «Терминал») и вставьте:
+**Проще всего — одной командой.** Откройте Терминал: Finder → «Программы» → «Утилиты» → «Терминал» (или Launchpad → поиск «Терминал») и вставьте:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/romanmigal/vacancy-assistant/main/packaging/install_mac.sh | bash
