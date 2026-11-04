@@ -46,8 +46,9 @@ class Queue(unittest.TestCase):
         self.assertEqual((order, max(most)), (["А", "Б"], 1))
 
     def test_batch_rules(self):
-        q, go = Queues(), threading.Event()
-        q.add("batch", "Пачка", lambda log: go.wait(2), ANNA, queue="local")
+        q, go, started = Queues(), threading.Event(), threading.Event()
+        q.add("batch", "Пачка", lambda log: (started.set(), go.wait(2)), ANNA, queue="local")
+        started.wait(2)                       # пачка уже выполняется — иначе письмо может оказаться вторым в очереди
         with self.assertRaises(AssistantError):
             q.add("batch", "Ещё пачка", lambda log: None, ANNA, queue="local")   # у профиля уже есть задача
         single = q.add("single", "Письмо", lambda log: None, ANNA, "letter", 5, queue="local")
