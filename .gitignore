@@ -1,0 +1,35 @@
+# Профили — личные данные, в git не хранятся (создаются мастером в окне программы)
+профили/
+
+# Что создаёт программа в тестовом профиле, если запустить её на нём (CI: --profile example)
+tests/fixtures/профили/example/vacancies/*
+tests/fixtures/профили/example/разборы/*
+tests/fixtures/профили/example/письма/*
+!tests/fixtures/профили/example/*/.gitkeep
+tests/fixtures/профили/example/Сводка.md
+tests/fixtures/профили/example/vacancy-status.md
+tests/fixtures/профили/example/просмотрено.txt
+tests/fixtures/профили/example/мои-оценки.md
+tests/fixtures/профили/example/настройка/
+tests/fixtures/профили/по_умолчанию.txt
+
+# Личные материалы проекта: эксперименты на моём резюме, сравнения, история промптов
+архив/
+Сравнение*.md
+промпты.md
+Open WebUI*
+
+# Служебное
+__pycache__/
+.obsidian/
+.DS_Store
+
+# Сборка установщиков
+build/
+dist/
+
+# Резервные копии профилей (там же личные данные)
+копии/
+
+# Журнал программы, когда папка данных — папка проекта (в нём пути и названия вакансий)
+журнал.txt

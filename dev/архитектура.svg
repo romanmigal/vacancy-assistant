@@ -1,0 +1,248 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1290 910" width="1290" height="910" font-family="-apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">
+  <title>Помощник по вакансиям — архитектура</title>
+  <style>
+    :root {
+      --bg: #ffffff; --ink: #1d2430; --muted: #5b6573; --line: #8a94a3;
+      --code-bg: #eef3f8; --code-bd: #1f4e79; --code-ink: #1f4e79;
+      --cfg-bg: #f3effa; --cfg-bd: #6b4fa3;
+      --data-bg: #eef7f0; --data-bd: #2f7a45;
+      --ext-bg: #fdf3e7; --ext-bd: #b06a1b;
+      --sub-bg: #ffffff;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #16191f; --ink: #e6e9ee; --muted: #a3acb9; --line: #7d8796;
+        --code-bg: #1b2a3a; --code-bd: #6fa8dc; --code-ink: #9cc7ee;
+        --cfg-bg: #251f33; --cfg-bd: #a58bdb;
+        --data-bg: #1a2a20; --data-bd: #6cc28a;
+        --ext-bg: #2e2416; --ext-bd: #e0a35a;
+        --sub-bg: #1f232b;
+      }
+    }
+    .bg { fill: var(--bg); }
+    .t { fill: var(--ink); font-size: 13px; }
+    .m { fill: var(--muted); font-size: 12px; }
+    .h { fill: var(--ink); font-size: 15px; font-weight: 600; }
+    .hs { fill: var(--ink); font-size: 13px; font-weight: 600; }
+    .title { fill: var(--ink); font-size: 22px; font-weight: 700; }
+    .mono { font-family: Menlo, Consolas, monospace; font-size: 12px; fill: var(--ink); }
+    .code { fill: var(--code-bg); stroke: var(--code-bd); stroke-width: 1.5; }
+    .cfg { fill: var(--cfg-bg); stroke: var(--cfg-bd); stroke-width: 1.5; }
+    .data { fill: var(--data-bg); stroke: var(--data-bd); stroke-width: 1.5; }
+    .ext { fill: var(--ext-bg); stroke: var(--ext-bd); stroke-width: 1.5; }
+    .opt { stroke-dasharray: 6 4; }
+    .sub { fill: var(--sub-bg); stroke: var(--line); stroke-width: 1; }
+    .arrow { stroke: var(--line); stroke-width: 1.6; fill: none; marker-end: url(#a); }
+    .arrow2 { stroke: var(--line); stroke-width: 1.6; fill: none; marker-end: url(#a); marker-start: url(#a); }
+    .dash { stroke-dasharray: 6 4; }
+    .lbl { fill: var(--muted); font-size: 11.5px; }
+  </style>
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#8a94a3"/>
+    </marker>
+  </defs>
+
+  <rect class="bg" x="0" y="0" width="1290" height="910"/>
+  <text class="title" x="40" y="44">Помощник по вакансиям — архитектура</text>
+  <text class="m" x="40" y="66">окно в браузере · маленький сервер на вашем компьютере · модель — Gemma на компьютере или GigaChat в облаке · данные — обычные файлы профиля</text>
+
+  <!-- Окно программы -->
+  <rect class="ext" x="40" y="90" width="300" height="188" rx="10"/>
+  <text class="h" x="56" y="116">Окно программы — браузер</text>
+  <text class="t" x="56" y="142">таблица вакансий по статусам</text>
+  <text class="t" x="56" y="162">карточка: разбор, письма, интервью,</text>
+  <text class="t" x="56" y="182">заметка, референсер</text>
+  <text class="t" x="56" y="202">контакты, мастер, калибровка</text>
+  <text class="t" x="56" y="222">статистика, зарплаты, настройки</text>
+  <text class="mono" x="56" y="250">http://127.0.0.1:8765</text>
+  <text class="m" x="56" y="267">только с этого компьютера</text>
+
+  <!-- Другие устройства -->
+  <rect class="ext opt" x="40" y="300" width="300" height="88" rx="10"/>
+  <text class="h" x="56" y="326">Другие устройства дома</text>
+  <text class="t" x="56" y="348">ноутбук, планшет, телефон</text>
+  <text class="m" x="56" y="368">по желанию, вход по паролю</text>
+
+  <!-- LinkedIn и Сетка -->
+  <rect class="ext opt" x="40" y="404" width="300" height="104" rx="10"/>
+  <text class="h" x="56" y="430">LinkedIn и Сетка</text>
+  <text class="t" x="56" y="452">поиск людей компании — ссылкой</text>
+  <text class="m" x="56" y="472">открывается в вашем браузере и аккаунте;</text>
+  <text class="m" x="56" y="489">из LinkedIn — выгрузка контактов (.zip)</text>
+
+  <!-- Сервер -->
+  <rect class="code" x="400" y="90" width="480" height="418" rx="10"/>
+  <text class="h" x="416" y="116">vacancy_assistant — программа на Python</text>
+  <text class="m" x="416" y="134">только стандартная библиотека; razbor.py — те же действия из терминала</text>
+
+  <rect class="sub" x="416" y="148" width="448" height="50" rx="7"/>
+  <text class="hs" x="430" y="169">app.py — окно и его API</text>
+  <text class="m" x="430" y="187">таблица маршрутов; network.py — сервер :8766 с паролем</text>
+
+  <rect class="sub" x="416" y="210" width="448" height="142" rx="7"/>
+  <text class="hs" x="430" y="231">analysis.py — оценка вакансий, письма, интервью</text>
+  <rect class="code" x="430" y="244" width="128" height="94" rx="6"/>
+  <text class="hs" x="442" y="266">короткая оценка</text>
+  <text class="m" x="442" y="284">~15 с; только</text>
+  <text class="m" x="442" y="301">Gemma в режиме</text>
+  <text class="m" x="442" y="316">двух ступеней</text>
+  <rect class="code" x="574" y="244" width="128" height="94" rx="6"/>
+  <text class="hs" x="586" y="266">полный разбор</text>
+  <text class="m" x="586" y="284">«да» и «возможно»;</text>
+  <text class="m" x="586" y="301">все — в 1 ступень,</text>
+  <text class="m" x="586" y="316">с GigaChat и по</text>
+  <text class="m" x="586" y="331" style="font-size:11px">«Разобрать заново»</text>
+  <rect class="code opt" x="718" y="244" width="140" height="94" rx="6"/>
+  <text class="hs" x="730" y="266">по кнопке</text>
+  <text class="m" x="730" y="284">письма, в т. ч.</text>
+  <text class="m" x="730" y="301">референсеру;</text>
+  <text class="m" x="730" y="316">подгонка резюме,</text>
+  <text class="m" x="730" y="331">STAR, вопросы</text>
+  <path class="arrow" d="M558,291 L572,291"/>
+  <path class="arrow dash" d="M702,291 L716,291"/>
+
+  <rect class="sub" x="416" y="364" width="104" height="76" rx="7"/>
+  <text class="hs" x="426" y="385">hh.py,</text>
+  <text class="hs" x="426" y="401">sites.py</text>
+  <text class="m" x="426" y="419">hh.ru и сайты</text>
+  <text class="m" x="426" y="434">компаний</text>
+  <rect class="sub" x="530" y="364" width="104" height="76" rx="7"/>
+  <text class="hs" x="540" y="385">contacts.py</text>
+  <text class="m" x="540" y="403">контакты,</text>
+  <text class="m" x="540" y="419">кандидаты в</text>
+  <text class="m" x="540" y="434">референсеры</text>
+  <rect class="sub" x="644" y="364" width="104" height="76" rx="7"/>
+  <text class="hs" x="654" y="385">setup.py</text>
+  <text class="m" x="654" y="403">мастер,</text>
+  <text class="m" x="654" y="419">резюме из PDF</text>
+  <rect class="sub" x="758" y="364" width="106" height="76" rx="7"/>
+  <text class="hs" x="768" y="385">tune.py</text>
+  <text class="m" x="768" y="403">автонастройка</text>
+  <text class="m" x="768" y="419">критериев</text>
+
+  <rect class="sub" x="416" y="452" width="448" height="42" rx="7"/>
+  <text class="hs" x="430" y="478">summary.py</text>
+  <text class="m" x="520" y="478">Сводка.md — обновляется сама вместе с таблицей окна</text>
+
+  <!-- Сайты вакансий -->
+  <rect class="ext" x="940" y="90" width="310" height="112" rx="10"/>
+  <text class="h" x="956" y="116">hh.ru и другие сайты вакансий</text>
+  <text class="t" x="956" y="140">страницы вакансий, сохранённые файлы</text>
+  <text class="m" x="956" y="160">hh.ru — только с согласием на риск,</text>
+  <text class="m" x="956" y="177">с паузами, до 300 запросов в день;</text>
+  <text class="m" x="956" y="194">не входит в аккаунт и не откликается</text>
+
+  <!-- Модели -->
+  <rect class="ext" x="940" y="214" width="310" height="72" rx="10"/>
+  <text class="h" x="956" y="238">Gemma — на этом компьютере</text>
+  <text class="mono" x="956" y="259">Ollama · gemma4:12b</text>
+  <text class="m" x="956" y="277">по умолчанию; данные не уходят</text>
+  <rect class="ext opt" x="940" y="294" width="310" height="70" rx="10"/>
+  <text class="h" x="956" y="318">GigaChat — облако Сбера</text>
+  <text class="m" x="956" y="337">по желанию и с согласием; cloud.py,</text>
+  <text class="m" x="956" y="354">сертификаты Минцифры в certs/</text>
+
+  <!-- Шаблоны -->
+  <rect class="cfg" x="940" y="376" width="310" height="196" rx="10"/>
+  <text class="h" x="956" y="402">шаблоны/ — общие для всех</text>
+  <text class="mono" x="956" y="426">скоринг v1.txt</text>
+  <text class="m" x="1096" y="426">короткая оценка</text>
+  <text class="mono" x="956" y="448">разбор v7.txt</text>
+  <text class="m" x="1096" y="448">полный разбор</text>
+  <text class="mono" x="956" y="470">письмо v2.txt</text>
+  <text class="m" x="1096" y="470">сопроводительное</text>
+  <text class="mono" x="956" y="492">референсеру v1.txt</text>
+  <text class="m" x="1096" y="492">личное сообщение</text>
+  <text class="mono" x="956" y="514">интервью v2.txt</text>
+  <text class="m" x="1096" y="514">истории STAR</text>
+  <text class="mono" x="956" y="536">вопросы работодателю v1.txt</text>
+  <text class="mono" x="956" y="558">резюме под вакансию v2.txt</text>
+
+  <!-- Данные профиля -->
+  <rect class="data" x="40" y="556" width="880" height="262" rx="10"/>
+  <text class="h" x="56" y="582">профили/&lt;имя&gt;/ — всё о человеке, обычные файлы</text>
+
+  <text class="hs" x="56" y="610">настройки</text>
+  <text class="mono" x="56" y="634">профиль.json</text>
+  <text class="m" x="180" y="634">модель, согласия, hh</text>
+  <text class="mono" x="56" y="656">резюме.md</text>
+  <text class="m" x="180" y="656">факты для оценок</text>
+  <text class="mono" x="56" y="678">критерии.txt</text>
+  <text class="m" x="180" y="678">жёсткие К1…Кn и мягкие</text>
+  <text class="mono" x="56" y="700">образец письма.txt</text>
+  <text class="m" x="200" y="700">стиль</text>
+  <text class="mono" x="56" y="722">поиски.txt</text>
+  <text class="m" x="180" y="722">запросы для hh</text>
+  <text class="mono" x="56" y="744">анкета.json</text>
+  <text class="m" x="180" y="744">ответы мастера</text>
+  <text class="mono" x="56" y="766">hh-запросы.json</text>
+  <text class="m" x="180" y="766">предел hh на день</text>
+
+  <text class="hs" x="356" y="610">вакансии</text>
+  <text class="mono" x="356" y="634">vacancies/</text>
+  <text class="m" x="460" y="634">текст вакансий</text>
+  <text class="mono" x="356" y="656">разборы/</text>
+  <text class="m" x="460" y="656">оценка, заметка, референсер</text>
+  <text class="mono" x="356" y="678">письма/</text>
+  <text class="m" x="460" y="678">в т. ч. референсерам, версии</text>
+  <text class="mono" x="356" y="700">интервью/</text>
+  <text class="m" x="460" y="700">STAR, вопросы работодателю</text>
+  <text class="mono" x="356" y="722">резюме под вакансию/</text>
+  <text class="m" x="510" y="722">советы, версии</text>
+  <text class="mono" x="356" y="744">vacancy-status.md</text>
+  <text class="m" x="500" y="744">статусы, флаги</text>
+  <text class="mono" x="356" y="766">просмотрено.txt</text>
+  <text class="m" x="490" y="766">что видел поиск</text>
+  <text class="mono" x="356" y="788">Сводка.md</text>
+  <text class="m" x="460" y="788">таблицы для Obsidian</text>
+
+  <text class="hs" x="656" y="610">контакты, калибровка, история</text>
+  <text class="mono" x="656" y="634">контакты.json</text>
+  <text class="m" x="776" y="634">знакомые, статусы</text>
+  <text class="mono" x="656" y="656">мои-оценки.md</text>
+  <text class="m" x="776" y="656">ваши оценки</text>
+  <text class="mono" x="656" y="678">калибровка.json</text>
+  <text class="m" x="796" y="678">выбор</text>
+  <text class="mono" x="656" y="700">настройка/</text>
+  <text class="m" x="752" y="700">прогоны, отчёт</text>
+  <text class="mono" x="656" y="722">история критериев/</text>
+  <text class="mono" x="656" y="744">история образца письма/</text>
+  <text class="m" x="656" y="766">все версии с показателями</text>
+
+  <text class="m" x="56" y="810">Номер вакансии (01, 02 …) — общий ключ во всех папках и в статусах.</text>
+
+  <!-- Obsidian -->
+  <rect class="ext opt" x="940" y="600" width="310" height="120" rx="10"/>
+  <text class="h" x="956" y="626">Obsidian — по желанию</text>
+  <text class="t" x="956" y="650">открывает те же файлы профиля</text>
+  <text class="m" x="956" y="670">Сводка.md — таблицы по статусам;</text>
+  <text class="m" x="956" y="687">плагин Meta Bind — статусы и заметки</text>
+  <text class="m" x="956" y="704">для работы не нужен</text>
+
+  <!-- Стрелки -->
+  <path class="arrow2" d="M340,175 L398,175"/>
+  <text class="lbl" x="346" y="166">запросы</text>
+  <path class="arrow2 dash" d="M340,344 L398,344"/>
+  <text class="lbl" x="346" y="335">:8766</text>
+  <path class="arrow dash" d="M40,250 L24,250 L24,456 L38,456"/>
+  <path class="arrow dash" d="M340,470 L398,470"/>
+  <text class="lbl" x="346" y="461">.zip</text>
+
+  <path class="arrow" d="M880,146 L938,146"/>
+  <text class="lbl" x="886" y="138">чтение</text>
+  <path class="arrow2" d="M880,250 L938,250"/>
+  <text class="lbl" x="886" y="242">промпт</text>
+  <path class="arrow2 dash" d="M880,329 L938,329"/>
+  <text class="lbl" x="886" y="321">или</text>
+  <path class="arrow" d="M938,440 L882,440"/>
+  <text class="lbl" x="886" y="432">шаблоны</text>
+
+  <path class="arrow2" d="M640,508 L640,554"/>
+  <text class="lbl" x="650" y="536">чтение и запись (через временный файл)</text>
+  <path class="arrow dash" d="M938,660 L922,660"/>
+
+  <!-- Подвал -->
+  <text class="t" x="40" y="858">С локальной моделью всё работает на компьютере: наружу — только страницы вакансий, проверка обновлений и курс ЦБ. С GigaChat резюме, критерии и вакансии уходят в Сбер.</text>
+  <text class="m" x="40" y="882">Пунктир — необязательное: облачная модель, доступ с других устройств, LinkedIn и Сетка, письма по кнопке, Obsidian. Программа сама ничего не отправляет.</text>
+</svg>

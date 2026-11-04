@@ -1,0 +1,78 @@
+name: build
+
+# Установщики: Mac (.dmg — Apple Silicon и Intel) и Windows (setup .exe). Запуск вручную или по тегу v*.
+on:
+  workflow_dispatch:
+  push:
+    tags: ["v*"]
+
+jobs:
+  mac:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-15, macos-15-intel]          # Apple Silicon и Intel (macos-14 — подолгу без свободных машин)
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Сборка
+        run: |
+          python -m pip install "pyinstaller==6.11.1" -r requirements.txt
+          bash packaging/build_mac.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mac-${{ runner.arch }}
+          path: dist/*.dmg
+
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Программа
+        run: |
+          python -m pip install "pyinstaller==6.11.1" -r requirements.txt
+          pyinstaller --noconfirm --clean --distpath dist --workpath build packaging/vacancy_assistant.spec
+      - name: Установщик
+        shell: pwsh
+        run: |
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) { choco install innosetup -y --no-progress; }
+          $version = python -c "import vacancy_assistant; print(vacancy_assistant.__version__)"
+          & $iscc "/DAppVersion=$version" packaging\windows.iss
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows
+          path: dist/*.exe
+
+  # Релиз в публичном репозитории релизов (#26): установщики и latest.json — по нему программа узнаёт о новой версии.
+  # Нужен секрет RELEASES_TOKEN (токен с правом Contents: write на romanmigal/job-search-assistant-releases); без него шаг пропускается.
+  publish:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [mac, windows]
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.RELEASES_TOKEN }}
+      REPO: romanmigal/job-search-assistant-releases
+      TAG: ${{ github.ref_name }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - name: Релиз и latest.json
+        if: env.GH_TOKEN != ''
+        run: |
+          git fetch --force --tags
+          export NOTES="$(python3 -c 'import os, vacancy_assistant.updates as u; print(u.release_notes(os.environ["TAG"]))')"
+          [ -n "$NOTES" ] || NOTES="$(git tag -l --format='%(contents)' "$TAG")"   # нет раздела в «Что нового» — текст тега
+          python3 -c 'import json, os; t = os.environ["TAG"]; json.dump({"version": t.lstrip("v"), "url": "https://github.com/" + os.environ["REPO"] + "/releases/tag/" + t, "notes": os.environ["NOTES"].strip()}, open("dist/latest.json", "w", encoding="utf-8"), ensure_ascii=False)'
+          gh release create "$TAG" dist/* --repo "$REPO" --title "Помощник по вакансиям ${TAG#v}" --notes "$NOTES"

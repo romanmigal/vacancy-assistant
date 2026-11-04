@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Помощник по вакансиям</title>
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <h1>Помощник по вакансиям</h1>
+  <span class="who" id="who"></span>
+  <select id="profile" title="Профиль"></select>
+  <button class="primary icon hhbtn" id="btnUpdate" title="Найти новые вакансии на hh.ru — поиск по запросам профиля и разбор" aria-label="Найти новые вакансии на hh.ru"><span class="hh" aria-hidden="true">hh</span></button>
+  <button class="primary icon" id="btnAdd" title="Добавить вакансию — по ссылке, сохранённой страницей или текстом" aria-label="Добавить вакансию"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></svg></button>
+  <div class="menuwrap">
+    <button class="icon" id="btnInfo" title="Справочники и аналитика: итоги недели, статистика, зарплаты, резюме против рынка, компании, контакты, где искать вакансии" aria-label="Справочники и аналитика" aria-haspopup="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3v18h18"/><path d="M7 16v-4M12 16V8M17 16v-7"/></svg></button>
+    <div class="menu" id="infoMenu" hidden>
+      <div class="mhead">Справочники и аналитика</div>
+      <button id="mWeekly" title="Неделя рядом с предыдущей и всем временем: где затык и что с этим делать"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/><path d="m8.5 15 2.5 2.5 5-5"/></svg>Итоги недели…</button>
+      <button id="mStats" title="Вакансии, разборы и отклики по дням, неделям и месяцам"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>Статистика…</button>
+      <button id="mSalaries" title="Вилки из вакансий профиля: медиана, разброс, группы и ваша планка"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/><path d="M6 12h.01M18 12h.01"/></svg>Зарплаты…</button>
+      <button id="mMarket" title="Чего не хватает резюме и что прокачать: вакансии с откликом и те, что подходят вам, а модель отвергла"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/><path d="M8 13h5M8 17h3"/><circle cx="17" cy="16" r="2.5"/><path d="m19 18 2 2"/></svg>Резюме против рынка…</button>
+      <button id="mCompanies" title="Компании из вакансий профиля: тип, сайт, рейтинг hh, отчётность, вакансии"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 21h18"/><path d="M5 21V7l7-4v18"/><path d="M19 21V11l-7-3"/><path d="M9 9v.01M9 13v.01M9 17v.01"/></svg>Компании…</button>
+      <button id="mContacts"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20v-1a5.5 5.5 0 0 1 11 0v1"/><circle cx="17" cy="9" r="2.5"/><path d="M15.5 14.2A4.5 4.5 0 0 1 21.5 18.5v1"/></svg>Контакты…</button>
+      <button id="mLinks" title="Сайты, Telegram-каналы, агентства и сообщества — открываются в браузере"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a14 14 0 0 1 0 18a14 14 0 0 1 0-18"/></svg>Где искать вакансии…</button>
+    </div>
+  </div>
+  <button id="btnJob" class="icon" title="Задачи: идут, в очереди и законченные за час" aria-label="Задачи"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 2h12M6 22h12M7 2v4a5 5 0 0 0 10 0V2M7 22v-4a5 5 0 0 1 10 0v4"/></svg><span class="badge" id="jobCount"></span></button>
+  <button class="icon" id="btnRescore" hidden title="Пересчитать оценки по новым данным" aria-label="Пересчитать оценки по новым данным"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.6-6.4"/><path d="M21 3v6h-6"/></svg><span class="badge" id="rescoreCount"></span></button>
+  <div class="menuwrap">
+    <button class="icon" id="btnFavs" title="Любимые сайты вакансий" aria-label="Любимые сайты вакансий" aria-haspopup="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17.3l-5.6 2.9 1.1-6.2L3 9.6l6.2-.9z"/></svg></button>
+    <div class="menu" id="favMenu" hidden></div>
+  </div>
+  <div class="menuwrap">
+    <button class="icon" id="btnTheme" title="Тема" aria-label="Тема" aria-haspopup="true"></button>
+    <div class="menu" id="themeMenu" hidden>
+      <button data-theme-opt="system"></button>
+      <button data-theme-opt="light"></button>
+      <button data-theme-opt="dark"></button>
+    </div>
+  </div>
+  <div class="menuwrap">
+    <button class="icon" id="btnParams" title="Параметры" aria-label="Параметры"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
+    <div class="menu" id="paramsMenu" hidden>
+      <div class="mhead" id="mProfileName">Профиль</div>
+      <button id="mEdit"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a6 6 0 0 1 6-6h1"/><path d="m16.5 14.5 3 3L15 22h-3v-3z"/></svg>Редактировать профиль…</button>
+      <button id="mResume" class="sub" title="Профиль сразу на шаге «Резюме» — там же «Дополнительно о себе»">Резюме</button>
+      <button id="mCrit" class="sub" title="Профиль сразу на шаге «Критерии модели»">Критерии модели</button>
+      <button id="mLetter" class="sub" title="Образцы сопроводительного письма — до трёх, у каждого своя история правок">Шаблоны писем</button>
+      <div class="msep"></div>
+      <button id="mCalib"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></svg>Калибровка критериев…</button>
+      <div class="msep"></div>
+      <button id="mSettings"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>Настройки…</button>
+      <button id="mBackup"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 8v13H3V8"/><path d="M1 3h22v5H1z"/><path d="M10 12h4"/></svg>Резервная копия…</button>
+      <div class="msep"></div>
+      <button id="mHelp" title="Описание программы — в новой вкладке браузера"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 0 1 4.9.8c0 1.7-2.4 2.2-2.4 3.7"/><path d="M12 17h.01"/></svg>Помощь</button>
+      <button id="mAbout"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v6"/><path d="M12 7h.01"/></svg>О программе</button>
+      <div class="msep"></div>
+      <button id="mQuit"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2v10"/><path d="M18.4 6.6a9 9 0 1 1-12.8 0"/></svg>Выйти из программы</button>
+    </div>
+  </div>
+</header>
+<div class="updbar" id="updBar" hidden></div>
+<div class="updbar" id="weekBar" hidden></div>
+<div class="addbox" id="addbox">
+  <input type="text" id="links" placeholder="Ссылки на вакансии — hh.ru или любой другой сайт, одна или несколько">
+  <button class="primary" id="btnAddGo">Добавить и разобрать</button>
+  <button id="btnAddPage" title="Страница вакансии, сохранённая в браузере (⌘S или Ctrl+S), — файл .html, или письмо hh с новыми вакансиями — файл .eml. Программа читает файл без обращения к сайту. Файл можно и просто перетащить в окно">Загрузить файл…</button>
+  <input type="file" id="pageFile" accept=".html,.htm,text/html,.eml,message/rfc822" multiple hidden>
+  <button id="btnAddText" title="Если сайт не отдаёт страницу программе (нужен вход или страница собирается в браузере) — скопируйте текст вакансии и вставьте">Вставить текст…</button>
+  <p class="hint addhint" id="addHint"></p>
+</div>
+<div class="menu fmenu" id="fmenu" hidden></div>
+<main id="main">
+  <section class="list">
+    <div class="tabs"><div class="tabbtns" id="tabs"></div>
+      <div class="menuwrap"><button class="icon colsbtn" id="btnCols" title="Колонки таблицы: какие показывать и в каком порядке" aria-label="Колонки таблицы" aria-haspopup="true"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16M15 4v16"/></svg></button>
+        <div class="menu cols" id="colsMenu" hidden></div></div></div>
+    <div class="fbar" id="fbar" hidden></div>
+    <div class="psort" id="psort"></div>
+    <table class="vac"><thead><tr id="heads"></tr></thead><tbody id="rows"></tbody></table>
+    <div class="empty" id="empty" hidden></div>
+  </section>
+  <div class="splitter" id="splitter" title="Потяните, чтобы изменить ширину панелей. Двойной щелчок — ширина по умолчанию"></div>
+  <section class="detail" id="detail"><div class="empty">Выберите вакансию в списке.</div></section>
+</main>
+<div class="joblog" id="joblog">
+  <div class="bar"><span>Задачи</span><button id="jobclose">Скрыть</button></div>
+  <div id="joblist"></div>
+</div>
+<div class="wiz" id="wiz"><div class="wbox">
+  <div class="whead"><h2 id="wtitle">Новый профиль</h2><div class="steps" id="wsteps"></div></div>
+  <div class="wbody" id="wbody"></div>
+  <div class="wfoot" id="wfoot"></div>
+</div></div>
+<div class="peek" id="calPeek" hidden></div>
+<div class="toast" id="toast"></div>
+
+<script>
+const TOKEN = "{{TOKEN}}";
+const REMOTE = {{REMOTE}};   // окно открыто с другого устройства домашней сети
+</script>
+<script src="js/core.js"></script>
+<script src="js/tasks.js"></script>
+<script src="js/main.js"></script>
+<script src="js/filters.js"></script>
+<script src="js/wizard.js"></script>
+<script src="js/calibration.js"></script>
+<script src="js/fix.js"></script>
+<script src="js/settings.js"></script>
+<script src="js/contacts.js"></script>
+<script src="js/funnel.js"></script>
+<script src="js/templates.js"></script>
+<script src="js/artifacts.js"></script>
+<script src="js/columns.js"></script>
+<script src="js/stats.js"></script>
+<script src="js/weekly.js"></script>
+<script src="js/salaries.js"></script>
+<script src="js/companies.js"></script>
+<script src="js/market.js"></script>
+<script>start().catch(fail);</script>
+</body>
+</html>

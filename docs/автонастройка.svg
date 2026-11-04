@@ -1,0 +1,156 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 880" width="1080" height="880" font-family="-apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">
+  <title>Автонастройка критериев</title>
+  <style>
+    :root {
+      --bg: #ffffff; --ink: #1d2430; --muted: #5b6573; --line: #8a94a3;
+      --code-bg: #eef3f8; --code-bd: #1f4e79; --code-ink: #1f4e79;
+      --cfg-bg: #f3effa; --cfg-bd: #6b4fa3;
+      --data-bg: #eef7f0; --data-bd: #2f7a45;
+      --ext-bg: #fdf3e7; --ext-bd: #b06a1b;
+      --no: #b3412e; --yes: #2f7a45;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #16191f; --ink: #e6e9ee; --muted: #a3acb9; --line: #7d8796;
+        --code-bg: #1b2a3a; --code-bd: #6fa8dc; --code-ink: #9cc7ee;
+        --cfg-bg: #251f33; --cfg-bd: #a58bdb;
+        --data-bg: #1a2a20; --data-bd: #6cc28a;
+        --ext-bg: #2e2416; --ext-bd: #e0a35a;
+        --no: #f08a76; --yes: #6cc28a;
+      }
+    }
+    .bg { fill: var(--bg); }
+    .t { fill: var(--ink); font-size: 13px; }
+    .m { fill: var(--muted); font-size: 12px; }
+    .h { fill: var(--ink); font-size: 15px; font-weight: 600; }
+    .title { fill: var(--ink); font-size: 22px; font-weight: 700; }
+    .mono { font-family: Menlo, Consolas, monospace; font-size: 12px; fill: var(--ink); }
+    .code { fill: var(--code-bg); stroke: var(--code-bd); stroke-width: 1.5; }
+    .cfg { fill: var(--cfg-bg); stroke: var(--cfg-bd); stroke-width: 1.5; }
+    .data { fill: var(--data-bg); stroke: var(--data-bd); stroke-width: 1.5; }
+    .ext { fill: var(--ext-bg); stroke: var(--ext-bd); stroke-width: 1.5; }
+    .step { fill: var(--code-ink); font-size: 13px; font-weight: 700; }
+    .arrow { stroke: var(--line); stroke-width: 1.6; fill: none; marker-end: url(#a); }
+    .loop { stroke: var(--code-bd); stroke-width: 1.8; fill: none; stroke-dasharray: 7 5; marker-end: url(#b); }
+    .lbl { fill: var(--muted); font-size: 11.5px; }
+    .yes { fill: var(--yes); font-size: 12px; font-weight: 600; }
+    .no { fill: var(--no); font-size: 12px; font-weight: 600; }
+  </style>
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#8a94a3"/>
+    </marker>
+    <marker id="b" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#1f4e79"/>
+    </marker>
+  </defs>
+
+  <rect class="bg" x="0" y="0" width="1080" height="880"/>
+  <text class="title" x="40" y="40">Автонастройка критериев — последний шаг калибровки</text>
+  <text class="m" x="40" y="62">Модель (Gemma или GigaChat) прогоняет эталонные вакансии, предлагает правки критериев и оставляет только те, что улучшают совпадение с вашими оценками</text>
+
+  <!-- Входы -->
+  <rect class="data" x="40" y="90" width="250" height="100" rx="10"/>
+  <text class="h" x="56" y="114">мои-оценки.md — эталон</text>
+  <text class="t" x="56" y="138">ваше решение «да / возможно / нет»</text>
+  <text class="t" x="56" y="158">и причина «почему»</text>
+  <text class="m" x="56" y="178">заполняет человек: «Мои оценки»</text>
+
+  <rect class="cfg" x="40" y="220" width="250" height="80" rx="10"/>
+  <text class="h" x="56" y="244">критерии.txt — текущие</text>
+  <text class="t" x="56" y="266">версия v0</text>
+  <text class="m" x="56" y="286">во время настройки не меняется</text>
+
+  <!-- 1. Прогон -->
+  <rect class="code" x="360" y="90" width="320" height="90" rx="10"/>
+  <text class="step" x="376" y="114">1. Прогон на эталоне</text>
+  <text class="t" x="376" y="138">оценка тем же способом, что в работе</text>
+  <text class="m" x="376" y="158">одинаковый seed — сравниваем версии, а не шум</text>
+  <text class="m" x="376" y="172">→ показатели</text>
+
+  <!-- 2. Предложение -->
+  <rect class="ext" x="360" y="220" width="320" height="100" rx="10"/>
+  <text class="step" x="376" y="244">2. Модель предлагает правку</text>
+  <text class="t" x="376" y="268">видит: ошибки модели, ваши причины,</text>
+  <text class="t" x="376" y="286">неудачные прошлые попытки</text>
+  <text class="m" x="376" y="308">сначала — пропущенные подходящие</text>
+
+  <!-- 3. Проверка -->
+  <rect class="code" x="360" y="360" width="320" height="90" rx="10"/>
+  <text class="step" x="376" y="384">3. Проверка кандидата</text>
+  <text class="t" x="376" y="408">нумерация К1, К2…, не больше 8 жёстких,</text>
+  <text class="t" x="376" y="426">нет компаний из эталона</text>
+  <text class="m" x="376" y="442">защита от подгонки под конкретные вакансии</text>
+
+  <!-- 4. Прогон кандидата -->
+  <rect class="code" x="360" y="490" width="320" height="76" rx="10"/>
+  <text class="step" x="376" y="514">4. Прогон кандидата</text>
+  <text class="t" x="376" y="538">те же вакансии, тот же seed</text>
+  <text class="m" x="376" y="556">→ показатели кандидата</text>
+
+  <!-- 5. Сравнение -->
+  <rect class="code" x="360" y="606" width="320" height="96" rx="10"/>
+  <text class="step" x="376" y="630">5. Лучше лучшей версии?</text>
+  <text class="t" x="376" y="654">меньше пропущенных подходящих →</text>
+  <text class="t" x="376" y="672">больше совпавших решений → оценок ±2 →</text>
+  <text class="t" x="376" y="690">меньше среднее расхождение</text>
+
+  <!-- История -->
+  <rect class="cfg" x="760" y="220" width="260" height="84" rx="10"/>
+  <text class="h" x="776" y="244">история неудачных правок</text>
+  <text class="t" x="776" y="268">передаётся в шаг 2,</text>
+  <text class="t" x="776" y="286">чтобы модель не повторялась</text>
+
+  <!-- Лучшая версия -->
+  <rect class="data" x="760" y="490" width="260" height="76" rx="10"/>
+  <text class="h" x="776" y="514">лучшая версия</text>
+  <text class="t" x="776" y="538">кандидат становится</text>
+  <text class="t" x="776" y="556">основой следующего раунда</text>
+
+  <!-- Выход -->
+  <rect class="data" x="360" y="752" width="320" height="100" rx="10"/>
+  <text class="h" x="376" y="776">настройка/ — результат</text>
+  <text class="mono" x="376" y="800">отчёт.md</text>
+  <text class="m" x="456" y="800">версии, показатели, разница</text>
+  <text class="mono" x="376" y="820">критерии — лучшие.txt</text>
+  <text class="mono" x="376" y="840">критерии vN.txt · vN/</text>
+  <text class="m" x="540" y="840">все кандидаты</text>
+
+  <rect class="ext" x="760" y="752" width="260" height="100" rx="10"/>
+  <text class="h" x="776" y="776">решает человек</text>
+  <text class="t" x="776" y="800">смотрит разницу → «Применить»</text>
+  <text class="t" x="776" y="820">прежние — в истории версий</text>
+  <text class="m" x="776" y="840">затем — переоценка вакансий</text>
+
+  <!-- Стрелки: входы -->
+  <path class="arrow" d="M290,135 L358,135"/>
+  <path class="arrow" d="M290,260 L325,260 L325,162 L358,162"/>
+
+  <!-- Основной поток -->
+  <path class="arrow" d="M520,180 L520,218"/>
+  <text class="lbl" x="528" y="204">показатели v0</text>
+  <path class="arrow" d="M520,320 L520,358"/>
+  <text class="lbl" x="528" y="344">кандидат</text>
+  <path class="arrow" d="M520,450 L520,488"/>
+  <text class="yes" x="528" y="474">прошёл</text>
+  <path class="arrow" d="M520,566 L520,604"/>
+
+  <!-- Ветки -->
+  <path class="arrow" d="M680,405 L840,405 L840,306"/>
+  <text class="no" x="692" y="397">не прошёл</text>
+  <path class="arrow" d="M680,670 L1050,670 L1050,262 L1022,262"/>
+  <text class="no" x="700" y="688">нет</text>
+  <path class="arrow" d="M680,640 L890,640 L890,568"/>
+  <text class="yes" x="700" y="632">да</text>
+  <path class="arrow" d="M760,262 L682,262"/>
+
+  <!-- Цикл раундов -->
+  <path class="loop" d="M360,654 L325,654 L325,290 L358,290"/>
+  <text class="lbl" x="200" y="474">следующий раунд</text>
+  <text class="lbl" x="200" y="490">(3 раунда)</text>
+
+  <!-- Выход -->
+  <path class="arrow" d="M520,702 L520,750"/>
+  <text class="lbl" x="528" y="732">после 3 раундов или когда все решения совпали</text>
+  <path class="arrow" d="M680,802 L758,802"/>
+</svg>
