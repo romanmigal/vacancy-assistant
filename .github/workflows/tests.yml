@@ -10,7 +10,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-latest, ubuntu-latest]
+        os: [windows-latest, ubuntu-24.04]      # в ubuntu-latest (26.04) нет Python 3.9
         python: ["3.9", "3.12"]
     runs-on: ${{ matrix.os }}
     steps:
