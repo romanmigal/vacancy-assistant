@@ -1,4 +1,7 @@
 """Проверка обновлений (#26): сравнение версий, раз в день, выключатель, недоступный адрес — тихо."""
+import os
+import shutil
+import subprocess
 import unittest
 from datetime import date
 from pathlib import Path
@@ -103,6 +106,20 @@ class State(unittest.TestCase):
         self.assertFalse(app.handle("POST", "/api/updates", {}, {"enabled": False})["enabled"])
         self.assertFalse(U.load(self.folder)["enabled"])
         self.assertTrue(app.handle("POST", "/api/updates", {}, {"check": True})["newer"])     # при выключенной — тоже
+
+
+class MacInstall(unittest.TestCase):
+    """Команда установки на Mac (#27): скрипт на месте и разбирается bash, во всех инструкциях — одна и та же строка."""
+    ROOT = Path(__file__).resolve().parent.parent
+
+    def test_script(self):
+        from vacancy_assistant import settings
+        script = self.ROOT / "packaging/install_mac.sh"
+        self.assertIn("/main/packaging/install_mac.sh", settings.MAC_INSTALL)
+        if shutil.which("bash") and os.name != "nt":
+            self.assertEqual(subprocess.run(["bash", "-n", str(script)]).returncode, 0)
+        for doc in ("README.md", "packaging/releases-README.md", "packaging/Как установить на Mac.txt"):
+            self.assertIn(settings.MAC_INSTALL, (self.ROOT / doc).read_text(encoding="utf-8"), doc)
 
 
 if __name__ == "__main__":

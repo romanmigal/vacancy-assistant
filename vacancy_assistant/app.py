@@ -765,7 +765,8 @@ class App:
     def api_updates(self, p, a):
         if "enabled" in a:
             updates.set_enabled(self.config_dir, a.get("enabled"))
-        return updates.state(self.config_dir, self.fetch_latest, force=bool(a.get("check")))   # «Проверить обновления» (#63)
+        out = updates.state(self.config_dir, self.fetch_latest, force=bool(a.get("check")))   # «Проверить обновления» (#63)
+        return {**out, "mac_install": settings.MAC_INSTALL} if sys.platform == "darwin" else out   # плашка: обновить командой
 
     @route("/api/cloud", "ANY", profile=False, local=True, writes=True)    # облачная модель GigaChat
     def api_cloud(self, p, a):

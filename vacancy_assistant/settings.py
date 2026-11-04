@@ -52,6 +52,8 @@ RELEASES_PAGE = "https://github.com/romanmigal/job-search-assistant-releases/rel
 UPDATES_URL = RELEASES_PAGE + "/latest/download/latest.json"                             # проверка обновлений (#26)
 CONTACT_EMAIL = "job_search_assistant@inbox.ru"           # «О программе» и README: ошибки, вопросы, идеи
 SOURCE_URL = "https://github.com/romanmigal/vacancy-assistant"   # исходный код (GPL-3.0) — ссылка в «О программе»; пусто — без ссылки
+# Установка и обновление на Mac командой в Терминале (#27): без карантина — без предупреждения о неподписанной программе
+MAC_INSTALL = "curl -fsSL https://raw.githubusercontent.com/romanmigal/vacancy-assistant/main/packaging/install_mac.sh | bash"
 
 # hh.ru отдаёт страницу только «браузеру», поэтому представляемся Chrome
 USER_AGENT = ("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "

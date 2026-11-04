@@ -1114,8 +1114,11 @@ function showUpdate(u) {
   $("updBar").innerHTML = `<b>Есть версия ${esc(u.latest.version)}</b> <span class="muted">(у вас ${esc(u.current)})</span>
     ${u.latest.notes ? `<details><summary>Что нового</summary><div class="small">${esc(u.latest.notes).replace(/\*\*(.+?)\*\*/g, "<b>$1</b>").replace(/\n/g, "<br>")}</div></details>` : ""}
     <a href="${esc(u.latest.url)}" target="_blank" rel="noopener">Скачать</a>
+    ${u.mac_install ? `<button type="button" class="small" id="updCmd" title="Выйдите из программы и вставьте команду в Терминал: она скачает и поставит новую версию без предупреждения macOS">Скопировать команду для Терминала</button>` : ""}
     <button type="button" class="small" id="updHide" title="Не показывать до следующей версии">Скрыть</button>`;
   $("updBar").hidden = false;
+  if ($("updCmd")) $("updCmd").onclick = () => navigator.clipboard.writeText(u.mac_install)
+    .then(() => toast("Команда скопирована. Выйдите из программы («Параметры → Выйти из программы») и вставьте её в Терминал"), fail);
   $("updHide").onclick = () => { remember("updHidden", u.latest.version); $("updBar").hidden = true; };
 }
 
