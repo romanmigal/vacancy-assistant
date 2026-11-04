@@ -75,4 +75,6 @@ jobs:
           export NOTES="$(python3 -c 'import os, vacancy_assistant.updates as u; print(u.release_notes(os.environ["TAG"]))')"
           [ -n "$NOTES" ] || NOTES="$(git tag -l --format='%(contents)' "$TAG")"   # нет раздела в «Что нового» — текст тега
           python3 -c 'import json, os; t = os.environ["TAG"]; json.dump({"version": t.lstrip("v"), "url": "https://github.com/" + os.environ["REPO"] + "/releases/tag/" + t, "notes": os.environ["NOTES"].strip()}, open("dist/latest.json", "w", encoding="utf-8"), ensure_ascii=False)'
-          gh release create "$TAG" dist/* --repo "$REPO" --title "Помощник по вакансиям ${TAG#v}" --notes "$NOTES"
+          # строка про архивы — только на странице релиза, не в latest.json (его заметки программа показывает в окне)
+          BODY="$NOTES"$'\n\n---\n'"Архивы «Source code» ниже GitHub добавляет сам — в них только README этой страницы. Исходный код программы — https://github.com/romanmigal/vacancy-assistant"
+          gh release create "$TAG" dist/* --repo "$REPO" --title "Помощник по вакансиям ${TAG#v}" --notes "$BODY"
