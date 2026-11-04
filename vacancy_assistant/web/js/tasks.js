@@ -12,7 +12,7 @@ const lastStatus = {}, seenLines = {};   // id → статус и число с
 let refreshing = false;
 
 const isActive = t => TASK_ACTIVE.includes(t.status);
-// Режим «Без модели» (#50): эти действия зовут модель — кнопки неактивны, run() их не отправляет (сервер тоже откажет)
+// Режим «Без модели»: эти действия зовут модель — кнопки неактивны, run() их не отправляет (сервер тоже откажет)
 const NEEDS_MODEL = ["analyze", "refresh", "tune", "rescore_all", "letter", "referrer_letter", "interview", "interview_questions", "resume_fit", "market_advice",
   "fix_suggest", "fix_check", "fix_recheck", "market_recheck"];
 const NO_MODEL_HINT = "Нужна модель — включите локальную или облачную в «Параметры → Настройки»";
@@ -165,7 +165,7 @@ function finished(t) {
     toast(t.status === "stopped" ? `Остановлено: ${t.title}` : `Готово: ${t.title}`, {label: "Показать лог", onClick: () => showLog(t.id)});
   if (t.action === "tune" && t.status === "done") openCalibration(2);   // показать итог автонастройки
   else if (["fix_suggest", "fix_check", "fix_recheck"].includes(t.action) && t.status === "done" && F.n) openFix(F.n);   // итог правки по вакансии
-  else if (["market_advice", "market_recheck"].includes(t.action) && t.status === "done") openMarket(true);   // «Резюме против рынка» (#70, #80)
+  else if (["market_advice", "market_recheck"].includes(t.action) && t.status === "done") openMarket(true);   // «Резюме против рынка»
   else if (t.kind === "batch") suggestCalibration();
 }
 

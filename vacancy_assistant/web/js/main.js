@@ -25,7 +25,7 @@ async function load(profile) {
 }
 
 // Поиск на hh.ru: кнопка «hh» — только если он включён; иначе вакансии добавляются вручную.
-// Включены только ленты Хабр Карьеры и GeekJob (#39) — кнопка «RSS»
+// Включены только ленты Хабр Карьеры и GeekJob — кнопка «RSS»
 function showHh() {
   const on = hhOn(), feeds = rssOn() ? state.rss.map(f => ({habr: "Хабр Карьеры", geekjob: "GeekJob"})[f]).join(" и ") : "";
   $("btnUpdate").hidden = !!state.profile && !on && !feeds && state.hh?.state !== "ask";
@@ -90,7 +90,7 @@ function render() {
     : `<tr class="row ${r.n === selected ? "sel" : ""}" data-n="${r.n}">${cols.map(([key]) => CELLS[key](r)).join("")}
     </tr>`).join("");
   renderPhoneSort(cols);
-  // Кнопка ↻ в шапке — всегда, кроме «Без модели» (#76); число — сколько вакансий оценено по прежним данным
+  // Кнопка ↻ в шапке — всегда, кроме «Без модели»; число — сколько вакансий оценено по прежним данным
   const stale = state.rows.filter(r => r.criteria_changed).length;
   $("btnRescore").hidden = state.no_model;
   $("rescoreCount").textContent = stale || "";
@@ -142,18 +142,18 @@ const CELLS = {
   artifacts: r => `<td class="num">${r.artifacts || ""}</td>`,
 };
 
-// Своя оценка (#79): «7 · да · 03.11»; причина — при наведении
+// Своя оценка: «7 · да · 03.11»; причина — при наведении
 const MY_TONE = {"да": "s-good", "возможно": "s-mid", "нет": "s-bad"};
 // Своя оценка — как «Оценка ИИ»: общая и под ней могу/хочу (у старых оценок «Могу» и «Хочу» нет — «?/?»)
 const myTip = r => `Моя оценка${r.my_date ? " от " + ddmmyyyy(r.my_date) : ""}: могу / хочу${r.my_reason ? "\n" + r.my_reason : ""}`;
 const myRating = r => r.my_decision ? `<span title="${esc(myTip(r))}">`
   + `<b>${r.my_score ?? "?"}</b> <span class="muted">(${r.my_can ?? "?"}/${r.my_want ?? "?"})</span> · <span class="${MY_TONE[r.my_decision]}">${r.my_decision}</span>${r.my_date ? ` · <span class="muted">${ddmm(r.my_date)}</span>` : ""}</span>` : "";
 
-// Телефон (#64): узкий экран — список карточками, карточка вакансии во весь экран с кнопкой «← К списку»
+// Телефон: узкий экран — список карточками, карточка вакансии во весь экран с кнопкой «← К списку»
 const PHONE = matchMedia("(max-width: 640px)");
 PHONE.addEventListener("change", () => { if (!PHONE.matches) closePhoneDetail(); if (state) render(); });
 
-// Пометка «Возможно, дубль» (#13): та же компания и похожее название, а описание отличается — решает человек
+// Пометка «Возможно, дубль»: та же компания и похожее название, а описание отличается — решает человек
 function dupeBox(r) {
   const same = r.maybe_dupe && state.rows.find(x => x.n === r.maybe_dupe);
   if (!same) return "";
@@ -164,7 +164,7 @@ function dupeBox(r) {
     <button type="button" class="small" data-dupe="apart" title="Пометка исчезнет, обе карточки останутся">Это разные</button></span></p>`;
 }
 
-// Надбавка к «Хочу» в разборе (#74): на какие отклики похожа вакансия — со ссылками на них
+// Надбавка к «Хочу» в разборе: на какие отклики похожа вакансия — со ссылками на них
 function likeHtml(r) {
   if (!r.want_bonus) return "";
   const items = r.want_like.map(l => `<button type="button" class="linkbtn" data-like="${l.n}">${esc(l.title)}, ${esc(l.company)}</button> <span class="muted">(отклик ${ddmm(l.date)})</span>`);
@@ -239,7 +239,7 @@ const PEOPLE_WHO = [["all", "все сотрудники", ""], ["hr", "HR и р
 let peopleWho = "all";
 try { peopleWho = localStorage.getItem("peopleWho") || "all"; } catch (e) {}
 
-// «О компании» (#16): кадровое агентство или работодатель (#2), сайт, рейтинг hh (#1), отчётность, другие вакансии
+// «О компании»: кадровое агентство или работодатель, сайт, рейтинг hh, отчётность, другие вакансии
 let aboutOpen = false;
 const AGENCY_WHY = {hh: "так у работодателя на hh", name: "по названию", text: "по тексту вакансии"};
 function agencyChip(r) {
@@ -431,7 +431,7 @@ async function openVacancy(n) {
   bindFunnel(r, n);
   $("refreshCard").onclick = () => { detailTab = "analysis"; run("refresh_card", {n}); };
   if ($("critInfo")) $("critInfo").onclick = e => { e.stopPropagation(); toggleCriteria(d); };
-  // «Поставить свои оценки» → окно «Мои оценки» (#35, #78) — после ссылки на гид у блока «Оценка»: правка критериев по этой вакансии
+  // «Поставить свои оценки» → окно «Мои оценки» — после ссылки на гид у блока «Оценка»: правка критериев по этой вакансии
   const help = document.querySelector("#detail .analysis .helplink");
   if (help && !state.no_model && r.stage !== "none") {
     help.insertAdjacentHTML("afterend", `<button type="button" class="fixbtn" id="fixOpen" title="Поставить свою оценку и, если нужно, поправить критерии, резюме или «о себе» и пересчитать вакансию">✎ Поставить свои оценки</button>`);
@@ -448,7 +448,7 @@ async function openVacancy(n) {
   if ($("copyQuestions")) $("copyQuestions").onclick = () => navigator.clipboard.writeText(questions).then(() => toast("Вопросы скопированы"), fail);
   if ($("newQuestions")) $("newQuestions").onclick = () => { detailTab = "interview"; run("interview_questions", {n}); };
   document.querySelectorAll("[data-dtab]").forEach(b => b.onclick = () => { detailTab = b.dataset.dtab; openVacancy(n); });
-  document.querySelectorAll("[data-dupe]").forEach(b => b.onclick = async () => {   // склеить дубль или «это разные» (#13)
+  document.querySelectorAll("[data-dupe]").forEach(b => b.onclick = async () => {   // склеить дубль или «это разные»
     if (b.dataset.dupe === "merge" && !confirm(`Склеить с № ${r.maybe_dupe}? Ссылка этой вакансии допишется к той, а эта карточка — с разбором, письмами и этапом — уйдёт в Корзину.`)) return;
     const res = await api("/api/dupe", {profile: state.profile, n, action: b.dataset.dupe}).catch(fail);
     if (!res) return;
@@ -457,14 +457,14 @@ async function openVacancy(n) {
     if (target) { tab = target.status; render(); openVacancy(target.n); }
     toast(b.dataset.dupe === "merge" ? `Склеено с № ${res.n}` : "Пометка снята — это разные вакансии");
   });
-  document.querySelectorAll("[data-like]").forEach(b => b.onclick = () => {   // вакансия-отклик, на которую похожа эта (#74)
+  document.querySelectorAll("[data-like]").forEach(b => b.onclick = () => {   // вакансия-отклик, на которую похожа эта
     const like = state.rows.find(x => x.n === +b.dataset.like);
     if (like) { tab = like.status; render(); openVacancy(like.n); }
   });
   updateCardButtons();                          // уже в очереди — «в очереди (2-я)» вместо кнопки
 }
 
-// Вкладка «Резюме»: как подогнать резюме под вакансию — что включить, что можно не включать (#52), «Обо мне», навыки. Версии — как у писем
+// Вкладка «Резюме»: как подогнать резюме под вакансию — что включить, что можно не включать, «Обо мне», навыки. Версии — как у писем
 function resumeFitTab(r, d, n) {
   if (!r.analyzed)
     return `<p class="hint">Подогнать резюме можно после разбора вакансии: модель берёт из него ваши сильные стороны под требования.</p>`;
@@ -549,7 +549,7 @@ function bindLetters(r, d, n) {
   if ($("sentBtn")) $("sentBtn").onclick = () => openSentDialog(r, n, kind, versions[letterVersion.i] || versions[0]);
 }
 
-// «Отправлено» (#53): дата отправки этой версии письма; этап воронки сама не меняет — предлагает «Откликнулся»
+// «Отправлено»: дата отправки этой версии письма; этап воронки сама не меняет — предлагает «Откликнулся»
 function openSentDialog(r, n, kind, v) {
   const today = new Date().toLocaleDateString("sv-SE");          // 2026-10-28
   const save = async date => {
@@ -584,7 +584,7 @@ const TOOL_ICONS = {
 };
 const ibtn = (id, icon, title, cls = "", text = "") => `<button type="button" id="${id}" class="icon tool ${cls}" title="${esc(title)}" aria-label="${esc(title)}"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${TOOL_ICONS[icon]}</svg>${text ? `<span>${esc(text)}</span>` : ""}</button>`;
 
-// Правка письма или резюме под вакансию и своё письмо (#47). Черновик живёт, пока его не сохранят или не отменят:
+// Правка письма или резюме под вакансию и своё письмо. Черновик живёт, пока его не сохранят или не отменят:
 // переход на другую вакансию или вкладку, обновление окна и новая версия от модели его не затирают
 const SOURCE_NAME = {edit: "правка", own: "своё"};
 const versionLabel = (v, many) => `${v.sent ? `✉ отправлено ${ddmm(v.sent)} · ` : ""}${v.current ? "текущая · " : ""}${SOURCE_NAME[v.source] || "ИИ"}${
@@ -662,7 +662,7 @@ function openReferrerLetterDialog(n, d) {
 }
 
 // Письмо по кнопке: сначала образец — его можно поправить для этого письма (и сохранить для следующих)
-// ИИ пишет письмо: выбор шаблона (#53) и правка его текста под эту вакансию
+// ИИ пишет письмо: выбор шаблона и правка его текста под эту вакансию
 async function openLetterDialog(n, again) {
   const res = await api(`/api/letter/templates?profile=${encodeURIComponent(state.profile)}`).catch(fail);
   if (!res) return;
@@ -693,7 +693,7 @@ async function openLetterDialog(n, again) {
 $("btnUpdate").onclick = () => startSearch();
 $("btnRescore").onclick = () => openRescoreAll();
 
-// Пересчёт оценок (#76): а) только устаревшие — после оценки поменялись резюме, критерии или «о себе»;
+// Пересчёт оценок: а) только устаревшие — после оценки поменялись резюме, критерии или «о себе»;
 // б) все разобранные в выбранных разделах — например, после смены модели. В скобках — сколько вакансий
 function openRescoreAll() {
   const RA = {mode: state.rows.some(r => r.criteria_changed) ? "stale" : "all"};
@@ -851,7 +851,7 @@ function startSearch() {
   if (!state.profiles.length) return openWizard();
   if (state.hh?.state === "ask" && !rssOn()) return askHh();   // прежний профиль: сначала решение о поиске на hh.ru
   const go = () => state.rows.length ? run("update") : openFirstSearch();
-  if (!hhOn()) return rssOn() ? go() : openAdd();            // hh выключен, но есть ленты (#39) — без предупреждения про hh
+  if (!hhOn()) return rssOn() ? go() : openAdd();            // hh выключен, но есть ленты — без предупреждения про hh
   hhWarning(go);
 }
 // Перед каждым поиском на hh.ru — напоминание о риске и где поиск выключить
@@ -910,7 +910,7 @@ async function addPages(files) {
 $("btnAddPage").onclick = () => $("pageFile").click();
 $("pageFile").onchange = e => { addPages(e.target.files); e.target.value = ""; };
 
-// Письма hh с вакансиями (#66): из ссылок в письме сервер берёт только номера — в ссылках ключ входа в аккаунт
+// Письма hh с вакансиями: из ссылок в письме сервер берёт только номера — в ссылках ключ входа в аккаунт
 const isMail = f => /\.eml$/i.test(f.name) || f.type === "message/rfc822";
 async function openMails(files) {
   if (!state.profile) return openWizard();
@@ -1104,7 +1104,7 @@ async function start() {
   checkWeekly();
 }
 
-// Есть новая версия (#26): плашка со ссылкой на скачивание; «Скрыть» — до следующей версии
+// Есть новая версия: плашка со ссылкой на скачивание; «Скрыть» — до следующей версии
 async function checkUpdates() {
   const u = await api("/api/updates").catch(() => null);
   if (u?.newer && recall("updHidden") !== u.latest.version) showUpdate(u);
@@ -1122,7 +1122,7 @@ function showUpdate(u) {
   $("updHide").onclick = () => { remember("updHidden", u.latest.version); $("updBar").hidden = true; };
 }
 
-// Кнопка «Проверить обновления» (#63): проверка сейчас, ответ — в out; новая версия — и плашка сверху
+// Кнопка «Проверить обновления»: проверка сейчас, ответ — в out; новая версия — и плашка сверху
 async function checkUpdatesNow(btn, out) {
   btn.disabled = true;
   out.textContent = "Проверяю…";

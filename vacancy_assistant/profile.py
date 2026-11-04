@@ -10,7 +10,7 @@ from .textio import read_json, read_text, write_json, write_text
 # (?<!\w)…(?!\w) — целое слово: иначе «ИТ» находится внутри «развИТия»
 W = lambda words: rf"(?<!\w)(?:{words})(?!\w)"
 
-# Отбор по названию (#56). Аббревиатуры должностей бывают набраны кириллицей целиком или частью: «СТО», «IТ».
+# Отбор по названию. Аббревиатуры должностей бывают набраны кириллицей целиком или частью: «СТО», «IТ».
 # Приводим к латинице только их — и только если получилась известная аббревиатура
 LOOKALIKE = str.maketrans("АВЕКМНОРСТХаеорсух", "ABEKMHOPCTXaeopcyx")
 ROLE_ABBR = {"CTO", "CIO", "CDO", "CEO", "COO", "IT"}
@@ -138,7 +138,7 @@ REFERRER_CHANNELS = {
 
 
 FACTS_FILE = "о себе.md"
-# Шаблоны разбора требуют подтверждения «в резюме» — без прямого указания модель факты отсюда не засчитывала (#51)
+# Шаблоны разбора требуют подтверждения «в резюме» — без прямого указания модель факты отсюда не засчитывала
 FACTS_HEAD = ("Дополнительно о себе — этого нет в резюме выше, но это тоже правда о моём опыте. Считай эти факты частью "
               "резюме: требование вакансии, которое подтверждается фактом отсюда, считай подтверждённым (✅) — так же, "
               "как фактом из резюме, и ссылайся на этот факт. Учитывай их в «Могу», в сильных сторонах, в пробелах "
@@ -161,7 +161,7 @@ class Profile:
         c = self.config
         self.vault_prefix = c.get("путь_в_obsidian", "").strip("/")   # путь от корня хранилища Obsidian
         self.resume = (self.dir / c["резюме"]).resolve()
-        self.facts_file = self.dir / FACTS_FILE         # «Дополнительно о себе» — факты вне резюме (#51)
+        self.facts_file = self.dir / FACTS_FILE         # «Дополнительно о себе» — факты вне резюме
         self.vacancies = self.dir / "vacancies"        # сюда кладём вакансии (.md)
         self.results = self.dir / "разборы"            # сюда пишутся разборы
         self.letters = self.dir / "письма"
@@ -240,14 +240,14 @@ class Profile:
         return bool(legacy.get("enabled") and legacy.get("consent"))
 
     def set_model(self, use_cloud, off=False):
-        """Выбор модели для профиля: GigaChat (с датой согласия), локальная или «Без модели» (off, #50)."""
+        """Выбор модели для профиля: GigaChat (с датой согласия), локальная или «Без модели» (off)."""
         self.config["модель"] = ({"облако": False, "без_модели": True} if off else
                                  {"облако": True, "согласие": date.today().isoformat()} if use_cloud else {"облако": False})
         self.save_config()
 
     @property
     def no_model(self):
-        """Режим «Без модели» (#50): программа — трекер откликов; всё, что зовёт модель, недоступно,
+        """Режим «Без модели»: программа — трекер откликов; всё, что зовёт модель, недоступно,
         вакансии сохраняются без разбора."""
         return bool((self.config.get("модель") or {}).get("без_модели"))
 
@@ -272,7 +272,7 @@ class Profile:
 
     def input_hashes(self):
         """Отпечатки того, по чему модель оценивает, — по отдельности: критерии, резюме, «о себе».
-        Для истории разборов (#59): видно, что поменялось между разборами."""
+        Для истории разборов: видно, что поменялось между разборами."""
         return {"criteria": _norm_hash(self.read_criteria() if self.criteria_file.exists() else ""),
                 "resume": self.resume_hash(),
                 "facts": _norm_hash(" | ".join(self.read_facts()))}
@@ -352,7 +352,7 @@ class Profile:
         return t.replace("{resume}", resume).replace("{vac}", vacancy).replace("{strengths}", strengths_text)
 
     def resume_fit_prompt(self, resume, vacancy, strengths_text):
-        """Промпт «Резюме под вакансию» (#52): что включить (из резюме и «Дополнительно о себе»), что можно
+        """Промпт «Резюме под вакансию»: что включить (из резюме и «Дополнительно о себе»), что можно
         не включать, «Обо мне» языком вакансии, ключевые навыки. Фактов «о себе» нет — то же только по резюме."""
         facts = self.read_facts()
         t = read_text(settings.RESUME_FIT_TEMPLATE)

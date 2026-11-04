@@ -101,7 +101,7 @@ class Pipeline(unittest.TestCase):
             self.assertEqual((meta["stage"], meta["score"], meta["decision"]), ("short", 8, "да"))   # короткая осталась
 
     def test_full_analysis_retry_and_local_fallback(self):
-        """#56: модель ответила не по формату — ещё попытка; GigaChat отказался — разбирает локальная модель."""
+        """Модель ответила не по формату — ещё попытка; GigaChat отказался — разбирает локальная модель."""
         from unittest import mock
         from vacancy_assistant import cloud, settings
         REFUSAL = "К сожалению, иногда генеративные языковые модели могут создавать некорректные ответы…"

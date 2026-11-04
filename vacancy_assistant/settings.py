@@ -28,9 +28,9 @@ LETTER_TEMPLATE = TEMPLATES / "письмо v2.txt"
 INTERVIEW_TEMPLATE = TEMPLATES / "интервью v2.txt"         # истории STAR к собеседованию и вопросы работодателю
 QUESTIONS_TEMPLATE = TEMPLATES / "вопросы работодателю v1.txt"   # только вопросы — к подготовке без них
 STORIES_TEMPLATE = TEMPLATES / "интервью v1.txt"           # только истории — когда вопросы уже есть и остаются
-RESUME_FIT_TEMPLATE = TEMPLATES / "резюме под вакансию v2.txt"   # что включить и что можно не включать, «Обо мне», навыки (#52)
+RESUME_FIT_TEMPLATE = TEMPLATES / "резюме под вакансию v2.txt"   # что включить и что можно не включать, «Обо мне», навыки
 REFERRER_TEMPLATE = TEMPLATES / "референсеру v1.txt"       # личное сообщение знакомому в компании вакансии
-MARKET_TEMPLATE = TEMPLATES / "резюме против рынка v2.txt"   # что дописать и что нарастить: отклики и «модель — нет, вы — да» (#70, #80)
+MARKET_TEMPLATE = TEMPLATES / "резюме против рынка v2.txt"   # что дописать и что нарастить: отклики и «модель — нет, вы — да»
 EXAMPLES = PROJECT_DIR / "примеры"                         # образцы резюме и критериев для мастера (вымышленный человек)
 DEFAULT_PROFILE_FILE = "по_умолчанию.txt"                  # локально: имя своего профиля
 
@@ -49,10 +49,10 @@ RESUME_FIT_OPTIONS = {"temperature": 0.3, "num_predict": 1500, "num_ctx": 16384}
 MARKET_OPTIONS = {"temperature": 0.3, "num_predict": 1500, "num_ctx": 16384}
 
 RELEASES_PAGE = "https://github.com/romanmigal/job-search-assistant-releases/releases"   # публичный репозиторий: только релизы
-UPDATES_URL = RELEASES_PAGE + "/latest/download/latest.json"                             # проверка обновлений (#26)
+UPDATES_URL = RELEASES_PAGE + "/latest/download/latest.json"                             # проверка обновлений
 CONTACT_EMAIL = "job_search_assistant@inbox.ru"           # «О программе» и README: ошибки, вопросы, идеи
 SOURCE_URL = "https://github.com/romanmigal/vacancy-assistant"   # исходный код (GPL-3.0) — ссылка в «О программе»; пусто — без ссылки
-# Установка и обновление на Mac командой в Терминале (#27): без карантина — без предупреждения о неподписанной программе
+# Установка и обновление на Mac командой в Терминале: без карантина — без предупреждения о неподписанной программе
 MAC_INSTALL = "curl -fsSL https://raw.githubusercontent.com/romanmigal/vacancy-assistant/main/packaging/install_mac.sh | bash"
 
 # hh.ru отдаёт страницу только «браузеру», поэтому представляемся Chrome

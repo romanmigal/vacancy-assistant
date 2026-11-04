@@ -12,31 +12,31 @@ function fitMenu(m) {                          // меню не выходит �
 }
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"}[c]));
 // Колонки таблицы: ключ сортировки, заголовок, значение для сортировки (null — всегда в конце)
-// «Хочу» с надбавкой за сходство со свежими откликами (#74): модель поставила want, программа добавила want_bonus
+// «Хочу» с надбавкой за сходство со свежими откликами: модель поставила want, программа добавила want_bonus
 const wantOf = r => r.want == null ? null : Math.min(10, r.want + (r.want_bonus || 0));
 const wantText = r => r.want == null ? "?" : `${r.want}${r.want_bonus ? `<span class="wbonus">+${r.want_bonus}</span>` : ""}`;
 const likeTip = r => r.want_bonus ? `\n«Хочу» +${r.want_bonus}: похожа на ваши отклики — ${r.want_like.map(l => `${l.title}, ${l.company}`).join("; ")}` : "";
 const DECISION_RANK = d => !d ? null : d.startsWith("да,") ? 2 : d.startsWith("да") ? 3 : d.startsWith("нет") ? 1 : 0;
-// «Моя оценка» (#79): по убыванию — свежие даты выше, в одной дате «да» → «возможно» → «нет», дальше — оценка;
-// оценки без даты (поставлены до #79) — после датированных, неоценённые — внизу
+// «Моя оценка»: по убыванию — свежие даты выше, в одной дате «да» → «возможно» → «нет», дальше — оценка;
+// оценки без даты (старые, до появления дат у оценок) — после датированных, неоценённые — внизу
 const MY_RANK = {"нет": 1, "возможно": 2, "да": 3};
 const myKey = r => r.my_decision ? `${r.my_date || "0000-00-00"}|${MY_RANK[r.my_decision]}|${String(r.my_score ?? 0).padStart(2, "0")}` : null;
 const COLUMNS = [
   ["flag", "⚑", r => r.flag ? 1 : null, "num"],
   ["score", "Оценка ИИ", r => r.score, "num"],
   ["decision", "Решение ИИ", r => DECISION_RANK(r.decision), ""],
-  ["mine", "Моя оценка", r => myKey(r), ""],                                // своя оценка (#79): дата → решение → оценка
+  ["mine", "Моя оценка", r => myKey(r), ""],                                // своя оценка: дата → решение → оценка
   ["title", "Вакансия", r => r.title.toLowerCase(), ""],
   ["company", "Компания", r => r.company.toLowerCase(), ""],
   ["source", "Источник", r => (r.source || "").toLowerCase(), ""],
-  ["posted", "Опубликовано", r => r.posted_key || null, ""],                 // дата публикации на сайте (#46)
+  ["posted", "Опубликовано", r => r.posted_key || null, ""],                 // дата публикации на сайте
   ["salary", "Зарплата", r => r.salary_value, ""],
   ["added", "Сохранено", r => r.added_key || null, ""],
   ["updated", "Обновлено", r => r.updated || null, ""],                     // смена этапа или правка комментария
   ["stage", "Этап", r => r.funnel && r.funnel.stage ? state.stages.findIndex(s => s[0] === r.funnel.stage) : null, ""],   // по ходу воронки
   ["referrer", "Референсер", r => r.referrer ? r.referrer.toLowerCase() : null, ""],
   ["note", "Комментарий", r => r.note ? r.note.toLowerCase() : null, ""],
-  ["artifacts", "Артефакты", r => r.artifacts || null, "num"],              // сколько артефактов (#54)
+  ["artifacts", "Артефакты", r => r.artifacts || null, "num"],              // сколько артефактов
 ];
 // Какие колонки показывать и в каком порядке — из профиля (state.columns). Пустой порядок — настройки нет,
 // всё по умолчанию: порядок COLUMNS, скрыты DEFAULT_HIDDEN. Окно сохраняет порядок целиком, поэтому своя
@@ -170,7 +170,7 @@ const critHead = (changed, model, date) => `<h3 class="sec">Критерии <bu
 const EMPTY_SECTION = {"Сильные стороны": "Модель не нашла сильных сторон под эту вакансию.",
                        "Пробелы": "Модель не нашла пробелов.", "Требования": "Модель не выписала требования."};
 
-// Карточка разбора по структуре от сервера (answer.py, #67): текст ответа модели окно само не разбирает —
+// Карточка разбора по структуре от сервера (answer.py): текст ответа модели окно само не разбирает —
 // порядок строк в ответе не важен, оценки — одним блоком плашек с теми же числами, что в таблице
 function analysisHtml(p, criteria = "", changed = false, model = "", date = "", wantNote = "") {
   if (!p) return "";
@@ -231,7 +231,7 @@ function bindHhAuto() {
   $("hhOn").onchange = () => { $("hhRiskBox").hidden = !$("hhOn").checked; if (!$("hhOn").checked) $("hhRisk").checked = false; };
 }
 const hhOn = () => state.hh?.state === "on";
-const rssOn = () => !!state.rss?.length;                 // включены ленты Хабр Карьеры или GeekJob (#39)
+const rssOn = () => !!state.rss?.length;                 // включены ленты Хабр Карьеры или GeekJob
 
 // Подсказки .tip (текст — в data-tip): перед показом сдвигаем так, чтобы не вылезали за край окна
 function placeTip(e) {
@@ -245,7 +245,7 @@ function placeTip(e) {
 document.addEventListener("mouseover", placeTip);
 document.addEventListener("focusin", placeTip);
 
-// Своя оценка (#78): «Могу» и «Хочу» — раздельно, как у модели; общая — расчётная, её не вводят.
+// Своя оценка: «Могу» и «Хочу» — раздельно, как у модели; общая — расчётная, её не вводят.
 // Правило то же, что ratings.total на сервере и шаблон разбора у модели: середина между «Могу» и «Хочу»,
 // но не выше меньшей из них плюс 1; при «нет» — не выше 4
 const myTotal = (can, want, dec) => {

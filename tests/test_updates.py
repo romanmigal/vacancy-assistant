@@ -1,4 +1,4 @@
-"""Проверка обновлений (#26): сравнение версий, раз в день, выключатель, недоступный адрес — тихо."""
+"""Проверка обновлений: сравнение версий, раз в день, выключатель, недоступный адрес — тихо."""
 import os
 import shutil
 import subprocess
@@ -79,7 +79,7 @@ class State(unittest.TestCase):
         self.assertEqual((s["enabled"], s["newer"]), (False, False))
 
     def test_check_now(self):
-        """Кнопка «Проверить обновления» (#63): запрос сразу, даже если сегодня проверяли и если автоматическая выключена."""
+        """Кнопка «Проверить обновления»: запрос сразу, даже если сегодня проверяли и если автоматическая выключена."""
         day = date(2026, 10, 29)
         U.state(self.folder, self.fetch, day, current="0.4.0")
         s = U.state(self.folder, self.fetch, day, current="0.4.0", force=True)
@@ -109,7 +109,7 @@ class State(unittest.TestCase):
 
 
 class MacInstall(unittest.TestCase):
-    """Команда установки на Mac (#27): скрипт на месте и разбирается bash, во всех инструкциях — одна и та же строка."""
+    """Команда установки на Mac: скрипт на месте и разбирается bash, во всех инструкциях — одна и та же строка."""
     ROOT = Path(__file__).resolve().parent.parent
 
     def test_script(self):

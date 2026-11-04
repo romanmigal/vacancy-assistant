@@ -9,7 +9,7 @@ const W = {mode: "create", seq: [], off: [], pos: 0, a: {}, check: null, created
 // 7 — отбор по названию: в списке шагов стоит между «Что ищете» и «Критерии модели»
 const WNAMES = ["Модель", "О себе", "Резюме", "Что ищете", "Критерии модели", "Письмо", "Сайты", "Отбор по названию"];
 const wstep = () => W.seq[W.pos];
-// «Без модели» (#50): «Критерии модели» и «Письмо» видны серыми — пригодятся, когда включат модель
+// «Без модели»: «Критерии модели» и «Письмо» видны серыми — пригодятся, когда включат модель
 const MODEL_STEPS = [4, 5];
 const wenabled = i => !W.off.includes(W.seq[i]) && !(W.a.no_model && MODEL_STEPS.includes(W.seq[i]));
 const wnextPos = () => { for (let i = W.pos + 1; i < W.seq.length; i++) if (wenabled(i)) return i; return null; };
@@ -83,7 +83,7 @@ function wsave() {   // ответы со страницы — в W.a
 const field = (label, input, sub = "", req = false) => `<div class="field">${label ? `<label>${label}${req ? ' <span class="req" title="Обязательное поле">*</span>' : ""}</label>` : ""}${sub ? `<div class="sub">${sub}</div>` : ""}${input}</div>`;
 const text = (key, ph = "") => `<input type="text" data-a="${key}" value="${esc(W.a[key] ?? "")}" placeholder="${esc(ph)}">`;
 const area = (key, ph = "", cls = "", ro = false) => `<textarea class="${cls}" data-a="${key}" placeholder="${esc(ph)}" ${ro ? "readonly" : ""}>${esc(W.a[key] ?? "")}</textarea>`;
-// Сфера профиля — ИТ: мастер предлагает ленты Хабр Карьеры и GeekJob (#39)
+// Сфера профиля — ИТ: мастер предлагает ленты Хабр Карьеры и GeekJob
 const isItField = f => /(^|[^а-яёa-z])(ит|it|ai)([^а-яёa-z]|$)|информацион|программ|разработ|devops|tech|технолог|цифров|data|данны/i.test(f || "");
 const check = (key, label) => `<label><input type="checkbox" data-a="${key}" ${W.a[key] ? "checked" : ""}> ${label}</label>`;
 
@@ -111,7 +111,7 @@ function wizRender() {
         : "Добавляйте вакансии — программа разберёт их моделью по вашему резюме и критериям. " + HH_MANUAL + " Вакансии с других сайтов — по ссылке."}
         Письма — сопроводительное и референсеру — пишутся во вкладке «Письма» карточки вакансии, когда вы решите откликаться.</p>
       <p class="hint">Поменять ответы можно в «Параметры → Редактировать профиль». ${W.a.hh_auto ? "С чего лучше начать — программа подскажет, когда вы нажмёте «Найти новые вакансии»." : ""}</p>`;
-    const finds = W.a.hh_auto || W.a.rss_habr || W.a.rss_geekjob;        // искать есть где: hh.ru или ленты (#39)
+    const finds = W.a.hh_auto || W.a.rss_habr || W.a.rss_geekjob;        // искать есть где: hh.ru или ленты
     $("wfoot").innerHTML = `<button id="wclose">Закрыть</button><button class="primary" id="wsearch">${finds ? "Найти новые вакансии" : "Добавить вакансию"}</button>`;
     $("wclose").onclick = closeWizard;
     $("wsearch").onclick = () => { closeWizard(); finds ? startSearch() : openAdd(); };
@@ -442,7 +442,7 @@ async function wizNext() {
     if (!/^[\w-]{1,40}$/u.test(id)) need(false, "profile_id", "Латиница, цифры, «-» или «_», без пробелов, например maria.");
     else need(id === own || !state.profiles.includes(id), "profile_id", `Профиль «${id}» уже есть — выберите другое имя.`);
   }
-  if (step === 0) {           // «Без модели» (#50) — выбран явно или локальная модель не готова («Дальше без модели»)
+  if (step === 0) {           // «Без модели» — выбран явно или локальная модель не готова («Дальше без модели»)
     const pick = W.a.model_pick || (W.a.cloud ? "cloud" : "local"), c = W.check || {};
     // при правке локальная остаётся локальной, даже если Ollama сейчас не запущена; «Без модели» — только явно
     W.a.no_model = pick === "none" || (!edit && pick === "local" && !(c.ollama && c.model_ok));
@@ -523,7 +523,7 @@ async function wizFinish() {
 
 // После правки профиля: переоценить вакансии по новым критериям и/или написать новые версии писем
 function openAfterEdit(rescore, reletter) {
-  if (state.no_model) { closeWizard(); return; }        // «Без модели» (#50): переоценивать нечем
+  if (state.no_model) { closeWizard(); return; }        // «Без модели»: переоценивать нечем
   const count = (st, pred) => state.rows.filter(r => r.status === st && pred(r)).length;
   const boxes = (name, pred, defaults) => `<div class="checks">${state.statuses.map(([v, label]) =>
     `<label><input type="checkbox" data-${name}="${v}" ${defaults.includes(v) ? "checked" : ""}> ${esc(label)} (${count(v, pred)})</label>`).join("")}</div>`;

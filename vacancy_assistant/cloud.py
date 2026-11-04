@@ -238,7 +238,7 @@ def check(cfg):
 def ask(prompt, options=None, cfg=None):
     """Запрос к GigaChat: тот же промпт, что получила бы Gemma. Параметры Ollama переводятся
     в параметры GigaChat (temperature, max_tokens). «Зерна» случайности (seed) у GigaChat нет.
-    Личные данные профиля в запросе заменяются метками, в ответе — обратно (mask.py, #69)."""
+    Личные данные профиля в запросе заменяются метками, в ответе — обратно (mask.py)."""
     p = current_profile()
     cfg = cfg or load(p.dir.parent if p else None)
     options = options or {}

@@ -50,7 +50,7 @@ jobs:
           name: windows
           path: dist/*.exe
 
-  # Релиз в публичном репозитории релизов (#26): установщики и latest.json — по нему программа узнаёт о новой версии.
+  # Релиз в публичном репозитории релизов: установщики и latest.json — по нему программа узнаёт о новой версии.
   # Нужен секрет RELEASES_TOKEN (токен с правом Contents: write на romanmigal/job-search-assistant-releases); без него шаг пропускается.
   publish:
     if: startsWith(github.ref, 'refs/tags/v')

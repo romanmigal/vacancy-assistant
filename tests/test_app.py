@@ -91,7 +91,7 @@ class AppServer(unittest.TestCase):
         self.assertIn('src="docs/', body.decode("utf-8"))
         self.assertEqual(get("/help/docs/" + quote("окно.png"))[1], "image/png")        # картинки к нему
         self.assertEqual(get("/help/docs/" + quote("Настройка критериев.md"))[0], 200)
-        code, _, body = get("/help/docs/" + quote("Оценка не совпадает с вашей.md"))       # гид из карточки (#60)
+        code, _, body = get("/help/docs/" + quote("Оценка не совпадает с вашей.md"))       # гид из карточки
         self.assertEqual(code, 200)
         self.assertIn("<h1>Оценка программы не совпадает с вашей: что делать</h1>", body.decode("utf-8"))
         for bad in ("/help/../vacancy_assistant/app.py", "/help/docs/..%2Fsettings.py", "/help/docs/none.md"):
@@ -186,7 +186,7 @@ class AppServer(unittest.TestCase):
         self.assertEqual(row["stage"], "full")                                         # «Разобрать заново» — всегда полный разбор
 
     def test_contact_in_state(self):
-        """Почта для связи (#43) — одна константа, окно берёт её из состояния для «О программе»."""
+        """Почта для связи — одна константа, окно берёт её из состояния для «О программе»."""
         from vacancy_assistant import settings
         self.assertEqual(self.call("/api/state?profile=example")[1]["contact"], settings.CONTACT_EMAIL)
         self.assertIn(settings.CONTACT_EMAIL, (Path(__file__).parent.parent / "README.md").read_text(encoding="utf-8"))
@@ -212,7 +212,7 @@ class AppServer(unittest.TestCase):
         self.assertEqual(r[2]["stage"], "full")                                        # полным разбором
 
     def test_rescore_all_mode_all(self):
-        """«Все вакансии в выбранных разделах» (#76): пересчёт и без смены данных, только разобранные."""
+        """«Все вакансии в выбранных разделах»: пересчёт и без смены данных, только разобранные."""
         for n in (1, 2, 3):
             self.t.add_vacancy(n, "ИТ-директор")
         self.call("/api/run", {"profile": "example", "action": "analyze"})
@@ -513,7 +513,7 @@ class AppServer(unittest.TestCase):
         self.assertEqual(len(list(p.letters.glob("*.md"))), 0)                        # сообщения — в своей папке
 
     def test_calibration(self):
-        """Набор калибровки (#81): свои оценки — расхождения первыми, флажок убирает, автонастройка — по набору."""
+        """Набор калибровки: свои оценки — расхождения первыми, флажок убирает, автонастройка — по набору."""
         for n in range(1, 9):
             self.t.add_vacancy(n, "Начальник отдела ИТ" if n % 2 else "ИТ-директор")   # модель: 3/нет и 8/да
         self.call("/api/run", {"profile": "example", "action": "analyze"})

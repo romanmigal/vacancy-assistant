@@ -184,6 +184,6 @@ def vacancy_number(path):
 
 
 def numbered_files(folder):
-    """{номер: файл} для «NN …md» в папке. Номер — все цифры до пробела: после 99 идёт 100, а не «10» (#58)."""
+    """{номер: файл} для «NN …md» в папке. Номер — все цифры до пробела: после 99 идёт 100, а не «10»."""
     found = ((re.match(r"(\d+) ", f.name), f) for f in Path(folder).glob("*.md"))
     return {int(m.group(1)): f for m, f in found if m}

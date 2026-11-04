@@ -101,10 +101,10 @@ def vacancy_rows(profile):
     flags = summary.read_flags(profile)
     current = current_inputs(profile)
     edits = funnel.all_edits(profile)
-    found = artifacts.types(profile)                   # артефакты вакансии — колонка «Артефакты» (#54), письмо в «Статистике»
-    analyses = current["analyses"]                     # первый разбор — для «Статистики» (#55)
-    firms = company.load(profile)                      # агентства и работодатели hh (#2, #1)
-    mine = ratings.read_rows(profile)                  # своя оценка — колонка «Моя оценка» (#79)
+    found = artifacts.types(profile)                   # артефакты вакансии — колонка «Артефакты», письмо в «Статистике»
+    analyses = current["analyses"]                     # первый разбор — для «Статистики»
+    firms = company.load(profile)                      # агентства и работодатели hh
+    mine = ratings.read_rows(profile)                  # своя оценка — колонка «Моя оценка»
     rows, texts = [], {}
     for n, path in sorted(numbered_files(profile.vacancies).items()):
         result = profile.results / path.name
@@ -127,9 +127,9 @@ def vacancy_rows(profile):
             "added_key": date_key(vacancy_info["saved"]),
             "link": info.get("link", ""),
             "added": vacancy_info["saved"][:10],
-            "posted": vacancy_info["posted"][:10],                      # дата публикации на сайте (#46)
+            "posted": vacancy_info["posted"][:10],                      # дата публикации на сайте
             "posted_key": date_key(vacancy_info["posted"]),
-            "more_links": [{"url": u, "source": sites.source(u, info.get("company", ""))}           # та же вакансия на других сайтах (#13)
+            "more_links": [{"url": u, "source": sites.source(u, info.get("company", ""))}           # та же вакансия на других сайтах
                            for u in re.split(r"[ ,]+", vacancy_info["more"]) if u.startswith("http")],
             "maybe_dupe": int(vacancy_info["maybe"]) if vacancy_info["maybe"].isdigit() else None,
             "analyzed": bool(meta),
@@ -149,12 +149,12 @@ def vacancy_rows(profile):
             "actual": actual.read(result) if meta else None,               # открыта ли на сайте — по «Разобрать заново»
             "letter": (profile.letters / path.name).exists() or (profile.referrer_letters / path.name).exists(),
             "artifacts": len(found.get(path.stem, [])),
-            "cover_sent": "cover" in found.get(path.stem, []),            # письмо с отметкой «Отправлено» (#53)
+            "cover_sent": "cover" in found.get(path.stem, []),            # письмо с отметкой «Отправлено»
             "stage": meta.get("stage", "full") if meta else "",
             "criteria_changed": criteria_changed(profile, result, meta, current),
             "violations": violations(read_text(result), names) if meta else [],
         })
-    like = similar.bonuses(rows, texts) if similar.enabled(profile) else {}   # «Хочу» выше у похожих на отклики (#74)
+    like = similar.bonuses(rows, texts) if similar.enabled(profile) else {}   # «Хочу» выше у похожих на отклики
     for r in rows:
         r["want_bonus"], r["want_like"] = like.get(r["n"], {}).get("bonus", 0), like.get(r["n"], {}).get("like", [])
     people = contacts.load(profile)                    # сколько знакомых в компании вакансии — значок в таблице
@@ -190,7 +190,7 @@ def current_inputs(profile):
 def criteria_changed(profile, result, meta=None, current=None):
     """Оценка сделана по другим данным, чем сейчас: критериям, «Дополнительно о себе» или резюме. В новых оценках —
     отпечатки; в старых отпечатка критериев нет — смотрим, не правили ли критерии после оценки, а отпечаток резюме
-    берём из истории разборов (#59), если вакансию разбирали после её появления.
+    берём из истории разборов, если вакансию разбирали после её появления.
     meta и current (current_inputs) — чтобы не читать их заново для каждой строки таблицы."""
     meta = meta if meta is not None else (read_meta(result) if result.exists() else None)
     if not meta or not profile.criteria_file.exists() or meta.get("stage") == analysis.NO_MODEL:
@@ -213,7 +213,7 @@ def changed_with_status(profile, statuses):
 
 
 def analyzed_with_status(profile, statuses):
-    """Имена файлов разобранных моделью вакансий с одним из статусов — «пересчитать все» (#76)."""
+    """Имена файлов разобранных моделью вакансий с одним из статусов — «пересчитать все»."""
     def analyzed(name):
         meta = read_meta(profile.results / name) if (profile.results / name).exists() else None
         return bool(meta) and meta.get("stage") != analysis.NO_MODEL
@@ -222,7 +222,7 @@ def analyzed_with_status(profile, statuses):
 
 def _passport(f):
     """Кому и каким каналом написано сообщение референсеру и кто написал версию (source: edit — правка,
-    own — своё, нет — модель), по какому шаблону и когда отправлено (#53) — из строки-паспорта файла."""
+    own — своё, нет — модель), по какому шаблону и когда отправлено — из строки-паспорта файла."""
     m = re.match(r"<!-- (\{.*\}) -->", read_text(f))
     info = json.loads(m.group(1)) if m else {}
     return {k: info[k] for k in ("to", "channel", "goal", "source", "template", "sent", "sent_time") if k in info}
@@ -271,11 +271,11 @@ def vacancy_details(profile, n):
     letters = versions(letter, analysis.letter_history(profile, path.name))
     ref_letters = versions(profile.referrer_letters / path.name, analysis.referrer_history(profile, path.name))
     resume_fits = versions(profile.resume_fits / path.name, analysis.resume_fit_history(profile, path.name))
-    # правки и свои тексты — события «Истории» (#47): время — у файла версии
+    # правки и свои тексты — события «Истории»: время — у файла версии
     texts = [{"date": v["at"][:10], "time": v["at"][11:], "kind": kind, "source": v["source"]}
              for kind, vs in (("cover", letters), ("referrer", ref_letters), ("resume", resume_fits))
              for v in vs if v.get("source") in analysis.SOURCES]
-    texts += [{"date": v["sent"], "time": v.get("sent_time", ""), "kind": kind, "source": "sent"}   # «Отправлено» (#53)
+    texts += [{"date": v["sent"], "time": v.get("sent_time", ""), "kind": kind, "source": "sent"}   # «Отправлено»
               for kind, vs in (("cover", letters), ("referrer", ref_letters), ("resume", resume_fits)) for v in vs if v.get("sent")]
     shelf = artifacts.listing(profile, result)
     texts += [{"date": e["date"], "time": e["added"][11:] if e["added"][:10] == e["date"] else "", "kind": e["type"],
@@ -288,20 +288,20 @@ def vacancy_details(profile, n):
             "analysis_date": (read_meta(result) or {}).get("date", "") if result.exists() else "",   # когда
             "vacancy": without_saved(strip_service(read_text(path))),
             "analysis": analysis_body(read_text(result)) if result.exists() else "",
-            "parsed": parsed_analysis(result),                      # разбор по разделам — карточка рисует его (#67)
+            "parsed": parsed_analysis(result),                      # разбор по разделам — карточка рисует его
             "letter": letters[0]["text"] if letters and letters[0]["current"] else "",
             "letters": letters,
             "templates": len(letter_templates.all_templates(profile)),   # один шаблон — его название у версий не пишем
             "ref_letters": ref_letters, "referrer": referrer, "resume_fits": resume_fits,
             "texts": texts,
-            "artifacts": shelf,                                     # вкладка «Артефакты» (#54)                                         # правки писем и резюме, свои тексты (#47)
+            "artifacts": shelf,                                     # вкладка «Артефакты»                                         # правки писем и резюме, свои тексты
             "edits": funnel.read_edits(profile, result),           # правки комментария и референсера — для «Истории»
-            "analyses": funnel.read_analyses(profile, result),     # итоги разборов (#59)
+            "analyses": funnel.read_analyses(profile, result),     # итоги разборов
             "ratings": rating_history(profile, n, result),         # свои оценки — «Мои оценки», калибровка
             "added_time": added_time(path),
             "finance": sites.finance_link(read_vacancy(path)[1].get("company", ""), read_text(path)),   # отчётность (ФНС)
             "referrer_candidates": contacts.candidates(profile, read_vacancy(path)[1].get("company", "")),
-            "about": company.about(profile, n),                     # «О компании» (#16): агентство, рейтинг hh, прошлые вакансии
+            "about": company.about(profile, n),                     # «О компании»: агентство, рейтинг hh, прошлые вакансии
             "interview": body(interview) if interview.exists() else "",
             "interview_when": datetime.fromtimestamp(interview.stat().st_mtime).strftime("%d.%m.%Y %H:%M")
                               if interview.exists() else ""}
@@ -322,7 +322,7 @@ def hh_info(p):
             "limit": hh.DAY_LIMIT}
 
 
-# Действия, которым нужна модель: в режиме «Без модели» (#50) их кнопки неактивны, а сервер отказывает —
+# Действия, которым нужна модель: в режиме «Без модели» их кнопки неактивны, а сервер отказывает —
 # на случай, если кнопку обошли. Поиск и добавление вакансий работают — вакансии сохраняются без разбора
 NEEDS_MODEL = {"analyze", "refresh", "tune", "rescore_all", "letter", "referrer_letter", "interview",
                "interview_questions", "resume_fit", "fix_suggest", "fix_check", "fix_recheck", "market_advice",
@@ -347,7 +347,7 @@ def make_work(profile, action, data, fetch_page=None, ask=None):
                 hh.search(profile, log, limit=limit, **hh_kw)
             else:
                 log("Поисковых запросов нет (поиски.txt) — только разбор.")
-            if feeds:                           # RSS Хабр Карьеры и GeekJob (#39)
+            if feeds:                           # RSS Хабр Карьеры и GeekJob
                 rss.search(profile, log, ask=ask, limit=limit or profile.search_limit, **hh_kw)
             analyze_and_write(profile, log, ask)
         return "Найти новые вакансии", work
@@ -366,7 +366,7 @@ def make_work(profile, action, data, fetch_page=None, ask=None):
     if action == "add_text":                    # вакансия, вставленная текстом (сайт не отдаёт страницу)
         def work(log):
             added = sites.add_text(profile, data.get("text", ""), data.get("link", ""), log, ask)
-            if added:                                   # None — та же вакансия уже есть (#13)
+            if added:                                   # None — та же вакансия уже есть
                 analysis.analyze(profile, log=log, ask=ask, summary=False, only=[added.name])
         if len((data.get("text") or "").strip()) < 100:
             raise AssistantError("Вставьте текст вакансии целиком — название, обязанности, требования.")
@@ -410,7 +410,7 @@ def make_work(profile, action, data, fetch_page=None, ask=None):
             # Состав последней калибровки: значит, калибровку уже делали — больше не предлагать
             write_json(profile.dir / calibration.FILE, {**calibration.read(profile), "last": sorted(only)})
         return "Автонастройка критериев", work
-    if action == "fix_suggest":                 # окно «Мои оценки» (#35): правка критериев и проверка на вакансии
+    if action == "fix_suggest":                 # окно «Мои оценки»: правка критериев и проверка на вакансии
         n = int(data["n"])
         if data.get("direction") not in ("up", "down"):
             raise AssistantError("Укажите, выше или ниже должна быть оценка.")
@@ -433,7 +433,7 @@ def make_work(profile, action, data, fetch_page=None, ask=None):
             phase(log, "Пересчёт вакансии после правки")
             fix.recheck(profile, n, data, log, ask=ask)
         return "Пересчёт вакансии после правки", work
-    if action == "market_recheck":              # «Резюме против рынка» (#80): правка резюме и «о себе» — и пересчёт вакансий
+    if action == "market_recheck":              # «Резюме против рынка»: правка резюме и «о себе» — и пересчёт вакансий
         ns = [int(n) for n in data.get("ns") or []]
         if not ns:
             raise AssistantError("Отметьте вакансии, которые пересчитать.")
@@ -442,12 +442,12 @@ def make_work(profile, action, data, fetch_page=None, ask=None):
             phase(log, f"Пересчёт {len(ns)} {'вакансии' if len(ns) == 1 else 'вакансий'} после правки")
             gaps.recheck(profile, ns, data, log, ask=ask)
         return "Резюме против рынка: пересчёт", work
-    if action == "market_advice":               # «Резюме против рынка» (#70, #80): что дописать и что нарастить
+    if action == "market_advice":               # «Резюме против рынка»: что дописать и что нарастить
         def work(log):
             phase(log, f"Резюме против рынка: что прокачать — моделью {current_model()}")
             market.write_advice(profile, vacancy_rows(profile), log, ask or analysis.ask_model, data.get("since"))
         return "Резюме против рынка: формулировки", work
-    if action == "rescore_all":                 # кнопка ↻ в шапке: устаревшие или все разобранные в выбранных разделах (#76)
+    if action == "rescore_all":                 # кнопка ↻ в шапке: устаревшие или все разобранные в выбранных разделах
         statuses = set(data.get("statuses") or [])
         if data.get("mode") == "all":
             names = analyzed_with_status(profile, statuses)
@@ -523,7 +523,7 @@ def make_work(profile, action, data, fetch_page=None, ask=None):
             if state:
                 log("Вакансия на сайте закрыта." if state == actual.GONE else "Вакансия на сайте открыта.")
             actual.record(profile.results / path.name, state)             # разбор уже есть — сразу: модель может сбиться
-            if profile.no_model:                                          # «Без модели» (#50): только актуальность и текст
+            if profile.no_model:                                          # «Без модели»: только актуальность и текст
                 actual.record(analysis.save_unanalyzed(profile, path), state)
                 log("Модель не используется — разбор не делаю.")
                 return
@@ -761,11 +761,11 @@ class App:
         self.start_lan()                                     # доступ из сети — по настройке новой папки
         return self.api_datadir(p, a)
 
-    @route("/api/updates", "ANY", profile=False, local=True, writes=True)  # проверка обновлений (#26): раз в день
+    @route("/api/updates", "ANY", profile=False, local=True, writes=True)  # проверка обновлений: раз в день
     def api_updates(self, p, a):
         if "enabled" in a:
             updates.set_enabled(self.config_dir, a.get("enabled"))
-        out = updates.state(self.config_dir, self.fetch_latest, force=bool(a.get("check")))   # «Проверить обновления» (#63)
+        out = updates.state(self.config_dir, self.fetch_latest, force=bool(a.get("check")))   # «Проверить обновления»
         return {**out, "mac_install": settings.MAC_INSTALL} if sys.platform == "darwin" else out   # плашка: обновить командой
 
     @route("/api/cloud", "ANY", profile=False, local=True, writes=True)    # облачная модель GigaChat
@@ -780,7 +780,7 @@ class App:
                               a.get("model"), a.get("consent"), profile=p)
         return cloud.public(self.config_dir, p)
 
-    @route("/api/mask", local=True)                    # что скрывается от GigaChat и как модель видит резюме (#69)
+    @route("/api/mask", local=True)                    # что скрывается от GigaChat и как модель видит резюме
     def api_mask(self, p, a):
         firms = a.get("companies")
         return mask.preview(p, None if firms is None else firms in ("1", "true"))
@@ -821,7 +821,7 @@ class App:
 
     @route("/api/statuses", "POST", writes=True)
     def api_statuses(self, p, a):
-        """Свои статусы (#48): add — name, color; rename — key, name; color — key, color; order — keys; delete — key, move_to (куда перенести вакансии)."""
+        """Свои статусы: add — name, color; rename — key, name; color — key, color; order — keys; delete — key, move_to (куда перенести вакансии)."""
         do, moved = a.get("do"), 0
         if do == "add":
             summary.add_status(p, a.get("name"), a.get("color"))
@@ -839,28 +839,28 @@ class App:
 
     @route("/api/recheck")
     def api_recheck(self, p, a):
-        """Отсеянные по названию за 14 дней, которые проходят отбор по нынешним правилам (#56)."""
+        """Отсеянные по названию за 14 дней, которые проходят отбор по нынешним правилам."""
         return {"items": hh.recheck_filtered(p), "hh_auto": p.hh_auto}
 
     @route("/api/mails", "POST", writes=True)
     def api_mails(self, p, a):
-        """Письма hh (.eml, base64) → вакансии из них (#66). На hh.ru программа не ходит; из ссылок — только номера."""
+        """Письма hh (.eml, base64) → вакансии из них. На hh.ru программа не ходит; из ссылок — только номера."""
         letters = [(f.get("name", "письмо"), base64.b64decode(f.get("data", ""))) for f in a.get("files", [])]
         return {**mails.inbox(p, letters), "hh_auto": p.hh_auto}
 
     @route("/api/company/agency", "POST", writes=True)
     def api_company_agency(self, p, a):
-        """Ваша пометка «агентство / не агентство» для компании вакансии (#2); null — снять пометку."""
+        """Ваша пометка «агентство / не агентство» для компании вакансии; null — снять пометку."""
         company.set_mark(p, read_vacancy(vacancy_file(p, a["n"]))[1].get("company", ""), a.get("agency"))
         return {"ok": True}
 
-    @route("/api/companies")                           # раздел «Компании» (#68): компании по вакансиям профиля
+    @route("/api/companies")                           # раздел «Компании»: компании по вакансиям профиля
     def api_companies(self, p, a):
         return company.companies(p, vacancy_rows(p))
 
     @route("/api/dupe", "POST", writes=True)
     def api_dupe(self, p, a):
-        """Пометка «Возможно, дубль» (#13): merge — ссылки этой вакансии дописать к той и убрать эту в Корзину;
+        """Пометка «Возможно, дубль»: merge — ссылки этой вакансии дописать к той и убрать эту в Корзину;
         apart — это разные вакансии, пометку снять."""
         n = int(a["n"])
         path = vacancy_file(p, n)
@@ -931,9 +931,9 @@ class App:
     def api_contacts_import(self, p, a):
         return contacts.import_linkedin(p, base64.b64decode(a.get("data", "")), a.get("name", ""))
 
-    # --- где искать вакансии (#32): общий список и свои ссылки профиля
+    # --- где искать вакансии: общий список и свои ссылки профиля
 
-    @route("/api/market", "POST", writes=True)         # «Резюме против рынка» (#70, #80): отклики и расхождения с since, без модели
+    @route("/api/market", "POST", writes=True)         # «Резюме против рынка»: отклики и расхождения с since, без модели
     def api_market(self, p, a):
         rep = market.report(p, vacancy_rows(p), a.get("since") or None)
         market.remember(p, rep)
@@ -944,16 +944,16 @@ class App:
         gaps.undo(p)
         return {"ok": True}
 
-    @route("/api/stats")                               # раздел «Статистика» (#55): шаг — day, week, month
+    @route("/api/stats")                               # раздел «Статистика»: шаг — day, week, month
     def api_stats(self, p, a):
         return stats.compute(vacancy_rows(p), a.get("step", "week"), status_names=summary.statuses(p))
 
-    @route("/api/weekly")                              # «Итоги недели» (#21): week — last (прошлая) или this
+    @route("/api/weekly")                              # «Итоги недели»: week — last (прошлая) или this
     def api_weekly(self, p, a):
         rep = weekly.compute(p, vacancy_rows(p), a.get("week", "last"))
         return {**rep, "markdown": weekly.markdown(rep)}
 
-    @route("/api/salaries")                            # окно «Зарплаты» (#22): вилки из вакансий профиля, планка — из анкеты
+    @route("/api/salaries")                            # окно «Зарплаты»: вилки из вакансий профиля, планка — из анкеты
     def api_salaries(self, p, a):
         planka = int(re.sub(r"\D", "", str(setup.answers_from_profile(p).get("salary") or "")) or 0)
         return salaries.report(p, self.config_dir, planka, **({"fetch": self.fetch_rates} if self.fetch_rates else {}))
@@ -978,7 +978,7 @@ class App:
     def api_letter_example(self, p, a):
         return letter_templates.get(p, int(a["template"]) if a.get("template") else None)
 
-    @route("/api/letter/templates")                     # шаблоны сопроводительного письма (#53)
+    @route("/api/letter/templates")                     # шаблоны сопроводительного письма
     def api_letter_templates(self, p, a):
         return {"templates": letter_templates.all_templates(p), "max": letter_templates.MAX}
 
@@ -993,7 +993,7 @@ class App:
             tid = letter_templates.save(p, tid, a.get("name", ""), a.get("text", ""), bool(a.get("default")))
         return {"templates": letter_templates.all_templates(p), "max": letter_templates.MAX, "id": tid}
 
-    @route("/api/artifacts/add", "POST", writes=True)  # вкладка «Артефакты» (#54): приложить файл или заметку
+    @route("/api/artifacts/add", "POST", writes=True)  # вкладка «Артефакты»: приложить файл или заметку
     def api_artifacts_add(self, p, a):
         result = vacancy_file(p, a["n"], p.results, "Артефакты — после разбора вакансии.")
         if a.get("do") == "file":
@@ -1027,7 +1027,7 @@ class App:
             subprocess.Popen(["open" if sys.platform == "darwin" else "xdg-open", str(f)])
         return {"ok": True}
 
-    @route("/api/letter/sent", "POST", writes=True)     # отметка «Отправлено» у версии письма (#53); date "" — снять
+    @route("/api/letter/sent", "POST", writes=True)     # отметка «Отправлено» у версии письма; date "" — снять
     def api_letter_sent(self, p, a):
         result = vacancy_file(p, a["n"], p.results, "Письма — после разбора вакансии.")
         try:
@@ -1037,7 +1037,7 @@ class App:
             raise AssistantError("Дата — в виде ГГГГ-ММ-ДД.")
         return {"sent": sent}
 
-    @route("/api/text/save", "POST", writes=True)       # правка письма или резюме под вакансию, своё письмо (#47)
+    @route("/api/text/save", "POST", writes=True)       # правка письма или резюме под вакансию, своё письмо
     def api_text_save(self, p, a):
         result = vacancy_file(p, a["n"], p.results, "Письма и резюме под вакансию — после разбора вакансии.")
         to = read_prop(result, REFERRER_PROP) if a.get("kind") == "referrer" and a.get("source") == "own" else ""
@@ -1074,15 +1074,15 @@ class App:
             setup.set_hh_auto(p, a["hh_auto"], a.get("hh_risk"))
         if "search_days" in a:
             setup.set_search_settings(p, a["search_days"], a.get("search_limit"))
-        if "no_model" in a:                             # «Без модели» (#50) или снова локальная; облачная — через /api/cloud
+        if "no_model" in a:                             # «Без модели» или снова локальная; облачная — через /api/cloud
             if self.queues.busy(p.name):
                 raise AssistantError("У профиля есть задачи в очереди — сменить модель можно, когда они закончатся.")
             p.set_model(False, off=bool(a["no_model"]))
-        if "rss" in a:                                  # ленты вакансий Хабр Карьеры и GeekJob (#39)
+        if "rss" in a:                                  # ленты вакансий Хабр Карьеры и GeekJob
             rss.set_enabled(p, a["rss"])
-        if "want_similar" in a:                         # «Хочу» выше у похожих на отклики (#74)
+        if "want_similar" in a:                         # «Хочу» выше у похожих на отклики
             similar.set_enabled(p, a["want_similar"])
-        if "hide_companies" in a:                       # скрывать прошлых работодателей от GigaChat (#69)
+        if "hide_companies" in a:                       # скрывать прошлых работодателей от GigaChat
             mask.set_hide_companies(p, a["hide_companies"])
         if "columns" in a:                              # колонки таблицы: {order, hidden}
             setup.set_columns(p, (a["columns"] or {}).get("order"), (a["columns"] or {}).get("hidden"))
@@ -1136,7 +1136,7 @@ class App:
         if which == "criteria":
             criteria_history.import_tune(p, p.dir / tune.TUNE_DIR_NAME)   # версии прошлых автонастроек
             criteria_history.record(p, p.read_criteria(), "текущие критерии")
-        else:                                           # which=letter — основной шаблон, letter:2 — второй (#53)
+        else:                                           # which=letter — основной шаблон, letter:2 — второй
             tpl = letter_templates.get(p, int(which[7:]) if ":" in which else 1)
             if tpl["text"]:
                 criteria_history.record(p, tpl["text"], "текущий образец", which=letter_templates.which(tpl["id"]))
@@ -1157,7 +1157,7 @@ class App:
         score = ratings.set_rating(p, int(a["n"]), a.get("can"), a.get("want"), a.get("decision"), a.get("reason", ""))
         return {"ok": True, "score": score}
 
-    @route("/api/calibration/select", "POST", writes=True)            # флажок в наборе (#81)
+    @route("/api/calibration/select", "POST", writes=True)            # флажок в наборе
     def api_calibration_select(self, p, a):
         if a.get("reset"):
             calibration.reset(p)
@@ -1165,7 +1165,7 @@ class App:
             calibration.choose(p, int(a["n"]), bool(a.get("on")))
         return {"picked": calibration.picked(p)}
 
-    @route("/api/fix")                                  # окно «Мои оценки» в карточке (#35, #78)
+    @route("/api/fix")                                  # окно «Мои оценки» в карточке
     def api_fix(self, p, a):
         return fix.view(p, int(a["n"]))
 

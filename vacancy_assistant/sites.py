@@ -123,7 +123,7 @@ _mincifry = None
 
 
 def mincifry_context():
-    """Проверка сертификатов, где к обычным корневым центрам добавлены сертификаты Минцифры (#49).
+    """Проверка сертификатов, где к обычным корневым центрам добавлены сертификаты Минцифры.
     Создаётся один раз. Только для чтения страниц вакансий и только после ошибки обычной проверки."""
     global _mincifry
     if _mincifry is None:
@@ -344,7 +344,7 @@ def vacancy_file(info, url, saved=None):
 
 def save(profile, info, url, log):
     """Записывает вакансию в vacancies/ под следующим номером — так же, как вакансии с hh.ru.
-    Та же вакансия уже есть (#13) — ссылка дописывается к ней, возвращает None."""
+    Та же вакансия уже есть — ссылка дописывается к ней, возвращает None."""
     same, text = dupes.check(profile, info["title"], info.get("company") or "", vacancy_file(info, url), url, log)
     if same:
         return None
@@ -448,7 +448,7 @@ def refresh(profile, path, log=None, fetch_page=fetch, ask=None, seen=None):
                 "text": text.split("\n---\n", 1)[-1].strip(), "guess": [], "posted": old["posted"]}
         cut = True
     info = complete(info, log, ask, profile.llm_pages, cut)
-    via = re.search(r"\*\*Источник:\*\*[ \t]*(.*?)[ \t]*$", text, re.M)     # из RSS-ленты (#39) — остаётся
+    via = re.search(r"\*\*Источник:\*\*[ \t]*(.*?)[ \t]*$", text, re.M)     # из RSS-ленты — остаётся
     if via:
         info["via"] = via.group(1)
     write_text(path, vacancy_file(info, url, old["saved"] or None))

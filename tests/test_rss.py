@@ -1,4 +1,4 @@
-"""Вакансии из RSS-лент Хабр Карьеры и GeekJob (#39): разбор ленты, отбор по названию, без дублей, раз в час."""
+"""Вакансии из RSS-лент Хабр Карьеры и GeekJob: разбор ленты, отбор по названию, без дублей, раз в час."""
 import json
 import unittest
 from datetime import datetime, timedelta

@@ -159,7 +159,7 @@ POSTED_LINE = re.compile(rf"Вакансия опубликована{_GAP}*(\d{
 
 
 def posted(page):
-    """Дата публикации вакансии (#46) — «20.10.2026» или "": datePosted из разметки JobPosting,
+    """Дата публикации вакансии — «20.10.2026» или "": datePosted из разметки JobPosting,
     иначе строка hh «Вакансия опубликована 20 октября 2026 в Москве»."""
     m = DATE_POSTED.search(page or "")
     if m:
@@ -239,7 +239,7 @@ def remember_seen(profile, items, mark):
 
 
 def recheck_filtered(profile, days=14, today=None):
-    """Отсеянные по названию за последние days дней, которые проходят отбор теперь (правила поменялись, #56):
+    """Отсеянные по названию за последние days дней, которые проходят отбор теперь (правила поменялись):
     [{"id", "date", "title"}], новые сверху. Вакансии, которые потом всё-таки взяли или добавили по ссылке, — не в счёт."""
     if not profile.seen.exists():
         return []
@@ -250,7 +250,7 @@ def recheck_filtered(profile, days=14, today=None):
         if len(parts) < 4:
             continue
         vid, day, mark, title = parts[:4]
-        if not vid.isdigit():                      # из RSS-лент (#39) — перепроверка только для hh.ru
+        if not vid.isdigit():                      # из RSS-лент — перепроверка только для hh.ru
             continue
         if mark != "отсеяна":
             taken.add(vid)
@@ -305,7 +305,7 @@ def add_vacancies(profile, ids, log=None, fetch_page=fetch, titles=None, from_se
         if not title:
             log(f"Не удалось прочитать вакансию {vid} (включён VPN или вакансия закрыта)")
             continue
-        from .dupes import check                          # та же вакансия с другого сайта (#13)
+        from .dupes import check                          # та же вакансия с другого сайта
         same, text = check(profile, title, company, text, f"https://hh.ru/vacancy/{vid}", log)
         if same:
             added.append((vid, f"{title} — {company}"))

@@ -9,7 +9,7 @@ $("btnParams").onclick = e => {
   m.hidden = !m.hidden;
   if (!m.hidden) { $("mProfileName").textContent = `Профиль · ${state.name}`; fitMenu(m); }
 };
-// Справочники и аналитика (#73): статистика, зарплаты, резюме против рынка, компании, контакты, где искать
+// Справочники и аналитика: статистика, зарплаты, резюме против рынка, компании, контакты, где искать
 $("btnInfo").onclick = e => {
   e.stopPropagation();
   closeMenus("infoMenu");
@@ -154,7 +154,7 @@ function openSettings() {
     show();
   }).catch(() => {});
   let maskCfg = null;
-  // Что скрывается от GigaChat (#69): метки вместо личных данных; прошлые работодатели — по выключателю
+  // Что скрывается от GigaChat: метки вместо личных данных; прошлые работодатели — по выключателю
   const loadMask = async firms => {
     const m = await api(`/api/mask?profile=${encodeURIComponent(state.profile)}${firms == null ? "" : `&companies=${firms ? 1 : 0}`}`).catch(() => null);
     if (!m || !$("sMask")) return;
@@ -192,7 +192,7 @@ function openSettings() {
     $("sDataDir").onclick = () => openDataDir();
   }).catch(() => {});
   let upd = null;
-  if (!REMOTE) api("/api/updates").then(u => {       // проверка обновлений (#26) — общая для компьютера
+  if (!REMOTE) api("/api/updates").then(u => {       // проверка обновлений — общая для компьютера
     upd = u;
     $("sUpd").innerHTML = field("Обновления", `<div class="checks"><label><input type="checkbox" id="sUpdOn" ${u.enabled ? "checked" : ""}> Проверять обновления</label></div>
       <p class="aboutupd"><button type="button" id="sUpdNow" class="small">Проверить сейчас</button> <span id="sUpdOut" class="hint"></span></p>`,
@@ -252,7 +252,7 @@ function openSettings() {
   };
 }
 
-// Модель включили после «Без модели» (#50): разобрать вакансии, сохранённые без разбора
+// Модель включили после «Без модели»: разобрать вакансии, сохранённые без разбора
 function openAnalyzeSaved() {
   const n = state.unanalyzed;
   dialog("Модель включена", `<p>Без разбора сохранено ${n} ${plural(n, "вакансия", "вакансии", "вакансий")}. Разобрать ${n === 1 ? "её" : "их"} сейчас?</p>
@@ -491,7 +491,7 @@ function askCloudKey() {
      {label: "Ввести ключ GigaChat", primary: true, onClick: () => openSettings()}]);
 }
 
-// Отсеянные поиском по названию, которые проходят отбор по нынешним правилам (#56): после обновления
+// Отсеянные поиском по названию, которые проходят отбор по нынешним правилам: после обновления
 // программы и по кнопке в настройках. Добавить — скачать и разобрать, как ссылкой
 async function openRecheck(quiet) {
   const res = await api(`/api/recheck?profile=${encodeURIComponent(state.profile)}`).catch(e => (quiet ? null : fail(e)));
@@ -523,7 +523,7 @@ async function offerRecheck() {
           {label: "Показать", onClick: () => openRecheck()});
 }
 
-// «Где искать вакансии» (#32): общий список из программы и свои ссылки профиля. Ссылки открываются в браузере,
+// «Где искать вакансии»: общий список из программы и свои ссылки профиля. Ссылки открываются в браузере,
 // программа по ним ничего не скачивает
 $("mLinks").onclick = () => { closeMenus(); openLinks(); };
 

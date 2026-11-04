@@ -324,7 +324,7 @@ def build_config(a, resume="резюме.md"):
         "путь_в_obsidian": "",
         # поиск на hh.ru программой — только если человек включил его и принял риск (соглашение hh запрещает скрипты)
         "hh_авто": hh_auto(a.get("hh_auto"), a.get("hh_risk")),
-        # ленты вакансий Хабр Карьеры и GeekJob (#39) — мастер предлагает их для ИТ
+        # ленты вакансий Хабр Карьеры и GeekJob — мастер предлагает их для ИТ
         "rss": {"habr": bool(a.get("rss_habr")), "geekjob": bool(a.get("rss_geekjob"))},
         # модель профиля: GigaChat — только если человек выбрал его в мастере и дал согласие
         "модель": ({"облако": False, "без_модели": True} if a.get("no_model") else
@@ -472,7 +472,7 @@ def answers_from_profile(p):
         "facts": "".join(f"- {f}\n" for f in p.read_facts()),        # списком: видно, где кончается факт
         "resume_editable": resume_inside,
         "resume_file": str(p.resume),
-        "model_pick": "none" if p.no_model else "cloud" if p.use_cloud else "local",   # шаг «Модель» (#50)
+        "model_pick": "none" if p.no_model else "cloud" if p.use_cloud else "local",   # шаг «Модель»
         "cloud": p.use_cloud,
         "no_model": p.no_model,
     }
@@ -559,7 +559,7 @@ def update_profile(p, answers, log=None):
     if changed("facts"):
         p.write_facts(a.get("facts"))
         done.append("дополнительно о себе")
-    if changed("model_pick") and a.get("model_pick") in ("local", "cloud", "none"):   # шаг «Модель» в мастере (#50)
+    if changed("model_pick") and a.get("model_pick") in ("local", "cloud", "none"):   # шаг «Модель» в мастере
         from . import cloud
         if a["model_pick"] == "cloud" and not cloud.load(p.dir.parent).get("auth_key"):
             raise AssistantError("Сначала подключите GigaChat: вставьте ключ и отметьте согласие на шаге «Модель».")

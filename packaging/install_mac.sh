@@ -1,5 +1,5 @@
 #!/bin/bash
-# Установка и обновление на Mac одной командой в Терминале (#27):
+# Установка и обновление на Mac одной командой в Терминале:
 #   curl -fsSL https://raw.githubusercontent.com/romanmigal/vacancy-assistant/main/packaging/install_mac.sh | bash
 # Скачивает .dmg последнего релиза под процессор этого Mac, сверяет SHA-256 с GitHub и копирует программу в «Программы».
 # Файл, скачанный curl, не получает метку карантина — macOS не останавливает неподписанную у Apple программу

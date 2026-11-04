@@ -1,4 +1,4 @@
-// Фильтр таблицы по значениям колонок (#44) — как автофильтр в Excel. Хранится в окне (localStorage) у каждого
+// Фильтр таблицы по значениям колонок — как автофильтр в Excel. Хранится в окне (localStorage) у каждого
 // профиля: это временный вид, а не настройка, Сводку.md он не меняет. Фильтры складываются (И); закрытые
 // вакансии — флажок «Скрыть закрытые» в фильтре колонки «Вакансия». Отбор строк (filterRows и соседи) не трогает страницу —
 // его проверяет тест через node (tests/test_filters.py).
@@ -17,7 +17,7 @@ function filterValue(key, r) {
     return rank === 3 ? "да" : rank === 2 ? "возможно" : rank === 1 ? "нет" : (r.decision || "?");
   }
   if (key === "stage") return r.funnel && r.funnel.stage ? stageName(r.funnel.stage) : "без этапа";
-  if (key === "mine") return r.my_decision || "не оценивал";     // своя оценка (#79): по своему решению
+  if (key === "mine") return r.my_decision || "не оценивал";     // своя оценка: по своему решению
   return r[key] || EMPTY_VALUE;                       // источник, компания
 }
 
@@ -31,7 +31,7 @@ function passes(key, f, r, today) {
     case "range": return RANGES.every(([k]) => {
       const from = num(f[k + "From"]), to = num(f[k + "To"]);
       if (from == null && to == null) return true;
-      const v = !r.analyzed ? null : k === "want" ? wantOf(r) : r[k];      // «Хочу» — с надбавкой за сходство с откликами (#74)
+      const v = !r.analyzed ? null : k === "want" ? wantOf(r) : r[k];      // «Хочу» — с надбавкой за сходство с откликами
       return v != null && (from == null || v >= from) && (to == null || v <= to);
     });
     case "salary": {
@@ -111,7 +111,7 @@ function saveFilters() {
 const filtering = () => hideClosed || Object.keys(filters).some(k => filterOn(k, filters[k]));
 const columnFiltered = key => filterOn(key, filters[key]) || (key === "title" && hideClosed);   // закрытые — в фильтре «Вакансии»
 
-// Перед отрисовкой таблицы: фильтр скрытой колонки сбрасывается (#40) — его не видно, значит и не действует
+// Перед отрисовкой таблицы: фильтр скрытой колонки сбрасывается — его не видно, значит и не действует
 function dropHiddenFilters(cols) {
   const shown = cols.map(c => c[0]);
   if (Object.keys(filters).some(k => !shown.includes(k))) {

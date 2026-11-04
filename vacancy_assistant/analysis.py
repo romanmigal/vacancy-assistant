@@ -16,7 +16,7 @@ from .summary import write_summary
 from .textio import log_print, read_text, write_text
 
 
-NO_MODEL = "none"           # «стадия» разбора вакансии, сохранённой в режиме «Без модели» (#50)
+NO_MODEL = "none"           # «стадия» разбора вакансии, сохранённой в режиме «Без модели»
 NO_MODEL_TEXT = ("Вакансия сохранена без разбора: в профиле выбран режим «Без модели». Этап, комментарий "
                  "и референсер работают как обычно. Когда включите модель («Параметры → Настройки»), "
                  "программа предложит разобрать такие вакансии.")
@@ -28,7 +28,7 @@ def unanalyzed(path):
 
 
 def save_unanalyzed(profile, path):
-    """Режим «Без модели» (#50): «пустой разбор» — паспорт без оценки. В его свойствах живут этап, комментарий,
+    """Режим «Без модели»: «пустой разбор» — паспорт без оценки. В его свойствах живут этап, комментарий,
     референсер и актуальность, как у разобранной; когда модель включат, вакансию разберут как новую.
     Настоящий разбор не трогаем."""
     target = profile.results / path.name
@@ -53,7 +53,7 @@ def save_result(profile, path, info, answer, meta, record=True):
                f"{answer}\n")
     if record:
         funnel.record_analysis(profile, target, meta, profile.input_hashes())
-    # Вакансию скачали уже закрытой (hh: «в архиве») — сразу отмечаем это, как проверка актуальности (#14)
+    # Вакансию скачали уже закрытой (hh: «в архиве») — сразу отмечаем это, как проверка актуальности
     if f"**{ARCHIVED_FIELD}:** вакансия в архиве" in read_text(path) and not actual.read(target)["checked"]:
         actual.record(target, actual.GONE)
     return target
@@ -110,7 +110,7 @@ def analyze(profile, redo=False, log=None, ask=None, summary=True, only=None):
         todo, redo = [f for f in files if f.name in set(only)], True
     else:
         todo = [f for f in files if redo or unanalyzed(profile.results / f.name)]
-    if profile.no_model:                       # «Без модели» (#50): только сохранить, без оценки
+    if profile.no_model:                       # «Без модели»: только сохранить, без оценки
         if todo:
             log(f"Модель не используется — сохранено без разбора: {len(todo)}")
         done = [save_unanalyzed(profile, f) for f in todo]
@@ -251,7 +251,7 @@ def write_resume_fit(profile, path, log=None, ask=None):
     return target
 
 
-# Свой текст вместо версии модели (#47): правка показанной версии или письмо, написанное самим
+# Свой текст вместо версии модели: правка показанной версии или письмо, написанное самим
 TEXT_KINDS = {"cover": ("letters", "Письмо", "../"),                 # вид → папка профиля, заголовок, путь до профиля
               "referrer": ("referrer_letters", "Референсеру", "../../"),
               "resume": ("resume_fits", "Резюме под вакансию", "../")}
@@ -295,9 +295,9 @@ def text_file(profile, path, kind, key=""):
 
 
 def mark_sent(profile, path, kind, key="", when=None, trash=None):
-    """Отметка «Отправлено» у версии письма или резюме под вакансию (#53): when — дата ("2026-10-28"),
+    """Отметка «Отправлено» у версии письма или резюме под вакансию: when — дата ("2026-10-28"),
     None — снять отметку. Пишется в паспорт файла; время изменения файла не трогаем — по нему версия стоит
-    в списке. Отправленный текст копируется в «Артефакты» вакансии (#54), при снятии отметки копия — в Корзину."""
+    в списке. Отправленный текст копируется в «Артефакты» вакансии, при снятии отметки копия — в Корзину."""
     if kind not in TEXT_KINDS:
         raise AssistantError("Отправленным можно отметить только письмо или резюме.")
     f = text_file(profile, path, kind, key)
