@@ -670,6 +670,8 @@ table.funnel td.bar { width: 40%; } table.funnel td.bar span { display: block; h
 @media (max-width: 760px) { .stcols { grid-template-columns: 1fr; } }
 #wbody h3 { margin: 16px 0 6px; font-size: 15px; }
 .helplink { font-size: 12px; font-weight: normal; margin-left: 8px; color: var(--muted); }
+.helplink.guide { display: inline-flex; align-items: center; gap: 6px; margin-left: 12px; font-size: 13px; font-weight: 600; color: #c77700; vertical-align: 2px; }   /* мастер: гид «Первый запуск» — заметно */
+.helplink.guide .bang { display: inline-grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; background: #c77700; color: #fff; font-size: 12px; font-weight: 700; line-height: 1; }
 header .who .linkbtn { border: 0; background: none; padding: 0; color: var(--accent); text-decoration: underline dotted; cursor: pointer; font: inherit; }
 
 /* Окно «Мои оценки» в карточке */

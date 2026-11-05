@@ -97,7 +97,7 @@ function wizRender() {
   const edit = W.mode === "edit", step = wstep(), last = wnextPos() === null;
   $("wtitle").textContent = W.created ? "Профиль создан" : edit ? `Профиль: ${state.name}` : "Новый профиль";
   if (!W.created && !edit)   // новый профиль: гид со снимками — ключ GigaChat, шаги мастера, первый поиск
-    $("wtitle").insertAdjacentHTML("beforeend", `<a class="helplink" href="/help/docs/${encodeURIComponent("Первый запуск.md")}" target="_blank" rel="noopener">пошаговый гид со снимками экрана</a>`);
+    $("wtitle").insertAdjacentHTML("beforeend", `<a class="helplink guide" href="/help/docs/${encodeURIComponent("Первый запуск.md")}" target="_blank" rel="noopener"><span class="bang" aria-hidden="true">!</span>Пошаговый гид со снимками экрана</a>`);
   const offHint = s => W.a.no_model && MODEL_STEPS.includes(s) ? "Нужна модель — выберите её на шаге «Модель» или в «Параметры → Настройки»"
                      : s === 3 ? "Открывается кнопкой «Пересобрать из опросника» на шагах «Отбор по названию» и «Критерии модели»"
                                : "Станет доступен после «Дальше» на шаге «Что ищете»";
