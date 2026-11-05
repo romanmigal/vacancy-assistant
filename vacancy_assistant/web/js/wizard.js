@@ -96,6 +96,8 @@ async function wizCheck() {
 function wizRender() {
   const edit = W.mode === "edit", step = wstep(), last = wnextPos() === null;
   $("wtitle").textContent = W.created ? "Профиль создан" : edit ? `Профиль: ${state.name}` : "Новый профиль";
+  if (!W.created && !edit)   // новый профиль: гид со снимками — ключ GigaChat, шаги мастера, первый поиск
+    $("wtitle").insertAdjacentHTML("beforeend", `<a class="helplink" href="/help/docs/${encodeURIComponent("Первый запуск.md")}" target="_blank" rel="noopener">пошаговый гид со снимками экрана</a>`);
   const offHint = s => W.a.no_model && MODEL_STEPS.includes(s) ? "Нужна модель — выберите её на шаге «Модель» или в «Параметры → Настройки»"
                      : s === 3 ? "Открывается кнопкой «Пересобрать из опросника» на шагах «Отбор по названию» и «Критерии модели»"
                                : "Станет доступен после «Дальше» на шаге «Что ищете»";
@@ -168,6 +170,7 @@ function wizRender() {
       ${field("Файл резюме с hh.ru", `<input type="file" id="wpdf" accept=".txt,.md,.html,.htm,.pdf,text/plain,text/markdown,text/html,application/pdf">`,
                "На hh.ru: резюме → «Скачать» → <b>TXT</b> — так программа точно разберёт все разделы. PDF тоже подойдёт, но хуже: колонки PDF путают порядок блоков. Или вставьте текст резюме в поле ниже. Телефон, почта и дата рождения не переносятся.")}
       ${field(`Текст резюме <button type="button" class="info" data-example="resume" title="Пример резюме" aria-label="Пример резюме">i</button>`, `<div class="expop" id="ex-resume"></div>` + area("resume", "…или вставьте текст резюме сюда", "tall", ro), ro ? "" : "Проверьте текст после загрузки файла: модель опирается только на то, что здесь написано.", true)}
+      ${W.a.model_pick === "cloud" ? '<div class="field" id="wFirms"></div>' : ""}
       ${field("Дополнительно о себе", area("facts", "- Использую ИИ в своих проектах: локальная LLM, свой помощник по вакансиям на Python\n- Английский — B2, переговоры с зарубежными вендорами", "facts"),
         "Опыт и факты, которых нет в резюме: пет-проекты, обучение, волонтёрство, отраслевые знания, языки. Каждый факт — с «- »: Enter начнёт следующий, длинный факт перенесётся и останется одним пунктом. Модель учитывает их наравне с резюме при разборе и оценке — пишите только правду. Хранится в файле «о себе.md» в папке профиля. Необязательно.")}`;
   }
@@ -268,6 +271,10 @@ function wizRender() {
     bindCloudCheck();
   }).catch(fail);
   if ($("wpdf")) $("wpdf").onchange = wizPdf;
+  if ($("wFirms")) {
+    wizFirms();
+    document.querySelector("#wbody [data-a=resume]")?.addEventListener("change", () => { wsave(); wizFirms(); });
+  }
   if ($("hhOn")) bindHhAuto();
   if ($("wDataDir")) $("wDataDir").onclick = () => openDataDir();
   if ($("wImport")) { $("wImport").onclick = () => $("wImportFile").click(); $("wImportFile").onchange = e => e.target.files[0] && importProfile(e.target.files[0]); }
@@ -415,6 +422,16 @@ async function wizPull() {
     if (prog) prog.textContent = job.log.filter(Boolean).slice(-3).join("\n") + (job.error ? "\n" + job.error : "");
     if (!isActive(job)) { clearInterval(timer); if (!job.error) wizCheck(); else if ($("wpull")) $("wpull").disabled = false; }
   }, 1000);
+}
+
+// Шаг «Резюме» с GigaChat: скрывать ли и прошлых работодателей — список из текущего текста резюме
+async function wizFirms() {
+  const r = await api("/api/setup/employers", {resume: W.a.resume || ""}).catch(() => null);
+  if (!r || !$("wFirms")) return;
+  if (!r.past.length) W.a.hide_firms = false;
+  $("wFirms").innerHTML = `<div class="checks"><label><input type="checkbox" data-a="hide_firms" ${W.a.hide_firms && r.past.length ? "checked" : ""} ${r.past.length ? "" : "disabled"}>
+      Скрывать от GigaChat и прошлых работодателей${r.past.length ? ` — ${r.past.map(esc).join(", ")}` : " — в резюме их пока не нашлось"}</label></div>
+    <div class="sub">Имя, телефон, почта и контакты скрываются всегда. Если скрыть и работодателей, модель не узнает отрасль и размер этих компаний — оценка опыта может стать менее точной. Поменять можно в «Параметры → Настройки → Что скрывается от GigaChat».</div>`;
 }
 
 async function wizPdf(e) {

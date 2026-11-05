@@ -92,6 +92,23 @@ class Setup(unittest.TestCase):
                 with self.assertRaises(setup.AssistantError):
                     setup.create_profile({**ANSWERS, "profile_id": bad}, t.profiles, log=lambda *_: None)
 
+    def test_hide_past_employers_from_wizard(self):
+        """Шаг «Резюме» с GigaChat: галочка «скрывать прошлых работодателей» — в профиль и обратно в мастер."""
+        from vacancy_assistant import mask
+        resume = "**ООО «Пример Ритейл» (Москва)** · ИТ-директор · 2021 — 2026\n"
+        with TempProfile() as t:
+            from vacancy_assistant.app import App
+            body = App(t.profiles).handle("POST", "/api/setup/employers", {}, {"resume": resume})
+            self.assertEqual(body["past"], ["ООО «Пример Ритейл»"])
+            hidden = Profile(setup.create_profile({**ANSWERS, "cloud": True, "hide_firms": True}, t.profiles, log=lambda *_: None), t.profiles)
+            self.assertTrue(mask.hide_companies(hidden))
+            self.assertTrue(setup.answers_from_profile(hidden)["hide_firms"])
+            local = Profile(setup.create_profile({**ANSWERS, "hide_firms": True}, t.profiles, log=lambda *_: None), t.profiles)
+            self.assertFalse(mask.hide_companies(local))                       # без GigaChat скрывать не от кого
+            changed = setup.update_profile(hidden, {"hide_firms": False}, log=lambda *_: None)["changed"]
+            self.assertEqual(changed, ["скрытие прошлых работодателей"])
+            self.assertFalse(mask.hide_companies(Profile(hidden.name, t.profiles)))
+
     def test_edit_profile_changes_only_what_changed(self):
         with TempProfile() as t:
             p = t.profile                                           # профиль-пример создан вручную, не мастером

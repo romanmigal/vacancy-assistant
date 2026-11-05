@@ -74,8 +74,9 @@ def run(args):
         feeds = rss.enabled(profile)
         if not feeds:
             hh.require_auto(profile)                    # ни hh, ни лент — понятная ошибка без обращения к сети
-        found = hh.search(profile) if profile.hh_auto else []
-        found += rss.search(profile, limit=profile.search_limit) if feeds else []
+        found = (hh.search(profile) or []) if profile.hh_auto else []
+        left = rss.leftover(profile.search_limit, len(found))          # лимит общий: ленты — остаток после hh.ru
+        found += rss.search(profile, limit=left) if feeds and left != 0 else []
         if found:
             print("\nДальше:  python3 razbor.py  — разобрать, затем  python3 razbor.py letters")
     elif command == "summary":

@@ -17,7 +17,7 @@ import urllib.parse
 import urllib.request
 from datetime import date
 
-from . import settings
+from . import mask, settings
 from .errors import AssistantError
 from .hh import phase
 from .profile import CONFIG_FILE, Profile
@@ -329,6 +329,8 @@ def build_config(a, resume="резюме.md"):
         # модель профиля: GigaChat — только если человек выбрал его в мастере и дал согласие
         "модель": ({"облако": False, "без_модели": True} if a.get("no_model") else
                    {"облако": True, "согласие": date.today().isoformat()} if a.get("cloud") else {"облако": False}),
+        # что скрывать от GigaChat кроме личных данных: прошлых работодателей — по галочке на шаге «Резюме»
+        "скрытие": {"компании": bool(a.get("cloud") and a.get("hide_firms"))},
         "разбор": {
             "для_кого": f"специалистов и руководителей в сфере «{field}»" if field else "специалистов и руководителей",
             "вступление": intro,
@@ -475,6 +477,7 @@ def answers_from_profile(p):
         "model_pick": "none" if p.no_model else "cloud" if p.use_cloud else "local",   # шаг «Модель»
         "cloud": p.use_cloud,
         "no_model": p.no_model,
+        "hide_firms": mask.hide_companies(p),
     }
 
 
@@ -565,6 +568,9 @@ def update_profile(p, answers, log=None):
             raise AssistantError("Сначала подключите GigaChat: вставьте ключ и отметьте согласие на шаге «Модель».")
         p.set_model(a["model_pick"] == "cloud", off=a["model_pick"] == "none")
         done.append("модель")
+    if changed("hide_firms"):
+        mask.set_hide_companies(p, a.get("hide_firms"))
+        done.append("скрытие прошлых работодателей")
 
     keep = {k: a.get(k) for k in ("office", "hybrid", "salary", "important", "not_ok", "field")}
     write_json(p.dir / ANSWERS_FILE, keep)

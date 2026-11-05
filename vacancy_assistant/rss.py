@@ -87,6 +87,24 @@ def urls(profile, feed):
     return [HABR_URL.format(q=urllib.parse.quote(q)) for q in read_queries(profile)] if profile.searches.exists() else []
 
 
+def by_turns(keys, source):
+    """По очереди: по одной вакансии с каждого запроса Хабр Карьеры и из GeekJob, потом по второй…
+    Так при лимите в пачку попадают вакансии по всем запросам, а не только по первому."""
+    groups = {}
+    for k in keys:
+        groups.setdefault(source(k), []).append(k)
+    out, queues = [], list(groups.values())
+    while queues:
+        out += [q.pop(0) for q in queues]
+        queues = [q for q in queues if q]
+    return out
+
+
+def leftover(cap, taken):
+    """Сколько взять из лент: лимит за поиск общий, hh.ru — первым, ленты — остаток. None — без лимита, 0 — уже набран."""
+    return max(cap - taken, 0) if cap else None
+
+
 def search(profile, log=None, fetch_page=sites.fetch, ask=None, sleep=time.sleep, limit=None, now=None):
     """Читает включённые ленты, отсеивает по названию и уже виденное, скачивает подходящее.
     Возвращает список новых файлов вакансий."""
@@ -119,13 +137,13 @@ def search(profile, log=None, fetch_page=sites.fetch, ask=None, sleep=time.sleep
                 continue
             got += len(items)
             for item in items:
-                found.setdefault(item["id"], {**item, "feed": feed})
+                found.setdefault(item["id"], {**item, "feed": feed, "src": f"{feed} {i}"})   # src — лента и запрос
         if failed < len(links):
             read[feed] = now.isoformat(timespec="seconds")
         log(f"{FEEDS[feed]}: в ленте {plural(got, 'вакансия', 'вакансии', 'вакансий')}")
     write_json(profile.dir / STATE_FILE, read)
     new = {k: v for k, v in found.items() if k not in seen}
-    fit = [k for k, v in new.items() if profile.title_fits(v["title"])]
+    fit = by_turns([k for k, v in new.items() if profile.title_fits(v["title"])], lambda k: new[k]["src"])
     log(f"Новых: {len(new)}, подходят по названию: {len(fit)}, отсеяно: {len(new) - len(fit)}")
     later = []
     if limit and len(fit) > limit:

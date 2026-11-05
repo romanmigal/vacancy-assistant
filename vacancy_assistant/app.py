@@ -341,14 +341,18 @@ def make_work(profile, action, data, fetch_page=None, ask=None):
             hh.require_auto(profile)            # поиск на hh.ru выключен и лент нет — отказ сразу, без обращения к сети
         limit = int(data.get("limit") or 0) or None
         def work(log):
+            got = []
             if not profile.hh_auto:
                 log("Поиск на hh.ru выключен — читаю только ленты вакансий.")
             elif profile.searches.exists() and hh.read_queries(profile):
-                hh.search(profile, log, limit=limit, **hh_kw)
+                got = hh.search(profile, log, limit=limit, **hh_kw) or []
             else:
                 log("Поисковых запросов нет (поиски.txt) — только разбор.")
-            if feeds:                           # RSS Хабр Карьеры и GeekJob
-                rss.search(profile, log, ask=ask, limit=limit or profile.search_limit, **hh_kw)
+            left = rss.leftover(limit or profile.search_limit, len(got))   # лимит общий: ленты — остаток после hh.ru
+            if feeds and left == 0:
+                log("Лимит вакансий за поиск набран на hh.ru — ленты Хабр Карьеры и GeekJob прочитаю при следующем поиске.")
+            elif feeds:                         # RSS Хабр Карьеры и GeekJob
+                rss.search(profile, log, ask=ask, limit=left, **hh_kw)
             analyze_and_write(profile, log, ask)
         return "Найти новые вакансии", work
     if action == "add":                         # ссылки hh.ru и любых других сайтов
@@ -1215,6 +1219,10 @@ class App:
     def api_setup_resume(self, p, a):
         """Файл резюме (выгрузка hh в TXT, PDF, текст) → текст для поля мастера. Без модели."""
         return {"resume": resume_pdf.file_markdown(base64.b64decode(a.get("data", "")))}
+
+    @route("/api/setup/employers", "POST", profile=False)  # мастер, шаг «Резюме»: кого можно скрыть от GigaChat
+    def api_setup_employers(self, p, a):
+        return {"past": [v[0] for v in mask.past_employers(a.get("resume") or "")]}
 
     @route("/api/setup/preview", "POST", profile=False)
     def api_setup_preview(self, p, a):

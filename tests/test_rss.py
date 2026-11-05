@@ -129,5 +129,21 @@ class Search(unittest.TestCase):
             self.assertEqual(len(list(p.vacancies.glob("*.md"))), 1)
 
 
+class Turns(unittest.TestCase):
+    def test_one_from_each_query_in_turn(self):
+        src = {"h1": "habr 0", "h2": "habr 0", "h3": "habr 0", "j1": "habr 1", "g1": "geekjob 0", "g2": "geekjob 0"}
+        self.assertEqual(rss.by_turns(list(src), src.get)[:4], ["h1", "j1", "g1", "h2"])   # лимит 4 — каждому запросу
+        self.assertEqual(rss.by_turns(list(src), src.get), ["h1", "j1", "g1", "h2", "g2", "h3"])
+
+
+class SharedLimit(unittest.TestCase):
+    def test_feeds_get_what_hh_left(self):
+        """Лимит за поиск — общий: сначала hh.ru, ленты берут остаток; набран — ленты в следующий раз."""
+        self.assertEqual(rss.leftover(15, 10), 5)
+        self.assertEqual(rss.leftover(15, 0), 15)        # hh.ru выключен или ничего не нашёл
+        self.assertEqual(rss.leftover(15, 15), 0)
+        self.assertIsNone(rss.leftover(None, 40))        # без лимита — ленты без ограничений
+
+
 if __name__ == "__main__":
     unittest.main()
