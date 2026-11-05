@@ -11,8 +11,8 @@ from urllib.parse import unquote
 from . import settings
 from .textio import read_text
 
-# /help/ — README; /help/docs/<имя>.md|.svg|.png — документы и картинки к ним. Только такие имена.
-DOC = re.compile(r"docs/[^/\\]+\.(md|svg|png)")
+# /help/ — README; /help/docs/<имя>.md — документы, /help/docs/картинки/<имя>.svg|.png — картинки к ним. Только такие имена.
+DOC = re.compile(r"docs/(?:[^/\\]+\.md|картинки/[^/\\]+\.(?:svg|png))")
 TYPES = {"svg": "image/svg+xml", "png": "image/png"}
 
 

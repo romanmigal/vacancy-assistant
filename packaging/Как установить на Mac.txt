@@ -5,6 +5,9 @@
 
    curl -fsSL https://raw.githubusercontent.com/romanmigal/vacancy-assistant/main/packaging/install_mac.sh | bash
 
+Пошагово со снимками экрана — установка, ключ GigaChat и мастер профиля:
+   https://github.com/romanmigal/vacancy-assistant/blob/main/docs/Первый%20запуск.md
+
 Или вручную:
 
 1. Перетащите «Помощник по вакансиям» в папку «Программы» (Applications).

@@ -89,7 +89,7 @@ class AppServer(unittest.TestCase):
         self.assertEqual((code, ctype.split(";")[0]), (200, "text/html"))
         self.assertIn("<h1>Помощник по вакансиям</h1>", body.decode("utf-8"))           # README — страницей
         self.assertIn('src="docs/', body.decode("utf-8"))
-        self.assertEqual(get("/help/docs/" + quote("окно.png"))[1], "image/png")        # картинки к нему
+        self.assertEqual(get("/help/docs/" + quote("картинки/окно.png"))[1], "image/png")        # картинки к нему
         self.assertEqual(get("/help/docs/" + quote("Настройка критериев.md"))[0], 200)
         code, _, body = get("/help/docs/" + quote("Оценка не совпадает с вашей.md"))       # гид из карточки
         self.assertEqual(code, 200)
