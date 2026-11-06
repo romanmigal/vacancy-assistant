@@ -61,6 +61,15 @@ class Stats(unittest.TestCase):
         self.assertEqual({k: st["yes"][k] for k in ("count", "closed", "flagged")}, {"count": 2, "closed": 1, "flagged": 1})
         self.assertEqual(st["new"]["count"], 0)
 
+    def test_scores_model_and_mine(self):
+        rows = [dict(ROWS[0], my_score=6), dict(ROWS[1], my_score=5), dict(ROWS[2], my_score=10), *ROWS[3:]]
+        sc = stats.compute(rows, "week", TODAY)["scores"]
+        self.assertEqual(sc["model"], [0, 0, 0, 0, 1, 0, 1, 1, 1, 0])        # 8, 5, 9, 7; у пятой оценки нет
+        self.assertEqual(sc["mine"], [0, 0, 0, 0, 1, 1, 0, 0, 0, 1])
+        self.assertEqual((sc["both"], sc["higher"], sc["lower"], sc["diff_avg"]), (3, 1, 1, 1.0))
+        self.assertEqual({d: n for d, n in zip(range(-9, 10), sc["diffs"]) if n}, {-1: 1, 0: 1, 2: 1})   # 9↔10, 5↔5, 8↔6
+        self.assertEqual((sc["model_avg"], sc["mine_avg"]), (7.2, 7.0))
+
     def test_funnel_by_kind(self):
         rows = [dict(ROWS[0], agency=True), *ROWS[1:4], dict(ROWS[4], company="")]
         f = {x["label"]: x["by_kind"] for x in stats.compute(rows, "week", TODAY, [])["funnel"]}

@@ -147,6 +147,22 @@ def compute(rows, step="week", today=None, status_names=None):
                                                            for k in ("answered", "rejected", "interview")}}
                for flag, group in ((True, [x for x in sent if x[0].get("cover_sent")]),
                                    (False, [x for x in sent if not x[0].get("cover_sent")]))]
+    # Оценки: сколько вакансий получили 1…10 у модели и у вас; где обе — насколько модель расходится с вами
+    def bins(vals):
+        out = [0] * 10
+        for v in vals:
+            out[min(max(round(v), 1), 10) - 1] += 1
+        return out
+    model = [r["score"] for r in rows if r.get("score") is not None]
+    mine = [r["my_score"] for r in rows if r.get("my_score") is not None]
+    both = [(r["score"], r["my_score"]) for r in rows if r.get("score") is not None and r.get("my_score") is not None]
+    scores_all = {"model": bins(model), "mine": bins(mine),
+                  "model_avg": round(mean(model), 1) if model else None, "mine_avg": round(mean(mine), 1) if mine else None,
+                  "both": len(both), "diff_avg": round(mean(abs(m - y) for m, y in both), 1) if both else None,
+                  "higher": sum(1 for m, y in both if round(m) > round(y)),
+                  "lower": sum(1 for m, y in both if round(m) < round(y)),
+                  # разница «модель − вы» от −9 до +9: сколько вакансий с каждой
+                  "diffs": [sum(1 for m, y in both if round(m) - round(y) == d) for d in range(-9, 10)]}
     names = dict(status_names or [])
     now = {}                                         # по статусам: всего, закрытых на сайте, с флагом
     for r in rows:
@@ -163,6 +179,7 @@ def compute(rows, step="week", today=None, status_names=None):
                   "count": len(scores)},
         "speed": speed, "waiting": waiting, "wait_days": WAIT_DAYS,
         "letters": letters,
+        "scores": scores_all,
         "sources": sorted(sources.values(), key=lambda s: (-s["added"], s["source"])),
         "statuses": [{"key": k, "label": names.get(k, k), **now.get(k, {"count": 0, "closed": 0, "flagged": 0})}
                      for k in names],                # все статусы, и пустые

@@ -66,6 +66,12 @@ function statsHtml(s) {
           <table class="stat">${s.waiting.map(w => `<tr class="link" data-vac="${w.n}" title="Открыть карточку вакансии"><td>${esc(w.title)}<div class="muted small">${esc(w.company)}</div></td>
             <td class="muted">отклик ${ddmm(w.applied)}</td><td><b>${w.days}</b> дн.</td></tr>`).join("")}</table>
           <p class="hint">Можно напомнить о себе или отметить этап «Не ответили».</p></details>` : ""}</div>
+      <div><h3>Оценки вакансий</h3><p class="hint">Все вакансии профиля. Какие оценки поставила модель и какие — вы в «Моих оценках»; во втором кольце — и вакансии, которые вы ещё не оценили.</p>
+        ${scoreRings(s.scores, s.total_vacancies)}</div>
+      <div><h3>Оценки: модель и вы</h3><p class="hint">Процент от всех оценок модели и от всех ваших — так распределения сравнимы, хотя оценок у вас меньше.</p>
+        ${scoresChart(s.scores)}</div>
+      <div><h3>Общая оценка: модель и вы</h3><p class="hint">Только вакансии, где есть и оценка модели, и ваша: насколько модель ставит выше или ниже вас. Чем больше столбик в центре, тем точнее модель настроена под вас; если вакансий по краям много — пора откалибровать критерии.</p>
+        ${diffChart(s.scores)}</div>
     </div>`;
 }
 
@@ -176,6 +182,68 @@ function speedTimeline(sp) {
       <span class="tld">${d == null ? "нет данных" : `${String(d).replace(".", ",")} дн.`}</span><i></i>
       <span class="tln muted">${n ? `по ${n} ${what}` : ""}</span></div>`;
   return `<div class="sttl">${nodes.map((l, i) => `<div class="tlnode"><b></b><span>${l}</span></div>${i < segs.length ? seg(segs[i]) : ""}`).join("")}</div>`;
+}
+
+// Оценки 1…10 в долях: у каждой пара столбиков — модель и вы, процент от всех своих оценок
+function scoresChart(sc) {
+  if (!sc || (!sc.model.some(Boolean) && !sc.mine.some(Boolean))) return '<p class="muted">Оценок пока нет.</p>';
+  const tot = {model: sc.model.reduce((a, b) => a + b, 0), mine: sc.mine.reduce((a, b) => a + b, 0)};
+  const val = (v, who) => tot[who] ? v / tot[who] * 100 : 0;
+  const W = 720, H = 140, pad = 18, w = W / 10, bw = w * .32;
+  const max = Math.max(1, ...sc.model.map(v => val(v, "model")), ...sc.mine.map(v => val(v, "mine")));
+  const bar = (v, x, cls, who, i) => { if (!v) return ""; const h = val(v, cls) / max * (H - pad), p = Math.round(val(v, cls));
+    return `<rect x="${x}" y="${H - h}" width="${bw}" height="${h}" rx="2" class="${cls}"><title>${who}: оценка ${i + 1} — ${v} ${plural(v, "вакансия", "вакансии", "вакансий")} (${p}% оценок)</title></rect>
+      <text x="${x + bw / 2}" y="${H - h - 4}" text-anchor="middle" class="small">${p}%</text>`; };
+  return `<svg class="stchart stscores" viewBox="0 0 ${W} ${H + 24}" role="img" aria-label="Распределение оценок в долях: модель и вы">
+    ${sc.model.map((v, i) => `<g>${bar(v, i * w + w / 2 - bw - 1, "model", "Модель", i)}${bar(sc.mine[i], i * w + w / 2 + 1, "mine", "Вы", i)}
+      <text x="${i * w + w / 2}" y="${H + 16}" text-anchor="middle" class="axis">${i + 1}</text></g>`).join("")}
+    <line x1="0" x2="${W}" y1="${H}" y2="${H}"/></svg>
+    <div class="stlegend"><span><i style="background:var(--s-model)"></i>Модель</span><span><i style="background:var(--s-mine)"></i>Вы</span></div>
+    ${sc.both ? `<p class="small">Оценены и вами, и моделью — ${sc.both}: модель выше вас у ${sc.higher}, ниже — у ${sc.lower}.</p>`
+      : `<p class="hint">Своих оценок пока нет — поставьте их в карточке вакансии («Поставить свои оценки») или в калибровке.</p>`}`;
+}
+
+// Расхождение «модель − вы»: столбик на каждую разницу; слева — модель ниже вас, в центре — совпали, справа — модель выше
+function diffChart(sc) {
+  if (!sc?.both) return '<p class="hint">Пока нет вакансий с обеими оценками — поставьте свои в карточке вакансии («Поставить свои оценки») или в калибровке.</p>';
+  const ds = sc.diffs.map((n, i) => [i - 9, n]), used = ds.filter(([, n]) => n).map(([d]) => Math.abs(d));
+  const k = Math.max(2, ...used), cols = ds.filter(([d]) => Math.abs(d) <= k);
+  const W = 720, H = 130, pad = 18, w = W / cols.length, bw = Math.min(w * .6, 46), max = Math.max(1, ...cols.map(([, n]) => n));
+  const what = d => d === 0 ? "совпали" : d > 0 ? `модель выше на ${d}` : `модель ниже на ${-d}`;
+  const same = ds.find(([d]) => d === 0)[1];
+  return `<svg class="stchart stdiff" viewBox="0 0 ${W} ${H + 40}" role="img" aria-label="Расхождение оценок модели и ваших">
+    ${cols.map(([d, n], i) => { const h = n / max * (H - pad), x = i * w + (w - bw) / 2;
+      return `<g>${n ? `<rect x="${x}" y="${H - h}" width="${bw}" height="${h}" rx="2" class="${d === 0 ? "same" : d > 0 ? "model" : "mine"}"><title>${what(d)}: ${n} ${plural(n, "вакансия", "вакансии", "вакансий")} (${pct(n, sc.both)})</title></rect>
+        <text x="${x + bw / 2}" y="${H - h - 4}" text-anchor="middle" class="small">${n}</text>` : ""}
+        <text x="${i * w + w / 2}" y="${H + 16}" text-anchor="middle" class="axis">${d > 0 ? "+" + d : d}</text></g>`; }).join("")}
+    <line x1="0" x2="${W}" y1="${H}" y2="${H}"/>
+    <text x="4" y="${H + 34}" class="axis">← модель ниже вас</text><text x="${W / 2}" y="${H + 34}" text-anchor="middle" class="axis">совпали</text>
+    <text x="${W - 4}" y="${H + 34}" text-anchor="end" class="axis">модель выше вас →</text></svg>
+    <p class="small">Из ${sc.both}: совпали — ${same} (${pct(same, sc.both)}), модель выше вас — ${sc.higher}, ниже — ${sc.lower}.</p>`;
+}
+
+// Два кольца: оценки модели и ваши, ваши — вместе с неоценёнными вакансиями. Оценки 1…10 — от светлого к тёмному
+const scoreColor = i => `hsl(205 ${45 + i * 3}% ${86 - i * 6.6}%)`;
+function scoreRings(sc, total) {
+  if (!sc) return "";
+  const ring = (title, bins, rest, restLabel) => {
+    const parts = [...bins.map((v, i) => ({label: `Оценка ${i + 1}`, count: v, color: scoreColor(i)})),
+                   ...(rest > 0 ? [{label: restLabel, count: rest, color: "var(--s-src0)"}] : [])].filter(x => x.count);
+    const sum = parts.reduce((a, x) => a + x.count, 0);
+    if (!sum) return `<div class="scring"><b>${title}</b><p class="muted">Оценок пока нет.</p></div>`;
+    const R = 60, C = 2 * Math.PI * R; let at = 0;
+    const arcs = parts.map(x => { const len = x.count / sum * C, gap = parts.length > 1 ? Math.min(1.5, len / 2) : 0;
+      const a = `<circle r="${R}" cx="80" cy="80" fill="none" stroke="${x.color}" stroke-width="26" stroke-dasharray="${len - gap} ${C - len + gap}"
+        stroke-dashoffset="${-at}" transform="rotate(-90 80 80)"><title>${x.label}: ${x.count} (${pct(x.count, sum)})</title></circle>`;
+      at += len; return a; }).join("");
+    const rated = bins.reduce((a, b) => a + b, 0);
+    return `<div class="scring"><b>${title}</b><svg viewBox="0 0 160 160" role="img" aria-label="${title}">${arcs}
+      <text x="80" y="78" text-anchor="middle" class="pienum">${rated}</text><text x="80" y="96" text-anchor="middle" class="pielbl">из ${sum} оценено</text></svg></div>`;
+  };
+  const mineRest = Math.max(total - sc.mine.reduce((a, b) => a + b, 0), 0);
+  return `<div class="scrings">${ring("Модель", sc.model, 0)}${ring("Вы", sc.mine, mineRest, "Не оценено вами")}</div>
+    <div class="stlegend scscale"><span>Оценка</span>${sc.model.map((_, i) => `<span><i style="background:${scoreColor(i)}"></i>${i + 1}</span>`).join("")}
+      <span><i style="background:var(--s-src0)"></i>не оценено</span></div>`;
 }
 
 const statLegend = sum => `<div class="stlegend">${STAT_KINDS.map(([k, l]) => `<span><i style="background:var(--s-${k})"></i>${l} <b>${sum[k]}</b></span>`).join("")}</div>`;
