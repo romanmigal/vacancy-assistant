@@ -1,5 +1,7 @@
 // Раздел «Статистика»: вакансии, разборы и отклики по дням, неделям и месяцам — из файлов профиля, без модели
-let statStep = "week", statMetric = "applied", statData = null;
+// Шаг и показатель графика — как в прошлый раз (в этом браузере); впервые — по дням, «Добавлено»
+let statStep = ["day", "week", "month"].includes(recall("statStep")) ? recall("statStep") : "day",
+    statMetric = recall("statMetric") || "added", statData = null;
 // шаг → [кнопка, «за …», диапазон, «с предыдущими …», «текущий … не закончился»]
 const STAT_STEPS = {day: ["Дни", "день", "30 дней", "30 днями", "сегодняшний день ещё не закончился"],
   week: ["Недели", "неделю", "12 недель", "12 неделями", "текущая неделя ещё не закончилась"],
@@ -20,9 +22,11 @@ async function openStats() {
     {label: "Закрыть"}]);
   $("wiz").classList.add("wide");
   bindStats();
+  fitStatusPie();
 }
 
 function statsHtml(s) {
+  if (!s.metrics.some(m => m.key === statMetric)) statMetric = "added";
   const [, per, range, prevRange, partial] = STAT_STEPS[s.step];
   const arrow = t => t.total === t.prev ? `<span class="muted">как раньше</span>`
     : `<span class="${t.total > t.prev ? "up" : "down"}">${t.total > t.prev ? "▲" : "▼"} ${Math.abs(t.total - t.prev)}</span>`;
@@ -40,38 +44,28 @@ function statsHtml(s) {
       <table class="stat"><thead><tr><th>Период</th>${s.metrics.map(m => `<th>${m.label}</th>`).join("")}</tr></thead>
       <tbody>${[...s.series].reverse().map(p => `<tr><td>${statPeriod(p, s.step)}${p.partial ? ' <span class="muted">(идёт)</span>' : ""}</td>
         ${s.metrics.map(m => `<td>${p[m.key] || '<span class="muted">0</span>'}</td>`).join("")}</tr>`).join("")}</tbody></table></details>
-    <div class="stcols">
+    <div class="stcol1">
       <div><h3>Воронка</h3><p class="hint">Вакансии, добавленные за эти ${range}: докуда каждая дошла. Процент — от предыдущего шага.</p>
         <table class="stat funnel">${s.funnel.map((f, i) => `<tr><td>${f.label}</td><td><b>${f.count}</b></td>
-          <td class="bar"><span style="width:${s.funnel[0].count ? f.count / s.funnel[0].count * 100 : 0}%"></span></td>
+          <td class="bar" title="${f.label}: ${f.count}${f.count ? "\n" + STAT_KINDS.filter(([k]) => f.by_kind?.[k]).map(([k, l]) => `${l} — ${f.by_kind[k]}`).join("\n") : ""}">${funnelBar(f, s.funnel[0].count)}</td>
           <td class="muted">${i ? pct(f.count, s.funnel[i - 1].count) : ""}</td></tr>`).join("")}</table>
+        ${statLegend(Object.fromEntries(STAT_KINDS.map(([k]) => [k, s.funnel[0].by_kind?.[k] || 0])))}
         <p class="small">${s.score.avg == null ? "" : `Средняя оценка этих вакансий — <b>${s.score.avg}</b>, оценка 7+ у ${pct(s.score.good, s.score.count)}.`}</p></div>
-      <div><h3>Скорость</h3><p class="hint">По всем откликам профиля.</p>
-        <table class="stat"><tr><td>От добавления до отклика</td><td>${sp(s.speed.to_apply, "откл.")}</td></tr>
-          <tr><td>От отклика до ответа</td><td>${sp(s.speed.to_answer, "отв.")}</td></tr>
-          <tr><td>От отклика до интервью</td><td>${sp(s.speed.to_interview, "инт.")}</td></tr></table>
-        <h3>Ждут ответа дольше ${s.wait_days} дней</h3>
-        ${s.waiting.length ? `<table class="stat">${s.waiting.map(w => `<tr class="link" data-vac="${w.n}" title="Открыть карточку вакансии"><td>${esc(w.title)}<div class="muted small">${esc(w.company)}</div></td>
-            <td class="muted">отклик ${ddmm(w.applied)}</td><td><b>${w.days}</b> дн.</td></tr>`).join("")}</table>
-            <p class="hint">Можно напомнить о себе или отметить этап «Не ответили».</p>` : `<p class="muted">Таких нет.</p>`}</div>
-    </div>
-    <h3>Отклики с сопроводительным письмом и без</h3>
-    <p class="hint">Отклики за эти ${range}. Письмо считается отправленным, если во вкладке «Письма» у него стоит отметка «Отправлено»; у старых откликов её можно поставить с прошлой датой.</p>
-    <table class="stat letters"><thead><tr><th></th><th>Откликов</th><th>Ответов</th><th>Отказов</th><th>Интервью</th></tr></thead>
-      ${s.letters.map(x => `<tr><td>${x.letter ? "С письмом" : "Без письма"}</td><td>${x.applied}</td>
-        <td>${x.answered} <span class="muted">${pct(x.answered, x.applied)}</span></td>
-        <td>${x.rejected} <span class="muted">${pct(x.rejected, x.applied)}</span></td>
-        <td>${x.interview} <span class="muted">${pct(x.interview, x.applied)}</span></td></tr>`).join("")}</table>
-    ${s.letters[0].applied ? "" : `<p class="hint">Пока ни у одного отклика нет отметки «Отправлено» у письма — все отклики попали в «Без письма».</p>`}
-    <div class="stcols">
-      <div><h3>Источники</h3><p class="hint">Вакансии, добавленные за эти ${range}.</p>
-        ${s.sources.length ? `<table class="stat"><thead><tr><th></th><th>Добавлено</th><th>Отклики</th><th>Ответы</th><th>Интервью</th></tr></thead>
-          ${s.sources.map(x => `<tr><td>${esc(x.source)}</td><td>${x.added}</td><td>${x.applied}</td><td>${x.answered}</td><td>${x.interview}</td></tr>`).join("")}</table>`
-          : `<p class="muted">Вакансий за эти ${range} нет.</p>`}</div>
+      <div><h3>Источники</h3><p class="hint">Вакансии, добавленные за эти ${range}: докуда дошли. Полоска — от добавленных из этого источника, справа — сколько откликов получили ответ.</p>
+        ${s.sources.length ? sourcesChart(s.sources) : `<p class="muted">Вакансий за эти ${range} нет.</p>`}</div>
       <div><h3>Статусы сейчас</h3>
-        <table class="stat">${s.statuses.map(x => `<tr><td>${esc(x.label)}</td><td>${x.count}</td></tr>`).join("")}
-          ${s.flags ? `<tr><td>С флагом</td><td>${s.flags}</td></tr>` : ""}
-          <tr><td class="muted">Всего вакансий</td><td class="muted">${s.total_vacancies}</td></tr></table></div>
+        ${statusPie(s.statuses)}
+</div>
+      <div><h3>Отклики с сопроводительным письмом и без</h3>
+        <p class="hint">Отклики за эти ${range}. Письмо считается отправленным, если во вкладке «Письма» у него стоит отметка «Отправлено»; у старых откликов её можно поставить с прошлой датой. Процент в подсказке у столбика — от откликов той же группы.</p>
+        ${lettersChart(s.letters)}
+        ${s.letters[0].applied ? "" : `<p class="hint">Пока ни у одного отклика нет отметки «Отправлено» у письма — все отклики попали в «Без письма».</p>`}</div>
+      <div><h3>Скорость</h3><p class="hint">Сколько в среднем проходит между этапами — по всем откликам профиля. Длина отрезка — сколько дней.</p>
+        ${speedTimeline(s.speed)}
+        ${s.waiting.length ? `<details class="sttable"><summary>Ждут ответа дольше ${s.wait_days} дней — ${s.waiting.length}</summary>
+          <table class="stat">${s.waiting.map(w => `<tr class="link" data-vac="${w.n}" title="Открыть карточку вакансии"><td>${esc(w.title)}<div class="muted small">${esc(w.company)}</div></td>
+            <td class="muted">отклик ${ddmm(w.applied)}</td><td><b>${w.days}</b> дн.</td></tr>`).join("")}</table>
+          <p class="hint">Можно напомнить о себе или отметить этап «Не ответили».</p></details>` : ""}</div>
     </div>`;
 }
 
@@ -96,13 +90,107 @@ function statChart(s) {
         ${v ? `<text x="${i * w + w / 2}" y="${H - h - 4}" text-anchor="middle">${v}</text>` : ""}
         ${(n - 1 - i) % every === 0 ? `<text x="${i * w + w / 2}" y="${H + 16}" text-anchor="middle" class="axis">${statPeriod(p, s.step).split("–")[0]}</text>` : ""}</g>`; }).join("")}
     <line x1="0" x2="${W}" y1="${H}" y2="${H}"/></svg>
-    <div class="stlegend">${STAT_KINDS.map(([k, l]) => `<span><i style="background:var(--s-${k})"></i>${l} <b>${sum[k]}</b></span>`).join("")}</div>`;
+    ${statLegend(sum)}`;
+}
+// Отклики, ответы, отказы, интервью — столбик из двух частей: с письмом (снизу) и без
+const LETTER_PARTS = [[true, "С письмом", "letter"], [false, "Без письма", "noletter"]];
+function lettersChart(letters) {
+  const by = Object.fromEntries(letters.map(x => [x.letter, x]));
+  const cols = [["applied", "Откликов"], ["answered", "Ответов"], ["rejected", "Отказов"], ["interview", "Интервью"]];
+  const W = 720, H = 150, pad = 18, gap = 2, w = W / cols.length;
+  const total = k => LETTER_PARTS.reduce((a, [f]) => a + (by[f]?.[k] || 0), 0);
+  const max = Math.max(1, ...cols.map(([k]) => total(k)));
+  return `<svg class="stchart" viewBox="0 0 ${W} ${H + 30}" role="img" aria-label="Отклики, ответы, отказы и интервью: с письмом и без">
+    ${cols.map(([k, label], i) => { let y = H; const v = total(k);
+      const segs = LETTER_PARTS.filter(([f]) => by[f]?.[k]).map(([f, , cls]) => {
+        const sh = by[f][k] / max * (H - pad); y -= sh;
+        return `<rect x="${i * w + w * .3}" y="${y}" width="${w * .4}" height="${Math.max(sh - gap, 1)}" rx="2" class="${cls}"/>`;
+      }).join("");
+      const tip = LETTER_PARTS.map(([f, l]) => { const x = by[f] || {}; return `${l} — ${x[k] || 0}${k === "applied" ? "" : ` (${pct(x[k] || 0, x.applied || 0)})`}`; }).join("\n");
+      return `<g><title>${label}: ${v}\n${tip}</title><rect class="hit" x="${i * w}" y="0" width="${w}" height="${H}"/>${segs}
+        ${v ? `<text x="${i * w + w / 2}" y="${y - 4}" text-anchor="middle">${v}</text>` : ""}
+        <text x="${i * w + w / 2}" y="${H + 16}" text-anchor="middle" class="axis">${label}</text></g>`; }).join("")}
+    <line x1="0" x2="${W}" y1="${H}" y2="${H}"/></svg>
+    <div class="stlegend">${LETTER_PARTS.map(([f, l, cls]) => `<span><i style="background:var(--s-${cls})"></i>${l} <b>${by[f]?.applied || 0}</b></span>`).join("")}</div>`;
+}
+
+// Источники: у каждого — вложенные полоски от его же «Добавлено»: отклики, ответы, интервью. Больше 6 — хвост в «Остальные»
+const SRC_STEPS = [["added", "Добавлено"], ["applied", "Отклики"], ["answered", "Ответы"], ["interview", "Интервью"]];
+function sourcesChart(sources) {
+  let rows = [...sources].sort((a, b) => b.added - a.added);
+  if (rows.length > 6) {
+    const rest = rows.slice(5);
+    rows = [...rows.slice(0, 5), Object.fromEntries([["source", `Остальные (${rest.length})`],
+      ...SRC_STEPS.map(([k]) => [k, rest.reduce((a, x) => a + x[k], 0)])])];
+  }
+  const tip = x => `${x.source}\n` + SRC_STEPS.map(([k, l]) => `${l} — ${x[k]}`).join("\n");
+  return `<div class="srcrows">${rows.map(x => `<div class="srcrow" title="${esc(tip(x))}">
+      <span class="srcname">${esc(x.source)}</span><b class="srcadded">${x.added}</b>
+      <span class="srcbar">${SRC_STEPS.slice(1).map(([k], i) => `<i class="s${i + 1}" style="width:${x.added ? x[k] / x.added * 100 : 0}%"></i>`).join("")}</span>
+      <span class="srcresp">${x.applied ? `${x.answered} из ${x.applied} <span class="muted">${pct(x.answered, x.applied)}</span>` : '<span class="muted">откликов нет</span>'}</span>
+    </div>`).join("")}</div>
+    <div class="stlegend"><span><i class="s0"></i>Добавлено</span>${SRC_STEPS.slice(1).map(([, l], i) => `<span><i class="s${i + 1}"></i>${l}</span>`).join("")}</div>`;
+}
+
+// Статусы сейчас — кольцо слева, справа таблица всех статусов в порядке вкладок: цвет и доля, значок и название, вакансий.
+// Встроенные статусы — своими цветами, свои — цветом своего значка.
+function statusPie(statuses) {
+  const sum = statuses.reduce((a, x) => a + x.count, 0);
+  if (!sum) return '<p class="muted">Вакансий пока нет.</p>';
+  const R = 60, C = 2 * Math.PI * R, BUILT = ["new", "yes", "interview", "no"];
+  const parts = statuses.map(x => ({...x, color: BUILT.includes(x.key) ? `var(--pie-${x.key})` : `var(--pie-${state.status_colors?.[x.key] || "blue"})`}));
+  const shown = parts.filter(x => x.count);
+  let at = 0;
+  const arcs = shown.map(x => { const len = x.count / sum * C, gap = shown.length > 1 ? Math.min(2, len / 2) : 0;
+    const arc = `<circle r="${R}" cx="80" cy="80" fill="none" stroke="${x.color}" stroke-width="26"
+      stroke-dasharray="${len - gap} ${C - len + gap}" stroke-dashoffset="${-at}" transform="rotate(-90 80 80)"><title>${esc(x.label)}: ${x.count} (${pct(x.count, sum)})</title></circle>`;
+    at += len; return arc; }).join("");
+  return `<div class="stpie"><svg viewBox="0 0 160 160" role="img" aria-label="Статусы вакансий">${arcs}
+      <text x="80" y="78" text-anchor="middle" class="pienum">${sum}</text><text x="80" y="96" text-anchor="middle" class="pielbl">вакансий</text></svg>
+    <table class="stat stpietab"><thead><tr><th></th><th>Статус</th><th class="fl" title="С флагом — отдельно, в «Всего» уже входят"><span class="flag">⚑</span></th>
+      <th title="Вакансия ещё открыта на сайте">Открытых</th><th title="Вакансия закрыта или в архиве на сайте">Закрытых</th><th>Всего</th></tr></thead>
+      ${parts.map(x => `<tr class="${x.count ? "" : "zero"}"><td class="pct"><i style="background:${x.color}"></i>${pct(x.count, sum)}</td>
+        <td>${statusIcon(x.key)} ${esc(x.label)}</td><td class="fl">${x.flagged || ""}</td><td>${x.count - x.closed}</td><td>${x.closed}</td><td><b>${x.count}</b></td></tr>`).join("")}
+      <tr class="total"><td></td><td>Всего</td>${["flagged", "open", "closed", "count"].map(k =>
+        `<td class="${k === "flagged" ? "fl" : ""}"><b>${parts.reduce((a, x) => a + (k === "open" ? x.count - x.closed : x[k]), 0)}</b></td>`).join("")}</tr></table></div>`;
+}
+
+// Кольцо «Статусы сейчас» — квадрат высотой с таблицу справа; на узком экране, под таблицей, — как задано в CSS
+function fitStatusPie() {
+  const svg = document.querySelector(".stpie > svg"), tab = document.querySelector(".stpietab");
+  if (!svg || !tab) return;
+  const side = svg.getBoundingClientRect().top === tab.getBoundingClientRect().top;
+  svg.style.width = side ? `${Math.round(tab.getBoundingClientRect().height)}px` : "";
+}
+addEventListener("resize", () => fitStatusPie());
+
+// Скорость — шкала пути вакансии: Добавлена → Отклик → Ответ → Интервью; длина отрезка — среднее число дней
+function speedTimeline(sp) {
+  const ans = sp.to_answer.days, intv = sp.to_interview.days;
+  const segs = [
+    [sp.to_apply.days, sp.to_apply.count, "откл."],
+    [ans, sp.to_answer.count, "отв."],
+    [intv != null && ans != null ? Math.max(Math.round((intv - ans) * 10) / 10, 0) : intv, sp.to_interview.count, "инт."]];
+  const nodes = ["Добавлена", "Отклик", "Ответ", "Интервью"];
+  const seg = ([d, n, what]) => `<div class="tlseg ${d == null ? "none" : ""}" style="flex-grow:${d == null ? 1 : Math.max(d, .6)}">
+      <span class="tld">${d == null ? "нет данных" : `${String(d).replace(".", ",")} дн.`}</span><i></i>
+      <span class="tln muted">${n ? `по ${n} ${what}` : ""}</span></div>`;
+  return `<div class="sttl">${nodes.map((l, i) => `<div class="tlnode"><b></b><span>${l}</span></div>${i < segs.length ? seg(segs[i]) : ""}`).join("")}</div>`;
+}
+
+const statLegend = sum => `<div class="stlegend">${STAT_KINDS.map(([k, l]) => `<span><i style="background:var(--s-${k})"></i>${l} <b>${sum[k]}</b></span>`).join("")}</div>`;
+
+// Полоска шага воронки — по частям STAT_KINDS, длина от числа на первом шаге
+function funnelBar(f, top) {
+  const parts = f.by_kind || {employer: f.count};
+  return `<span class="fbar">${STAT_KINDS.filter(([k]) => parts[k]).map(([k]) =>
+    `<i class="${k}" style="width:${top ? parts[k] / top * 100 : 0}%"></i>`).join("")}</span>`;
 }
 
 function bindStats() {
-  document.querySelectorAll("#wbody [data-step]").forEach(b => b.onclick = () => { statStep = b.dataset.step; openStats(); });
+  document.querySelectorAll("#wbody [data-step]").forEach(b => b.onclick = () => { statStep = b.dataset.step; remember("statStep", statStep); openStats(); });
   document.querySelectorAll("#wbody [data-metric]").forEach(b => b.onclick = () => {
-    statMetric = b.dataset.metric;
+    statMetric = b.dataset.metric; remember("statMetric", statMetric);
     document.querySelectorAll("#wbody [data-metric]").forEach(x => x.classList.toggle("on", x === b));
     $("stChart").innerHTML = statChart(statData);
   });

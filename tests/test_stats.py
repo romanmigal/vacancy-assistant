@@ -48,12 +48,24 @@ class Stats(unittest.TestCase):
         self.assertEqual(s["speed"]["to_interview"], {"days": 8.0, "count": 1})
         self.assertEqual({x["source"]: x["applied"] for x in s["sources"]}, {"HH": 2, "Хабр Карьера": 1})
         self.assertEqual({x["label"]: x["count"] for x in s["statuses"]},
-                         {"Интересно": 2, "Не подходит": 2, "Интервью": 1})
+                         {"Не обработано": 0, "Интересно": 2, "Не подходит": 2, "Интервью": 1})   # и пустые статусы
         self.assertEqual(s["score"], {"avg": 7.2, "good": 3, "count": 4})
         self.assertEqual(s["letters"], [{"letter": True, "applied": 1, "answered": 1, "rejected": 0, "interview": 0},
                                         {"letter": False, "applied": 2, "answered": 1, "rejected": 0, "interview": 1}])
         old = stats.compute(ROWS, "week", date(2027, 1, 20))     # прошлые 12 недель — для сравнения
         self.assertEqual((old["totals"]["added"]["total"], old["totals"]["added"]["prev"]), (0, 5))
+
+    def test_statuses_open_closed_flagged(self):
+        rows = [dict(ROWS[0], flag=True), dict(ROWS[2], actual={"closed": True}), *ROWS[1:2], *ROWS[3:]]
+        st = {x["key"]: x for x in stats.compute(rows, "week", TODAY, [("new", "Не обработано"), ("yes", "Интересно")])["statuses"]}
+        self.assertEqual({k: st["yes"][k] for k in ("count", "closed", "flagged")}, {"count": 2, "closed": 1, "flagged": 1})
+        self.assertEqual(st["new"]["count"], 0)
+
+    def test_funnel_by_kind(self):
+        rows = [dict(ROWS[0], agency=True), *ROWS[1:4], dict(ROWS[4], company="")]
+        f = {x["label"]: x["by_kind"] for x in stats.compute(rows, "week", TODAY, [])["funnel"]}
+        self.assertEqual(f["Добавлено"], {"employer": 3, "agency": 1, "hidden": 1})
+        self.assertEqual(f["Ответили"], {"employer": 1, "agency": 1, "hidden": 0})
 
     def test_later_stage_implies_apply(self):
         """Сразу «Интервью с HR» без «Откликнулся» — это и отклик, и ответ; в скорость такая вакансия не идёт."""

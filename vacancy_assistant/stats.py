@@ -104,13 +104,20 @@ def compute(rows, step="week", today=None, status_names=None):
 
     # Воронка — по вакансиям, добавленным в диапазоне: докуда каждая дошла (в любое время)
     cohort = [(r, e) for r, e in evs if e["added"] and a.isoformat() <= e["added"] <= b.isoformat()]
-    funnel = [("Добавлено", len(cohort)),
-              ("Разобрано ИИ", sum(1 for _, e in cohort if e["analyzed"])),
-              (f"Оценка {GOOD}+", sum(1 for r, _ in cohort if (r.get("score") or 0) >= GOOD)),
-              ("Откликнулся", sum(1 for _, e in cohort if e["applied"])),
-              ("Ответили", sum(1 for _, e in cohort if e["answered"])),
-              ("Интервью", sum(1 for _, e in cohort if e["interview"])),
-              ("Оффер", sum(1 for _, e in cohort if e["offer"]))]
+    steps = [("Добавлено", lambda r, e: True),
+             ("Разобрано ИИ", lambda r, e: e["analyzed"]),
+             (f"Оценка {GOOD}+", lambda r, e: (r.get("score") or 0) >= GOOD),
+             ("Откликнулся", lambda r, e: e["applied"]),
+             ("Ответили", lambda r, e: e["answered"]),
+             ("Интервью", lambda r, e: e["interview"]),
+             ("Оффер", lambda r, e: e["offer"])]
+    funnel = []
+    for label, ok in steps:                         # каждый шаг — и по частям KINDS, как столбики по периодам
+        parts = dict.fromkeys(KINDS, 0)
+        for r, e in cohort:
+            if ok(r, e):
+                parts[kind(r)] += 1
+        funnel.append({"label": label, "count": sum(parts.values()), "by_kind": parts})
     scores = [r["score"] for r, _ in cohort if r.get("score") is not None]
 
     # Скорость — по всем откликам профиля: в диапазоне их обычно слишком мало для средних
@@ -141,20 +148,24 @@ def compute(rows, step="week", today=None, status_names=None):
                for flag, group in ((True, [x for x in sent if x[0].get("cover_sent")]),
                                    (False, [x for x in sent if not x[0].get("cover_sent")]))]
     names = dict(status_names or [])
-    now = {}
+    now = {}                                         # по статусам: всего, закрытых на сайте, с флагом
     for r in rows:
-        now[r.get("status", "new")] = now.get(r.get("status", "new"), 0) + 1
+        c = now.setdefault(r.get("status", "new"), {"count": 0, "closed": 0, "flagged": 0})
+        c["count"] += 1
+        c["closed"] += bool((r.get("actual") or {}).get("closed"))
+        c["flagged"] += bool(r.get("flag"))
     return {
         "step": step, "today": today.isoformat(), "start": a.isoformat(), "end": b.isoformat(),
         "metrics": [{"key": k, "label": l} for k, l in METRICS],
         "series": series, "totals": totals, "periods_full": round(full, 2),
-        "funnel": [{"label": l, "count": c} for l, c in funnel],
+        "funnel": funnel,
         "score": {"avg": round(mean(scores), 1) if scores else None, "good": sum(1 for s in scores if s >= GOOD),
                   "count": len(scores)},
         "speed": speed, "waiting": waiting, "wait_days": WAIT_DAYS,
         "letters": letters,
         "sources": sorted(sources.values(), key=lambda s: (-s["added"], s["source"])),
-        "statuses": [{"key": k, "label": names.get(k, k), "count": now.get(k, 0)} for k in names if now.get(k)],
+        "statuses": [{"key": k, "label": names.get(k, k), **now.get(k, {"count": 0, "closed": 0, "flagged": 0})}
+                     for k in names],                # все статусы, и пустые
         "flags": sum(1 for r in rows if r.get("flag")),
         "total_vacancies": len(rows),
     }
