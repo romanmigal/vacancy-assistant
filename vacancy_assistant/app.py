@@ -718,14 +718,14 @@ class App:
     def api_state(self, p, a):
         if not profile_names(self.profiles_dir):             # первый запуск: профилей нет — окно откроет мастер
             return {"profiles": [], "profile": None, "name": "", "model": current_model(), "version": __version__,
-                    "contact": settings.CONTACT_EMAIL, "source": settings.SOURCE_URL, "statuses": summary.STATUSES, "rows": [], "tasks": self.queues.snapshot(None)}
+                    "contact": settings.CONTACT_EMAIL, "source": settings.SOURCE_URL, "donate": settings.DONATE_URL, "statuses": summary.STATUSES, "rows": [], "tasks": self.queues.snapshot(None)}
         p = self.profile(a.get("profile"))
         cloud.use(p)
         rows = vacancy_rows(p)
         self.export(p, rows)
         return {"profiles": profile_names(self.profiles_dir), "profile": p.name,
                 "name": p.display_name, "model": "не используется" if p.no_model else current_model(), "version": __version__,
-                "contact": settings.CONTACT_EMAIL, "source": settings.SOURCE_URL, "no_model": p.no_model, "unanalyzed": sum(1 for r in rows if r["stage"] in ("", analysis.NO_MODEL)),
+                "contact": settings.CONTACT_EMAIL, "source": settings.SOURCE_URL, "donate": settings.DONATE_URL, "no_model": p.no_model, "unanalyzed": sum(1 for r in rows if r["stage"] in ("", analysis.NO_MODEL)),
                 "two_stage": p.two_stage,
                 "two_stage_setting": p.two_stage_setting, "llm_pages": p.llm_pages, "rss": rss.enabled(p), "cloud": cloud.active(p),
                 "search_days": p.search_days, "search_limit": p.search_limit,
