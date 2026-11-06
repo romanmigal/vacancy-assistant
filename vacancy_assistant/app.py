@@ -151,6 +151,7 @@ def vacancy_rows(profile):
             "artifacts": len(found.get(path.stem, [])),
             "cover_sent": "cover" in found.get(path.stem, []),            # письмо с отметкой «Отправлено»
             "stage": meta.get("stage", "full") if meta else "",
+            "model": meta.get("model", "") if meta else "",                 # кто оценивал: gemma…, GigaChat…
             "criteria_changed": criteria_changed(profile, result, meta, current),
             "violations": violations(read_text(result), names) if meta else [],
         })

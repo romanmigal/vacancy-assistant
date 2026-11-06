@@ -66,12 +66,14 @@ function statsHtml(s) {
           <table class="stat">${s.waiting.map(w => `<tr class="link" data-vac="${w.n}" title="Открыть карточку вакансии"><td>${esc(w.title)}<div class="muted small">${esc(w.company)}</div></td>
             <td class="muted">отклик ${ddmm(w.applied)}</td><td><b>${w.days}</b> дн.</td></tr>`).join("")}</table>
           <p class="hint">Можно напомнить о себе или отметить этап «Не ответили».</p></details>` : ""}</div>
-      <div><h3>Оценки вакансий</h3><p class="hint">Все вакансии профиля. Какие оценки поставила модель и какие — вы в «Моих оценках»; во втором кольце — и вакансии, которые вы ещё не оценили.</p>
+      <div><h3>Оценки вакансий</h3><p class="hint">Все вакансии профиля. Какие оценки и ответы «откликаться» дала модель и какие — вы в «Моих оценках»; в ваших кольцах — и вакансии, которые вы ещё не оценили.</p>
         ${scoreRings(s.scores, s.total_vacancies)}</div>
       <div><h3>Оценки: модель и вы</h3><p class="hint">Процент от всех оценок модели и от всех ваших — так распределения сравнимы, хотя оценок у вас меньше.</p>
-        ${scoresChart(s.scores)}</div>
+        <div class="stpair"><div><h4 class="stsub">Оценки</h4>${scoresChart(s.scores)}</div><div><h4 class="stsub">Ответ «откликаться»</h4>${answersChart(s.scores)}</div></div></div>
       <div><h3>Общая оценка: модель и вы</h3><p class="hint">Только вакансии, где есть и оценка модели, и ваша: насколько модель ставит выше или ниже вас. Чем больше столбик в центре, тем точнее модель настроена под вас; если вакансий по краям много — пора откалибровать критерии.</p>
-        ${diffChart(s.scores)}</div>
+        <div class="stpair"><div><h4 class="stsub">Оценки</h4>${diffChart(s.scores)}</div><div><h4 class="stsub">Ответ «откликаться»</h4>${answersMatrix(s.scores)}</div></div></div>
+      <div><h3>Модели</h3><p class="hint">Все вакансии профиля: какая модель их оценила. «Совпало с вами» — по вакансиям, где есть и ваша оценка: точно и с разницей не больше балла.</p>
+        ${enginesTable(s.engines, s.total_vacancies)}</div>
     </div>`;
 }
 
@@ -189,7 +191,7 @@ function scoresChart(sc) {
   if (!sc || (!sc.model.some(Boolean) && !sc.mine.some(Boolean))) return '<p class="muted">Оценок пока нет.</p>';
   const tot = {model: sc.model.reduce((a, b) => a + b, 0), mine: sc.mine.reduce((a, b) => a + b, 0)};
   const val = (v, who) => tot[who] ? v / tot[who] * 100 : 0;
-  const W = 720, H = 140, pad = 18, w = W / 10, bw = w * .32;
+  const W = 460, H = 150, pad = 18, w = W / 10, bw = w * .38;
   const max = Math.max(1, ...sc.model.map(v => val(v, "model")), ...sc.mine.map(v => val(v, "mine")));
   const bar = (v, x, cls, who, i) => { if (!v) return ""; const h = val(v, cls) / max * (H - pad), p = Math.round(val(v, cls));
     return `<rect x="${x}" y="${H - h}" width="${bw}" height="${h}" rx="2" class="${cls}"><title>${who}: оценка ${i + 1} — ${v} ${plural(v, "вакансия", "вакансии", "вакансий")} (${p}% оценок)</title></rect>
@@ -203,12 +205,43 @@ function scoresChart(sc) {
       : `<p class="hint">Своих оценок пока нет — поставьте их в карточке вакансии («Поставить свои оценки») или в калибровке.</p>`}`;
 }
 
+// Ответы «да / возможно / нет» в долях: у каждого пара столбиков — модель и вы, процент от всех своих ответов
+const ANSWERS = ["Да", "Возможно", "Нет"];
+function answersChart(sc) {
+  const m = sc?.ans_model || [0, 0, 0], y = sc?.ans_mine || [0, 0, 0];
+  const tot = {model: m.reduce((a, b) => a + b, 0), mine: y.reduce((a, b) => a + b, 0)};
+  if (!tot.model && !tot.mine) return '<p class="muted">Ответов пока нет.</p>';
+  const val = (v, who) => tot[who] ? v / tot[who] * 100 : 0;
+  const W = 300, H = 150, pad = 18, w = W / 3, bw = 34, max = Math.max(1, ...m.map(v => val(v, "model")), ...y.map(v => val(v, "mine")));
+  const bar = (v, x, cls, who, i) => { if (!v) return ""; const h = val(v, cls) / max * (H - pad), p = Math.round(val(v, cls));
+    return `<rect x="${x}" y="${H - h}" width="${bw}" height="${h}" rx="2" class="${cls}2"><title>${who}: «${ANSWERS[i].toLowerCase()}» — ${v} ${plural(v, "вакансия", "вакансии", "вакансий")} (${p}% ответов)</title></rect>
+      <text x="${x + bw / 2}" y="${H - h - 4}" text-anchor="middle" class="small">${p}%</text>`; };
+  return `<svg class="stchart stscores" viewBox="0 0 ${W} ${H + 24}" role="img" aria-label="Ответы «откликаться» в долях: модель и вы">
+    ${ANSWERS.map((l, i) => `<g>${bar(m[i], i * w + w / 2 - bw - 2, "model", "Модель", i)}${bar(y[i], i * w + w / 2 + 2, "mine", "Вы", i)}
+      <text x="${i * w + w / 2}" y="${H + 16}" text-anchor="middle" class="axis">${l}</text></g>`).join("")}
+    <line x1="0" x2="${W}" y1="${H}" y2="${H}"/></svg>
+    <div class="stlegend"><span><i style="background:var(--s-model2)"></i>Модель</span><span><i style="background:var(--s-mine2)"></i>Вы</span></div>
+    <p class="small">Ответов модели — ${tot.model}, ваших — ${tot.mine}.</p>`;
+}
+
+// Кто что ответил, где есть оба ответа: строка — модель, столбец — вы; совпадения — по диагонали
+function answersMatrix(sc) {
+  if (!sc?.ans_both) return '<p class="hint">Пока нет вакансий, где ответили и модель, и вы.</p>';
+  const mx = sc.ans_matrix, max = Math.max(1, ...mx.flat()), same = mx[0][0] + mx[1][1] + mx[2][2];
+  const soft = mx[0][1] + mx[1][0] + mx[1][2] + mx[2][1], hard = mx[0][2] + mx[2][0];
+  return `<table class="stat stanswers"><thead><tr><th class="muted small" title="Строка — ответ модели, столбец — ваш">модель ↓ вы →</th>${ANSWERS.map(a => `<th>${a}</th>`).join("")}<th>Всего</th></tr></thead>
+    ${mx.map((row, i) => `<tr><th>${ANSWERS[i]}</th>${row.map((n, j) => `<td class="${i === j ? "same" : Math.abs(i - j) === 2 ? "far" : ""}"
+        style="--a:${n / max}" title="Модель — «${ANSWERS[i].toLowerCase()}», вы — «${ANSWERS[j].toLowerCase()}»: ${n} (${pct(n, sc.ans_both)})">${n || ""}</td>`).join("")}
+      <td class="muted">${row.reduce((a, b) => a + b, 0)}</td></tr>`).join("")}</table>
+    <p class="small">Из ${sc.ans_both}: совпали — ${same} (${pct(same, sc.ans_both)}), соседние ответы — ${soft}, противоположные («да» и «нет») — ${hard}.</p>`;
+}
+
 // Расхождение «модель − вы»: столбик на каждую разницу; слева — модель ниже вас, в центре — совпали, справа — модель выше
 function diffChart(sc) {
   if (!sc?.both) return '<p class="hint">Пока нет вакансий с обеими оценками — поставьте свои в карточке вакансии («Поставить свои оценки») или в калибровке.</p>';
   const ds = sc.diffs.map((n, i) => [i - 9, n]), used = ds.filter(([, n]) => n).map(([d]) => Math.abs(d));
   const k = Math.max(2, ...used), cols = ds.filter(([d]) => Math.abs(d) <= k);
-  const W = 720, H = 130, pad = 18, w = W / cols.length, bw = Math.min(w * .6, 46), max = Math.max(1, ...cols.map(([, n]) => n));
+  const W = 460, H = 130, pad = 18, w = W / cols.length, bw = Math.min(w * .6, 40), max = Math.max(1, ...cols.map(([, n]) => n));
   const what = d => d === 0 ? "совпали" : d > 0 ? `модель выше на ${d}` : `модель ниже на ${-d}`;
   const same = ds.find(([d]) => d === 0)[1];
   return `<svg class="stchart stdiff" viewBox="0 0 ${W} ${H + 40}" role="img" aria-label="Расхождение оценок модели и ваших">
@@ -222,28 +255,55 @@ function diffChart(sc) {
     <p class="small">Из ${sc.both}: совпали — ${same} (${pct(same, sc.both)}), модель выше вас — ${sc.higher}, ниже — ${sc.lower}.</p>`;
 }
 
+// Модели: локальная, GigaChat, без оценки — вакансий и доля, быстрая оценка или полный разбор, решения, совпадение с вами
+function enginesTable(list, total) {
+  if (!list) return "";
+  const NAMES = {local: "Локальная", cloud: "GigaChat", none: "Без оценки"};
+  const HINT = {local: "на этом компьютере", cloud: "облако Сбера", none: "не разобраны"};
+  const dec = e => e.key === "none" ? '<span class="muted">—</span>'
+    : `<span class="good">${e.yes}</span> / <span class="mid">${e.maybe}</span> / <span class="bad">${e.no}</span>`;
+  const agree = e => e.key === "none" ? '<span class="muted">—</span>' : !e.both ? '<span class="muted">нет ваших оценок</span>'
+    : `<b>${pct(e.same, e.both)}</b> <span class="muted">из ${e.both}</span><div class="muted small">±1 балл — ${pct(e.near, e.both)}</div>`;
+  return `<table class="stat stengines"><thead><tr><th>Модель</th><th></th><th>Вакансий</th><th title="Полный разбор / быстрая оценка (первая ступень из двух)">Полный / быстрый</th>
+      <th title="Решение «откликаться»: да / возможно / нет">Да / возм. / нет</th><th>Совпало с вами</th></tr></thead>
+    ${list.map(e => `<tr class="${e.count ? "" : "zero"}"><td class="ename"><span class="eicon ${e.key}">${MODEL_ICON[e.key]}</span><b>${NAMES[e.key]}</b><div class="muted small">${e.names?.length ? esc(e.names.join(", ")) : HINT[e.key]}</div></td>
+      <td class="ebar"><span><i class="${e.key}" style="width:${total ? e.count / total * 100 : 0}%"></i></span></td>
+      <td><b>${e.count}</b> <span class="muted">${pct(e.count, total)}</span></td>
+      <td>${e.key === "none" ? '<span class="muted">—</span>' : `${e.full} / ${e.short}`}</td><td>${dec(e)}</td><td>${agree(e)}</td></tr>`).join("")}</table>`;
+}
+
 // Два кольца: оценки модели и ваши, ваши — вместе с неоценёнными вакансиями. Оценки 1…10 — от светлого к тёмному
-const scoreColor = i => `hsl(205 ${45 + i * 3}% ${86 - i * 6.6}%)`;
+// Оценки 1–10: от красного через жёлтый к зелёному — соседние оценки различимы, низкие и высокие видны сразу
+const SCORE_COLORS = ["#a50026", "#d73027", "#f46d43", "#fdae61", "#fee08b", "#d9ef8b", "#a6d96a", "#66bd63", "#1a9850", "#006837"];
+const scoreColor = i => SCORE_COLORS[i];
 function scoreRings(sc, total) {
   if (!sc) return "";
-  const ring = (title, bins, rest, restLabel) => {
-    const parts = [...bins.map((v, i) => ({label: `Оценка ${i + 1}`, count: v, color: scoreColor(i)})),
-                   ...(rest > 0 ? [{label: restLabel, count: rest, color: "var(--s-src0)"}] : [])].filter(x => x.count);
-    const sum = parts.reduce((a, x) => a + x.count, 0);
-    if (!sum) return `<div class="scring"><b>${title}</b><p class="muted">Оценок пока нет.</p></div>`;
-    const R = 60, C = 2 * Math.PI * R; let at = 0;
-    const arcs = parts.map(x => { const len = x.count / sum * C, gap = parts.length > 1 ? Math.min(1.5, len / 2) : 0;
-      const a = `<circle r="${R}" cx="80" cy="80" fill="none" stroke="${x.color}" stroke-width="26" stroke-dasharray="${len - gap} ${C - len + gap}"
-        stroke-dashoffset="${-at}" transform="rotate(-90 80 80)"><title>${x.label}: ${x.count} (${pct(x.count, sum)})</title></circle>`;
-      at += len; return a; }).join("");
-    const rated = bins.reduce((a, b) => a + b, 0);
-    return `<div class="scring"><b>${title}</b><svg viewBox="0 0 160 160" role="img" aria-label="${title}">${arcs}
-      <text x="80" y="78" text-anchor="middle" class="pienum">${rated}</text><text x="80" y="96" text-anchor="middle" class="pielbl">из ${sum} оценено</text></svg></div>`;
-  };
-  const mineRest = Math.max(total - sc.mine.reduce((a, b) => a + b, 0), 0);
-  return `<div class="scrings">${ring("Модель", sc.model, 0)}${ring("Вы", sc.mine, mineRest, "Не оценено вами")}</div>
+  const sum = a => a.reduce((x, y) => x + y, 0), rest = (n, label) => n > 0 ? [{label, count: n, color: "var(--s-src0)"}] : [];
+  const scores = bins => bins.map((v, i) => ({label: `Оценка ${i + 1}`, count: v, color: scoreColor(i)}));
+  const answers = list => list.map((v, i) => ({label: `«${ANSWERS[i].toLowerCase()}»`, count: v, color: ANSWER_COLORS[i]}));
+  const am = sc.ans_model || [0, 0, 0], ay = sc.ans_mine || [0, 0, 0];
+  return `<div class="scrings">${donut("Модель", scores(sc.model), "оценено")}${donut("Вы", [...scores(sc.mine), ...rest(total - sum(sc.mine), "Не оценено вами")], "оценено")}</div>
     <div class="stlegend scscale"><span>Оценка</span>${sc.model.map((_, i) => `<span><i style="background:${scoreColor(i)}"></i>${i + 1}</span>`).join("")}
-      <span><i style="background:var(--s-src0)"></i>не оценено</span></div>`;
+      <span><i style="background:var(--s-src0)"></i>не оценено</span></div>
+    <h4 class="stsub">Ответ «откликаться»</h4>
+    <div class="scrings">${donut("Модель", [...answers(am), ...rest(sum(sc.model) - sum(am), "Без ответа")], "с ответом")}${donut("Вы", [...answers(ay), ...rest(total - sum(ay), "Нет вашего ответа")], "с ответом")}</div>
+    <div class="stlegend scscale">${ANSWERS.map((l, i) => `<span><i style="background:${ANSWER_COLORS[i]}"></i>${l}</span>`).join("")}
+      <span><i style="background:var(--s-src0)"></i>нет ответа</span></div>`;
+}
+
+// Кольцо: части по порядку; в центре — сколько не серых (оценено / с ответом) из всех
+const ANSWER_COLORS = ["var(--good)", "var(--mid)", "var(--bad)"];
+function donut(title, all, what) {
+  const parts = all.filter(x => x.count), sum = parts.reduce((a, x) => a + x.count, 0);
+  if (!sum) return `<div class="scring"><b>${title}</b><p class="muted">Пока пусто.</p></div>`;
+  const R = 60, C = 2 * Math.PI * R; let at = 0;
+  const arcs = parts.map(x => { const len = x.count / sum * C, gap = parts.length > 1 ? Math.min(1.5, len / 2) : 0;
+    const a = `<circle r="${R}" cx="80" cy="80" fill="none" stroke="${x.color}" stroke-width="26" stroke-dasharray="${len - gap} ${C - len + gap}"
+      stroke-dashoffset="${-at}" transform="rotate(-90 80 80)"><title>${x.label}: ${x.count} (${pct(x.count, sum)})</title></circle>`;
+    at += len; return a; }).join("");
+  const done = parts.filter(x => x.color !== "var(--s-src0)").reduce((a, x) => a + x.count, 0);
+  return `<div class="scring"><b>${title}</b><svg viewBox="0 0 160 160" role="img" aria-label="${title}">${arcs}
+    <text x="80" y="78" text-anchor="middle" class="pienum">${done}</text><text x="80" y="96" text-anchor="middle" class="pielbl">из ${sum} ${what}</text></svg></div>`;
 }
 
 const statLegend = sum => `<div class="stlegend">${STAT_KINDS.map(([k, l]) => `<span><i style="background:var(--s-${k})"></i>${l} <b>${sum[k]}</b></span>`).join("")}</div>`;

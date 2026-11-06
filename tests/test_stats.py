@@ -70,6 +70,25 @@ class Stats(unittest.TestCase):
         self.assertEqual({d: n for d, n in zip(range(-9, 10), sc["diffs"]) if n}, {-1: 1, 0: 1, 2: 1})   # 9↔10, 5↔5, 8↔6
         self.assertEqual((sc["model_avg"], sc["mine_avg"]), (7.2, 7.0))
 
+    def test_answers_model_and_mine(self):
+        rows = [dict(ROWS[0], decision="да", my_decision="да"), dict(ROWS[1], decision="нет", my_decision="возможно"),
+                dict(ROWS[2], decision="да, но с оговорками"), dict(ROWS[3], decision="нет", my_decision="нет"),
+                dict(ROWS[4], decision="да", my_decision="нет")]          # у пятой нет оценки модели — её ответ не в счёт
+        sc = stats.compute(rows, "week", TODAY)["scores"]
+        self.assertEqual((sc["ans_model"], sc["ans_mine"], sc["ans_both"]), ([1, 1, 2], [1, 1, 2], 3))
+        self.assertEqual(sc["ans_matrix"], [[1, 0, 0], [0, 0, 0], [0, 1, 1]])   # строка — модель, столбец — вы
+
+    def test_engines(self):
+        rows = [dict(ROWS[0], model="gemma4:12b", stage="short", decision="да", my_score=8),
+                dict(ROWS[1], model="GigaChat-2-Pro", decision="нет", my_score=7),
+                dict(ROWS[2], model="GigaChat-2-Pro", decision="да, но с оговорками"), ROWS[3], ROWS[4]]
+        e = {x["key"]: x for x in stats.compute(rows, "week", TODAY)["engines"]}
+        # разбор без названия модели — старый, до облака: локальная; не разобранная — «без оценки»
+        self.assertEqual({k: e[k]["count"] for k in e}, {"local": 2, "cloud": 2, "none": 1})
+        self.assertEqual((e["local"]["names"], e["local"]["short"], e["local"]["yes"], e["local"]["same"]), (["gemma4:12b"], 1, 1, 1))
+        self.assertEqual((e["cloud"]["names"], e["cloud"]["full"], e["cloud"]["maybe"], e["cloud"]["both"], e["cloud"]["near"]),
+                         (["GigaChat-2-Pro"], 2, 1, 1, 0))
+
     def test_funnel_by_kind(self):
         rows = [dict(ROWS[0], agency=True), *ROWS[1:4], dict(ROWS[4], company="")]
         f = {x["label"]: x["by_kind"] for x in stats.compute(rows, "week", TODAY, [])["funnel"]}

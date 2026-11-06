@@ -2,7 +2,7 @@
   --bg: #f6f6f3; --panel: #ffffff; --text: #1d1d1b; --muted: #6b6b66; --line: #e3e2dc;
   --accent: #2f5d50; --accent-text: #ffffff; --hover: #f0efe9; --sel: #e6eee9;
   --link: #1f63b8; --good: #2f7a4f; --mid: #c06a00; --bad: #a33a32; --chip: #efeee8; --log: #1f2421; --log-text: #d9e2dc; --log-line: #1f2421;
-  --s-employer: #2a78d6; --s-agency: #eb6834; --s-hidden: #1baf7a; --s-letter: #6a4fb8; --s-noletter: #c9bdeb; --s-src0: #e4e1d8; --s-src1: #9fbdb1; --s-src2: #4f8a74; --s-src3: #1f4a3d; --s-model: #2a78d6; --s-mine: #e07b1f; --pie-new: #8aa0b8; --pie-yes: #c99a00; --pie-interview: var(--accent); --pie-no: #b4b0a6; --pie-c0: #8a5cd6; --pie-c1: #d6488a; --pie-c2: #0e9aa7; --pie-c3: #c9971c; --pie-c4: #5d6d7e; --pie-c5: #a0522d; --pie-blue: #3b78d0; --pie-violet: #8a55c9; --pie-orange: #e07b1f; --pie-teal: #1f9a8f; --pie-pink: #d9478a;   /* части столбиков «Статистики» — проверено на различимость */
+  --s-employer: #2a78d6; --s-agency: #eb6834; --s-hidden: #1baf7a; --s-letter: #6a4fb8; --s-noletter: #c9bdeb; --s-src0: #e4e1d8; --s-src1: #9fbdb1; --s-src2: #4f8a74; --s-src3: #1f4a3d; --s-model: #2a78d6; --s-mine: #e07b1f; --s-model2: #1f9a8f; --s-mine2: #c2417f; --pie-new: #8aa0b8; --pie-yes: #c99a00; --pie-interview: var(--accent); --pie-no: #b4b0a6; --pie-c0: #8a5cd6; --pie-c1: #d6488a; --pie-c2: #0e9aa7; --pie-c3: #c9971c; --pie-c4: #5d6d7e; --pie-c5: #a0522d; --pie-blue: #3b78d0; --pie-violet: #8a55c9; --pie-orange: #e07b1f; --pie-teal: #1f9a8f; --pie-pink: #d9478a;   /* части столбиков «Статистики» — проверено на различимость */
   color-scheme: light;
 }
 /* Тёмная тема: по системе (если не выбрана светлая) или выбранная вручную */
@@ -11,7 +11,7 @@
     --bg: #131413; --panel: #262826; --text: #e8e8e3; --muted: #9c9c95; --line: #3a3c38;
     --accent: #7fb59f; --accent-text: #10201a; --hover: #2c2f2c; --sel: #24382f;
     --link: #84b6f0; --good: #79c79a; --mid: #e0a64a; --bad: #e88077; --chip: #30332f; --log: #2f3b36; --log-text: #dfe8e3; --log-line: #56705f;
-    --s-employer: #3987e5; --s-agency: #d95926; --s-hidden: #199e70; --s-letter: #a48ef0; --s-noletter: #4f4677; --s-src0: #3a3d3a; --s-src1: #4f7a68; --s-src2: #7fb59f; --s-src3: #c4e6d6; --s-model: #5a9be8; --s-mine: #ef9446; --pie-new: #6f8399; --pie-yes: #e6c04f; --pie-interview: var(--accent); --pie-no: #6b6e69; --pie-c0: #9b74e6; --pie-c1: #e0609a; --pie-c2: #22adb9; --pie-c3: #d4a63a; --pie-c4: #8496a8; --pie-c5: #c06c44; --pie-blue: #79a8ec; --pie-violet: #a47ae0; --pie-orange: #ef9446; --pie-teal: #3bb5aa; --pie-pink: #e86ea5;
+    --s-employer: #3987e5; --s-agency: #d95926; --s-hidden: #199e70; --s-letter: #a48ef0; --s-noletter: #4f4677; --s-src0: #3a3d3a; --s-src1: #4f7a68; --s-src2: #7fb59f; --s-src3: #c4e6d6; --s-model: #5a9be8; --s-mine: #ef9446; --s-model2: #3bb5aa; --s-mine2: #e86ea5; --pie-new: #6f8399; --pie-yes: #e6c04f; --pie-interview: var(--accent); --pie-no: #6b6e69; --pie-c0: #9b74e6; --pie-c1: #e0609a; --pie-c2: #22adb9; --pie-c3: #d4a63a; --pie-c4: #8496a8; --pie-c5: #c06c44; --pie-blue: #79a8ec; --pie-violet: #a47ae0; --pie-orange: #ef9446; --pie-teal: #3bb5aa; --pie-pink: #e86ea5;
     color-scheme: dark;
   }
 }
@@ -19,7 +19,7 @@
     --bg: #131413; --panel: #262826; --text: #e8e8e3; --muted: #9c9c95; --line: #3a3c38;
     --accent: #7fb59f; --accent-text: #10201a; --hover: #2c2f2c; --sel: #24382f;
     --link: #84b6f0; --good: #79c79a; --mid: #e0a64a; --bad: #e88077; --chip: #30332f; --log: #2f3b36; --log-text: #dfe8e3; --log-line: #56705f;
-    --s-employer: #3987e5; --s-agency: #d95926; --s-hidden: #199e70; --s-letter: #a48ef0; --s-noletter: #4f4677; --s-src0: #3a3d3a; --s-src1: #4f7a68; --s-src2: #7fb59f; --s-src3: #c4e6d6; --s-model: #5a9be8; --s-mine: #ef9446; --pie-new: #6f8399; --pie-yes: #e6c04f; --pie-interview: var(--accent); --pie-no: #6b6e69; --pie-c0: #9b74e6; --pie-c1: #e0609a; --pie-c2: #22adb9; --pie-c3: #d4a63a; --pie-c4: #8496a8; --pie-c5: #c06c44; --pie-blue: #79a8ec; --pie-violet: #a47ae0; --pie-orange: #ef9446; --pie-teal: #3bb5aa; --pie-pink: #e86ea5;
+    --s-employer: #3987e5; --s-agency: #d95926; --s-hidden: #199e70; --s-letter: #a48ef0; --s-noletter: #4f4677; --s-src0: #3a3d3a; --s-src1: #4f7a68; --s-src2: #7fb59f; --s-src3: #c4e6d6; --s-model: #5a9be8; --s-mine: #ef9446; --s-model2: #3bb5aa; --s-mine2: #e86ea5; --pie-new: #6f8399; --pie-yes: #e6c04f; --pie-interview: var(--accent); --pie-no: #6b6e69; --pie-c0: #9b74e6; --pie-c1: #e0609a; --pie-c2: #22adb9; --pie-c3: #d4a63a; --pie-c4: #8496a8; --pie-c5: #c06c44; --pie-blue: #79a8ec; --pie-violet: #a47ae0; --pie-orange: #ef9446; --pie-teal: #3bb5aa; --pie-pink: #e86ea5;
   color-scheme: dark;
 }
 * { box-sizing: border-box; }
@@ -665,7 +665,26 @@ button.icon.tool { gap: 5px; font-size: 12.5px; }
 .tlseg { position: relative; flex-basis: 90px; min-width: 90px; display: flex; flex-direction: column; align-items: center; padding: 0 4px; }
 .tlseg i { display: block; width: 100%; height: 4px; border-radius: 2px; background: var(--accent); opacity: .55; }
 .tlseg.none i { background: none; border-top: 2px dashed var(--line); opacity: 1; height: 0; }
-.stchart rect.same { fill: var(--accent); }   /* «Общая оценка: модель и вы» — совпали; модель выше / ниже — цветами модели и ваших */
+.stchart rect.same { fill: var(--accent); }
+.stchart rect.model2 { fill: var(--s-model2); } .stchart rect.mine2 { fill: var(--s-mine2); }   /* ответы: модель и вы — своя пара цветов */
+.stpair { display: grid; grid-template-columns: 3fr 2fr; gap: 28px; align-items: start; } .stpair > div { min-width: 0; }
+@media (max-width: 760px) { .stpair { grid-template-columns: 1fr; } }
+/* Ответы модели и ваши: таблица 3×3, насыщенность — сколько вакансий; диагональ — совпали, углы — «да» против «нет» */
+table.stat.stanswers { width: auto; } table.stat.stanswers th:not(:first-child), table.stat.stanswers td { text-align: center; min-width: 52px; padding: 5px 6px; } table.stat.stanswers tr > th:first-child { text-align: left; padding-right: 10px; white-space: nowrap; }
+.stanswers td:not(.muted) { background: color-mix(in srgb, var(--s-model) calc(var(--a, 0) * 55%), transparent); font-weight: 600; }
+.stanswers td.same { background: color-mix(in srgb, var(--accent) calc(15% + var(--a, 0) * 50%), transparent); outline: 2px solid var(--accent); outline-offset: -2px; }
+.stanswers td.far { background: color-mix(in srgb, var(--bad) calc(var(--a, 0) * 55%), transparent); }
+h4.stsub { margin: 18px 0 6px; font-size: 13px; }
+/* «Модели»: доля вакансий полоской, цвет — как значок модели в карточке */
+.stengines td.ebar { width: 18%; min-width: 60px; } .stengines td:nth-child(n+3), .stengines th { white-space: nowrap; } .stengines .ebar span { display: block; height: 10px; border-radius: 3px; background: var(--s-src0); overflow: hidden; }
+.stengines .ebar i { display: block; height: 100%; border-radius: 3px; } .stengines .ebar i.local { background: var(--accent); }
+.stengines .ebar i.cloud { background: var(--s-model); } .stengines .ebar i.none { background: var(--muted); }
+.stengines td.ename { padding-left: 34px; position: relative; }
+.stengines .eicon { position: absolute; left: 4px; top: 50%; transform: translateY(-50%); display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 6px; }
+.stengines .eicon.cloud { background: #e6f0fb; color: #1f5a96; } .stengines .eicon.local { background: #e8f2ec; color: #2f6b55; } .stengines .eicon.none { background: var(--chip); color: var(--muted); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .stengines .eicon.cloud { background: #1c2c3e; color: #9cc7ee; } :root:not([data-theme="light"]) .stengines .eicon.local { background: #1d2c24; color: #8fd0ad; } }
+:root[data-theme="dark"] .stengines .eicon.cloud { background: #1c2c3e; color: #9cc7ee; } :root[data-theme="dark"] .stengines .eicon.local { background: #1d2c24; color: #8fd0ad; }
+.stengines .good { color: var(--good); } .stengines .mid { color: var(--mid); } .stengines .bad { color: var(--bad); } .stengines tr.zero td { color: var(--muted); }   /* «Общая оценка: модель и вы» — совпали; модель выше / ниже — цветами модели и ваших */
 .tlseg .tld { position: absolute; bottom: 10px; font-size: 13px; font-weight: 600; white-space: nowrap; } .tlseg.none .tld { font-weight: normal; color: var(--muted); font-size: 12px; }
 .tlseg .tln { position: absolute; top: 10px; font-size: 11px; white-space: nowrap; }
 .stchart .hit { fill: transparent; } .stchart g:hover rect:not(.hit) { opacity: .8; }
@@ -713,7 +732,9 @@ table.funnel .fbar i { display: block; height: 10px; min-width: 2px; border-radi
 table.funnel .fbar i.employer { background: var(--s-employer); } table.funnel .fbar i.agency { background: var(--s-agency); } table.funnel .fbar i.hidden { background: var(--s-hidden); }
 .stcols { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 8px; }
 @media (max-width: 760px) { .stcols { grid-template-columns: 1fr; } }
-.stcol1 { margin-top: 8px; }                                          /* «Статистика»: блоки друг под другом, в одну колонку */
+.stcol1 { margin-top: 8px; }
+.stcol1 > div, .stcards + h3 { border-top: 1px solid var(--line); margin-top: 22px; padding-top: 14px; }   /* разделители между разделами */
+.stcol1 > div > h3:first-child, .stcards + h3 { margin-top: 0; }                                          /* «Статистика»: блоки друг под другом, в одну колонку */
 #wbody h3 { margin: 16px 0 6px; font-size: 15px; }
 .helplink { font-size: 12px; font-weight: normal; margin-left: 8px; color: var(--muted); }
 .helplink.guide { display: inline-flex; align-items: center; gap: 6px; margin-left: 12px; font-size: 13px; font-weight: 600; color: #c77700; vertical-align: 2px; }   /* мастер: гид «Первый запуск» — заметно */

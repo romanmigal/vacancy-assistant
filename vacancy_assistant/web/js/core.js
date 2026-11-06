@@ -160,10 +160,14 @@ function criteriaMap(text) {
 
 // Заголовок «Критерии»: значок со списком критериев; если оценка сделана по прежним критериям —
 // отметка об этом (пересчитать — кнопкой «Разобрать заново» в шапке карточки)
+// Значки моделей: облако — GigaChat, чип — модель на этом компьютере; те же — в «Статистике»
+const MODEL_ICON = {cloud: '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 18a4.5 4.5 0 0 1-.6-8.96A6 6 0 0 1 18 9a4 4 0 0 1 0 9z"/></svg>',
+  local: '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="2"/><path d="M9 2v4M15 2v4M9 18v4M15 18v4M2 9h4M2 15h4M18 9h4M18 15h4"/></svg>',
+  none: '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8 12h8"/></svg>'};
 // Кто оценивал: облако GigaChat или модель на этом компьютере (Gemma) — значок с названием модели
 const modelBadge = model => !model ? "" : /^gigachat/i.test(model)
-  ? `<span class="mbadge cloud" title="Разобрано облачной моделью ${esc(model)} (Сбер)"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 18a4.5 4.5 0 0 1-.6-8.96A6 6 0 0 1 18 9a4 4 0 0 1 0 9z"/></svg>GigaChat</span>`
-  : `<span class="mbadge local" title="Разобрано моделью ${esc(model)} на этом компьютере"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="2"/><path d="M9 2v4M15 2v4M9 18v4M15 18v4M2 9h4M2 15h4M18 9h4M18 15h4"/></svg>${esc(model.split(":")[0].replace(/^gemma\d*/i, "Gemma"))}</span>`;
+  ? `<span class="mbadge cloud" title="Разобрано облачной моделью ${esc(model)} (Сбер)">${MODEL_ICON.cloud}GigaChat</span>`
+  : `<span class="mbadge local" title="Разобрано моделью ${esc(model)} на этом компьютере">${MODEL_ICON.local}${esc(model.split(":")[0].replace(/^gemma\d*/i, "Gemma"))}</span>`;
 // Дата разбора — рядом со значком модели: «2026-10-23» → «23.10.2026»
 const analysisDate = date => date ? `<span class="mdate" title="Когда сделан этот разбор">${esc(date.split("-").reverse().join("."))}</span>` : "";
 const critHead = (changed, model, date) => `<h3 class="sec">Критерии <button class="info" id="critInfo" title="Показать полный список критериев" aria-label="Полный список критериев">i</button>${modelBadge(model)}${analysisDate(date)}`

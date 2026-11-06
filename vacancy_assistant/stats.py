@@ -11,6 +11,7 @@ from datetime import date, timedelta
 from statistics import mean
 
 from .contacts import company_key
+from .files import decision_word
 
 STEPS = {"day": 30, "week": 12, "month": 12}       # шаг → сколько периодов показываем
 METRICS = [("added", "Добавлено"), ("analyzed", "Разобрано ИИ"),
@@ -20,6 +21,50 @@ INTERVIEW = ("hr", "manager", "final", "offer")
 WAIT_DAYS = 7                                       # отклик без ответа дольше — в список «ждут ответа»
 GOOD = 7                                            # «хорошая» оценка — для воронки
 KINDS = ("employer", "agency", "hidden")            # кто разместил вакансию — столбики «По периодам» по частям
+
+
+ANSWERS = ("да", "возможно", "нет")
+
+def answer(text):
+    """Ответ «откликаться» одним словом: «да, но с оговорками» и «возможно» — «возможно»; пусто — нет ответа."""
+    t = (text or "").strip().lower()
+    return "возможно" if t.startswith("возм") else decision_word(t)
+
+def answers(rows):
+    model = [answer(r.get("decision")) if r.get("score") is not None else "" for r in rows]
+    mine = [answer(r.get("my_decision")) for r in rows]
+    pair = [(m, y) for m, y in zip(model, mine) if m and y]
+    return {"ans_model": [model.count(a) for a in ANSWERS], "ans_mine": [mine.count(a) for a in ANSWERS],
+            "ans_matrix": [[pair.count((m, y)) for y in ANSWERS] for m in ANSWERS], "ans_both": len(pair)}
+
+def engine(r):
+    """Кто оценивал вакансию: локальная модель, облачный GigaChat или никто (не разобрана, «Без модели»)."""
+    if not r.get("analyzed") or r.get("stage") == "none" or r.get("score") is None:
+        return "none"
+    return "cloud" if re.match(r"gigachat", r.get("model") or "", re.I) else "local"
+
+
+def engines(rows):
+    """По моделям: сколько вакансий, какие названия моделей, быстрая оценка или полный разбор, решения,
+    насколько оценки совпали с вашими — по вакансиям, где есть обе."""
+    out = {k: {"key": k, "count": 0, "names": {}, "short": 0, "full": 0, "yes": 0, "maybe": 0, "no": 0,
+               "both": 0, "same": 0, "near": 0} for k in ("local", "cloud", "none")}
+    for r in rows:
+        e = out[engine(r)]
+        e["count"] += 1
+        if e["key"] == "none":
+            continue
+        if r.get("model"):
+            e["names"][r["model"]] = e["names"].get(r["model"], 0) + 1
+        e["short" if r.get("stage") == "short" else "full"] += 1
+        d = answer(r.get("decision"))
+        e["yes"] += d == "да"; e["maybe"] += d == "возможно"; e["no"] += d == "нет"
+        if r.get("my_score") is not None:
+            diff = abs(round(r["score"]) - round(r["my_score"]))
+            e["both"] += 1; e["same"] += diff == 0; e["near"] += diff <= 1
+    for e in out.values():
+        e["names"] = sorted(e["names"], key=lambda k: -e["names"][k])
+    return list(out.values())
 
 
 def kind(r):
@@ -162,7 +207,9 @@ def compute(rows, step="week", today=None, status_names=None):
                   "higher": sum(1 for m, y in both if round(m) > round(y)),
                   "lower": sum(1 for m, y in both if round(m) < round(y)),
                   # разница «модель − вы» от −9 до +9: сколько вакансий с каждой
-                  "diffs": [sum(1 for m, y in both if round(m) - round(y) == d) for d in range(-9, 10)]}
+                  "diffs": [sum(1 for m, y in both if round(m) - round(y) == d) for d in range(-9, 10)],
+                  # ответы «откликаться»: да / возможно / нет у модели и у вас; где оба — кто что ответил (строка — модель)
+                  **answers(rows)}
     names = dict(status_names or [])
     now = {}                                         # по статусам: всего, закрытых на сайте, с флагом
     for r in rows:
@@ -180,6 +227,7 @@ def compute(rows, step="week", today=None, status_names=None):
         "speed": speed, "waiting": waiting, "wait_days": WAIT_DAYS,
         "letters": letters,
         "scores": scores_all,
+        "engines": engines(rows),
         "sources": sorted(sources.values(), key=lambda s: (-s["added"], s["source"])),
         "statuses": [{"key": k, "label": names.get(k, k), **now.get(k, {"count": 0, "closed": 0, "flagged": 0})}
                      for k in names],                # все статусы, и пустые
