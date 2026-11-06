@@ -20,7 +20,7 @@ from datetime import date
 from . import mask, settings
 from .errors import AssistantError
 from .hh import phase
-from .profile import CONFIG_FILE, Profile
+from .profile import ANSWERS_FILE, CONFIG_FILE, Profile
 from .textio import log_print, read_json, read_text, write_json, write_text
 
 OLLAMA_BASE = settings.OLLAMA.split("/api/")[0]
@@ -413,7 +413,7 @@ def create_profile(a, profiles_dir=None, log=None):
 
 # ---------- редактирование профиля ----------
 
-ANSWERS_FILE = "анкета.json"      # ответы мастера, которых нет в других файлах (зарплата, что важно…)
+# ANSWERS_FILE (из profile) — «анкета.json»: ответы мастера, которых нет в других файлах (зарплата, что важно…)
 
 
 def answers_from_criteria(text):
@@ -528,7 +528,7 @@ def update_profile(p, answers, log=None):
     if changed("stop_words"):
         c["поиск"]["стоп_слова"] = lines(a.get("stop_words"))
         done.append("стоп-слова")
-    if changed("search_salary", "search_salary_only"):
+    if changed("search_salary", "search_salary_only", "search_salary_set"):   # set — открыли шаг «Отбор при поиске»: пустое поле тоже выбор
         c["поиск"]["зарплата_от"] = int(re.sub(r"\D", "", str(a.get("search_salary") or "")) or 0) or None
         c["поиск"]["только_с_зарплатой"] = bool(a.get("search_salary_only"))
         done.append("зарплата в поиске")

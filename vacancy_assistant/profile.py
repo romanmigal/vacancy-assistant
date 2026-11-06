@@ -7,6 +7,8 @@ from . import settings
 from .errors import AssistantError
 from .textio import read_json, read_text, write_json, write_text
 
+ANSWERS_FILE = "анкета.json"      # ответы опросника «Что ищете» (пишет setup)
+
 # (?<!\w)…(?!\w) — целое слово: иначе «ИТ» находится внутри «развИТия»
 W = lambda words: rf"(?<!\w)(?:{words})(?!\w)"
 
@@ -197,8 +199,14 @@ class Profile:
         self.search_days = search["дней"]
         # Сколько новых подходящих вакансий скачивать за поиск (остальные — в следующий раз); None — все
         self.search_limit = search.get("максимум_новых", 50)
-        # Фильтр hh.ru по зарплате: «от» в рублях (None — без фильтра) и «только с указанной зарплатой»
-        self.search_salary = search.get("зарплата_от") or None
+        # Фильтр hh.ru по зарплате: «от» в рублях (None — без фильтра) и «только с указанной зарплатой».
+        # Не задавали на шаге «Отбор при поиске» — берём «Зарплата от» из опросника (анкета.json);
+        # сохранили пустым — без фильтра
+        if "зарплата_от" in search:
+            self.search_salary = search.get("зарплата_от") or None
+        else:
+            asked = read_json(self.dir / ANSWERS_FILE, {}) if (self.dir / ANSWERS_FILE).exists() else {}
+            self.search_salary = int(re.sub(r"\D", "", str(asked.get("salary") or "")) or 0) or None
         self.search_salary_only = bool(search.get("только_с_зарплатой"))
         # Отсев по названию до модели — бесплатно: нужно и «про сферу», и «уровень», и ни одного стоп-слова
         # пустой список слов — проверка не нужна (так создаёт профиль мастер: уровень оценивает модель)

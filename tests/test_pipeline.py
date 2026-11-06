@@ -8,7 +8,7 @@ from helpers import SEARCH_HTML, VACANCY_HTML, TempProfile, fake_model, vacancy_
 
 from vacancy_assistant import AssistantError, analysis, cli, hh, ratings, summary as S, tune as T
 from vacancy_assistant.files import read_meta
-from vacancy_assistant.textio import read_text, write_text
+from vacancy_assistant.textio import read_json, read_text, write_json, write_text
 
 
 class Pipeline(unittest.TestCase):
@@ -78,6 +78,22 @@ class Pipeline(unittest.TestCase):
             self.assertIn("зарплата от 250 000 ₽", " ".join(logs))
             setup.update_profile(p, {"search_salary": "", "search_salary_only": False}, log=lambda *_: None)
             self.assertEqual(hh.salary_filter(Profile("example", t.profiles)), "")
+
+    def test_search_salary_from_answers(self):
+        """Фильтр на шаге «Отбор при поиске» не задавали — поиск берёт «Зарплата от» из опросника; сохранили пустым — без фильтра."""
+        from vacancy_assistant import setup
+        from vacancy_assistant.profile import ANSWERS_FILE, CONFIG_FILE, Profile
+        with TempProfile() as t:
+            d = t.profile.dir
+            write_json(d / ANSWERS_FILE, {"salary": "600 000"})
+            c = read_json(d / CONFIG_FILE)
+            c["поиск"].pop("зарплата_от", None)
+            write_json(d / CONFIG_FILE, c)
+            p = Profile("example", t.profiles)
+            self.assertEqual(hh.salary_filter(p), "&salary=600000")
+            self.assertEqual(setup.answers_from_profile(p)["search_salary_set"], False)   # мастер подставит число из опросника
+            setup.update_profile(p, {"search_salary": "", "search_salary_only": False, "search_salary_set": True}, log=lambda *_: None)
+            self.assertEqual(hh.salary_filter(Profile("example", t.profiles)), "")       # сохранили пустым — без фильтра
 
     def test_analysis_letters_summary_statuses(self):
         with TempProfile() as t:
