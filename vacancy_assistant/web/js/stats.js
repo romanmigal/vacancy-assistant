@@ -1,11 +1,15 @@
 // Раздел «Статистика»: вакансии, разборы и отклики по дням, неделям и месяцам — из файлов профиля, без модели
 // Шаг и показатель графика — как в прошлый раз (в этом браузере); впервые — по дням, «Добавлено»
-let statStep = ["day", "week", "month"].includes(recall("statStep")) ? recall("statStep") : "day",
+let statStep = {month: "all"}[recall("statStep")] || (["day", "week", "all"].includes(recall("statStep")) ? recall("statStep") : "day"),
     statMetric = recall("statMetric") || "added", statData = null;
 // шаг → [кнопка, «за …», диапазон, «с предыдущими …», «текущий … не закончился»]
 const STAT_STEPS = {day: ["Дни", "день", "30 дней", "30 днями", "сегодняшний день ещё не закончился"],
   week: ["Недели", "неделю", "12 недель", "12 неделями", "текущая неделя ещё не закончилась"],
-  month: ["Месяцы", "месяц", "12 месяцев", "12 месяцами", "текущий месяц ещё не закончился"]};
+  all: ["Всё время", "месяц", "всё время", "", "текущий месяц ещё не закончился"]};
+// Мало данных за период — средние и проценты случайны: предупреждаем (0 — секция сама скажет, что пусто)
+const FEW = 5;
+const few = (n, what) => n && n < FEW ? `<p class="cwarn small">Мало данных: ${what} — ${n}, цифры случайны. Выберите период длиннее.</p>` : "";
+const within = step => step === "all" ? "за всё время" : `за эти ${STAT_STEPS[step][2]}`;   // «Вакансии, добавленные …»
 const MONTHS = ["янв", "фев", "мар", "апр", "май", "июн", "июл", "авг", "сен", "окт", "ноя", "дек"];
 const statPeriod = (s, step) => step === "day" ? ddmm(s.start)
   : step === "week" ? `${ddmm(s.start)}–${ddmm(s.end)}` : `${MONTHS[+s.start.slice(5, 7) - 1]} ${s.start.slice(0, 4)}`;
@@ -33,10 +37,10 @@ function statsHtml(s) {
   const sp = (x, what) => x.days == null ? `<span class="muted">пока нет данных</span>` : `<b>${x.days}</b> дн. <span class="muted">(${x.count} ${what})</span>`;
   return `
     <div class="lkinds">${Object.entries(STAT_STEPS).map(([k, v]) => `<button type="button" class="lkind ${k === s.step ? "on" : ""}" data-step="${k}">${v[0]}</button>`).join("")}</div>
-    <p class="hint">Последние ${range}: ${ddmmyyyy(s.start)} — ${ddmmyyyy(s.end)}. Среднее — за ${per}; ${partial}, и среднее считается по прошедшим дням. Стрелка — сравнение с предыдущими ${prevRange}. Всё считается по файлам профиля, без модели.</p>
+    <p class="hint">${s.step === "all" ? "Всё время" : `Последние ${range}`}: ${ddmmyyyy(s.start)} — ${ddmmyyyy(s.end)}. Среднее — за ${per}; ${partial}, и среднее считается по прошедшим дням.${prevRange ? ` Стрелка — сравнение с предыдущими ${prevRange}.` : ""} Всё считается по файлам профиля, без модели.</p>
     <div class="stcards">${s.metrics.map(m => { const t = s.totals[m.key]; return `
       <div class="stcard"><div class="muted">${m.label}</div><div class="stnum">${t.total}</div>
-        <div class="small">≈ ${t.avg} за ${per}</div><div class="small">${arrow(t)}</div></div>`; }).join("")}</div>
+        <div class="small">≈ ${t.avg} за ${per}</div>${t.prev == null ? "" : `<div class="small">${arrow(t)}</div>`}</div>`; }).join("")}</div>
     <h3>По периодам</h3>
     <div class="lkinds">${s.metrics.map(m => `<button type="button" class="lkind ${m.key === statMetric ? "on" : ""}" data-metric="${m.key}">${m.label}</button>`).join("")}</div>
     <div id="stChart">${statChart(s)}</div>
@@ -45,39 +49,41 @@ function statsHtml(s) {
       <tbody>${[...s.series].reverse().map(p => `<tr><td>${statPeriod(p, s.step)}${p.partial ? ' <span class="muted">(идёт)</span>' : ""}</td>
         ${s.metrics.map(m => `<td>${p[m.key] || '<span class="muted">0</span>'}</td>`).join("")}</tr>`).join("")}</tbody></table></details>
     <div class="stcol1">
-      <div><h3>Воронка</h3><p class="hint">Вакансии, добавленные за эти ${range}: докуда каждая дошла. Процент — от предыдущего шага.</p>
+      <div><h3>Воронка</h3><p class="hint">Вакансии, добавленные ${within(s.step)}: докуда каждая дошла. Процент — от предыдущего шага.</p>
         <table class="stat funnel">${s.funnel.map((f, i) => `<tr><td>${f.label}</td><td><b>${f.count}</b></td>
           <td class="bar" title="${f.label}: ${f.count}${f.count ? "\n" + STAT_KINDS.filter(([k]) => f.by_kind?.[k]).map(([k, l]) => `${l} — ${f.by_kind[k]}`).join("\n") : ""}">${funnelBar(f, s.funnel[0].count)}</td>
           <td class="muted">${i ? pct(f.count, s.funnel[i - 1].count) : ""}</td></tr>`).join("")}</table>
         ${statLegend(Object.fromEntries(STAT_KINDS.map(([k]) => [k, s.funnel[0].by_kind?.[k] || 0])))}
         <p class="small">${s.score.avg == null ? "" : `Средняя оценка этих вакансий — <b>${s.score.avg}</b>, оценка 7+ у ${pct(s.score.good, s.score.count)}.`}</p></div>
-      <div><h3>Источники</h3><p class="hint">Вакансии, добавленные за эти ${range}: докуда дошли. Полоска — от добавленных из этого источника, справа — сколько откликов получили ответ.</p>
-        ${s.sources.length ? sourcesChart(s.sources) : `<p class="muted">Вакансий за эти ${range} нет.</p>`}</div>
-      <div><h3>Статусы сейчас</h3>
-        ${statusPie(s.statuses)}
-</div>
+      <div><h3>Источники</h3><p class="hint">Вакансии, добавленные ${within(s.step)}: докуда дошли. Полоска — от добавленных из этого источника, справа — сколько откликов получили ответ.</p>
+        ${s.sources.length ? sourcesChart(s.sources) : `<p class="muted">Вакансий ${within(s.step)} нет.</p>`}</div>
       <div><h3>Отклики с сопроводительным письмом и без</h3>
-        <p class="hint">Отклики за эти ${range}. Письмо считается отправленным, если во вкладке «Письма» у него стоит отметка «Отправлено»; у старых откликов её можно поставить с прошлой датой. Процент в подсказке у столбика — от откликов той же группы.</p>
+        <p class="hint">Отклики ${within(s.step)}. Письмо считается отправленным, если во вкладке «Письма» у него стоит отметка «Отправлено»; у старых откликов её можно поставить с прошлой датой. Процент в подсказке у столбика — от откликов той же группы.</p>
         ${lettersChart(s.letters)}
         ${s.letters[0].applied ? "" : `<p class="hint">Пока ни у одного отклика нет отметки «Отправлено» у письма — все отклики попали в «Без письма».</p>`}</div>
-      <div><h3>Скорость</h3><p class="hint">Сколько в среднем проходит между этапами — по всем откликам профиля. Длина отрезка — сколько дней.</p>
+      <div><h3>Скорость</h3><p class="hint">Сколько в среднем проходит между этапами — по откликам ${within(s.step)}; ответ и интервью — когда бы ни пришли. Длина отрезка — сколько дней.</p>
+        ${few(s.speed.to_apply.count, "откликов с отметкой «Откликнулся» за период")}
         ${speedTimeline(s.speed)}
         ${s.waiting.length ? `<details class="sttable"><summary>Ждут ответа дольше ${s.wait_days} дней — ${s.waiting.length}</summary>
           <table class="stat">${s.waiting.map(w => `<tr class="link" data-vac="${w.n}" title="Открыть карточку вакансии"><td>${esc(w.title)}<div class="muted small">${esc(w.company)}</div></td>
             <td class="muted">отклик ${ddmm(w.applied)}</td><td><b>${w.days}</b> дн.</td></tr>`).join("")}</table>
           <p class="hint">Можно напомнить о себе или отметить этап «Не ответили».</p></details>` : ""}</div>
-      <div><h3>Оценки вакансий</h3><p class="hint">Все вакансии профиля. Какие оценки и ответы «откликаться» дала модель и какие — вы в «Моих оценках»; в ваших кольцах — и вакансии, которые вы ещё не оценили.</p>
-        ${scoreRings(s.scores, s.total_vacancies)}</div>
-      <div><h3>Оценки: модель и вы</h3><p class="hint">Процент от всех оценок модели и от всех ваших — так распределения сравнимы, хотя оценок у вас меньше.</p>
+      <div><h3>Оценки вакансий</h3><p class="hint">Вакансии, разобранные моделью ${within(s.step)}, и неразобранные, добавленные ${within(s.step)}. Какие оценки и ответы «откликаться» дала модель и какие — вы в «Моих оценках»; в ваших кольцах — и вакансии, которые вы ещё не оценили.</p>
+        ${scoreRings(s.scores, s.scoped_vacancies)}</div>
+      <div><h3>Оценки: модель и вы</h3><p class="hint">Вакансии, разобранные моделью ${within(s.step)}. Процент от всех оценок модели и от всех ваших — так распределения сравнимы, хотя оценок у вас меньше.</p>
         <div class="stpair"><div><h4 class="stsub">Оценки</h4>${scoresChart(s.scores)}</div><div><h4 class="stsub">Ответ «откликаться»</h4>${answersChart(s.scores)}</div></div></div>
-      <div><h3>Общая оценка: модель и вы</h3><p class="hint">Только вакансии, где есть и оценка модели, и ваша: насколько модель ставит выше или ниже вас. Чем больше столбик в центре, тем точнее модель настроена под вас; если вакансий по краям много — пора откалибровать критерии.</p>
+      <div><h3>Общая оценка: модель и вы</h3><p class="hint">Вакансии, разобранные моделью ${within(s.step)}, где есть и оценка модели, и ваша: насколько модель ставит выше или ниже вас. Чем больше столбик в центре, тем точнее модель настроена под вас; если вакансий по краям много — пора откалибровать критерии.</p>
         <div class="stpair"><div><h4 class="stsub">Оценки</h4>${diffChart(s.scores)}</div><div><h4 class="stsub">Ответ «откликаться»</h4>${answersMatrix(s.scores)}</div></div></div>
-      <div><h3>Оценки и результат откликов</h3><p class="hint">Все отклики профиля: как часто отвечают и зовут на интервью в зависимости от оценки. Если у вакансий с высокой оценкой ответов не больше, чем у остальных, — оценка отражает критерии, а не шансы.</p>
-        ${outcomesTable(s.outcomes)}</div>
-      <div><h3>Модель и вы по неделям</h3><p class="hint">Вакансии с вашей оценкой — по неделе последнего разбора моделью: сколько оценок совпало с вашими (±1 балл) и сколько ответов «откликаться». ✎ — неделя, когда меняли критерии: видно, стала ли модель после этого точнее.</p>
+      <div><h3>Оценки и результат откликов</h3><p class="hint">Отклики ${within(s.step)}: как часто отвечают и зовут на интервью в зависимости от оценки. Если у вакансий с высокой оценкой ответов не больше, чем у остальных, — оценка отражает критерии, а не шансы.</p>
+        ${few(s.outcomes.model.reduce((a, g) => a + g.applied, 0), "откликов за период")}${outcomesTable(s.outcomes)}</div>
+      <div><h3>Модели</h3><p class="hint">Вакансии, разобранные ${within(s.step)}, и неразобранные, добавленные ${within(s.step)}: какая модель их оценила. «Совпало с вами» — по вакансиям, где есть и ваша оценка: точно и с разницей не больше балла.</p>
+        ${enginesTable(s.engines, s.scoped_vacancies)}</div>
+      <div class="stalltime"><h2>За всё время</h2><p class="hint">Разделы ниже не зависят от выбора «Дни / Недели / Всё время» вверху: статусы — на сегодня, совпадение с моделью — по всем неделям.</p></div>
+      <div><h3>Статусы сейчас</h3>
+        ${statusPie(s.statuses)}
+</div>
+      <div><h3>Модель и вы по неделям</h3><p class="hint">Все вакансии с вашей оценкой — по неделе последнего разбора моделью: сколько оценок совпало с вашими (±1 балл) и сколько ответов «откликаться». ✎ — неделя, когда меняли критерии: видно, стала ли модель после этого точнее.</p>
         ${agreementChart(s.agreement)}</div>
-      <div><h3>Модели</h3><p class="hint">Все вакансии профиля: какая модель их оценила. «Совпало с вами» — по вакансиям, где есть и ваша оценка: точно и с разницей не больше балла.</p>
-        ${enginesTable(s.engines, s.total_vacancies)}</div>
     </div>`;
 }
 
@@ -368,9 +374,9 @@ function bindStats() {
 function statsMarkdown(s) {
   const [, per, range] = STAT_STEPS[s.step];
   const line = cells => `| ${cells.join(" | ")} |`;
-  return [`# Статистика поиска: последние ${range} (${ddmmyyyy(s.start)} — ${ddmmyyyy(s.end)})`, "",
-    line(["Метрика", "Всего", `В среднем за ${per}`, `Предыдущие ${range}`]), line(["---", "---:", "---:", "---:"]),
-    ...s.metrics.map(m => line([m.label, s.totals[m.key].total, s.totals[m.key].avg, s.totals[m.key].prev])), "",
+  return [`# Статистика поиска: ${s.step === "all" ? "всё время" : `последние ${range}`} (${ddmmyyyy(s.start)} — ${ddmmyyyy(s.end)})`, "",
+    line(["Метрика", "Всего", `В среднем за ${per}`, s.step === "all" ? "Раньше" : `Предыдущие ${range}`]), line(["---", "---:", "---:", "---:"]),
+    ...s.metrics.map(m => line([m.label, s.totals[m.key].total, s.totals[m.key].avg, s.totals[m.key].prev ?? "—"])), "",
     "## Воронка", "", ...s.funnel.map((f, i) => `- ${f.label}: ${f.count}${i ? ` (${pct(f.count, s.funnel[i - 1].count)})` : ""}`), "",
     "## Скорость", "",
     `- От добавления до отклика: ${s.speed.to_apply.days ?? "—"} дн.`,

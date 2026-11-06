@@ -59,14 +59,36 @@ def counts(evs, seen, a, b):
     out = {k: sum(1 for _, e in evs if inside(e[k])) for k in ("added", "analyzed", "applied", "answered", "rejected",
                                                                "interview", "offer")}
     out["good"] = sum(1 for r, e in evs if inside(e["analyzed"]) and (r.get("score") or 0) >= GOOD)
+    out["good_applied"] = sum(1 for r, e in evs if inside(e["analyzed"]) and (r.get("score") or 0) >= GOOD and e["applied"])
     out["found"] = sum(1 for d, *_ in seen if inside(d))
     out["title_ok"] = sum(1 for d, mark, _ in seen if inside(d) and mark == "взята")
     return out
 
 
-def conversions(c):
-    return [{"from": x, "to": y, "label": f"{STEP_NAMES[x]} → {STEP_NAMES[y]}",
-             "pct": round(c[y] / c[x] * 100) if c[x] else None} for x, y in STEPS]
+EARLY = 2                      # за неделю честно судить только о первых двух переходах: ответы и интервью приходят позже
+
+
+def conversions(c, w=None):
+    """Какая доля дошла до следующего шага: за всё время (c) и по вакансиям, разобранным за неделю (w — докуда они
+    успели дойти). «Оценка 7+ → Отклик» — только отклики на вакансии с оценкой 7+, иначе процент завышен откликами
+    на вакансии с оценкой ниже. Дальше второго шага неделю не считаем — рано судить."""
+    def pct(n, of):
+        return round(n / of * 100) if of else None
+    out = []
+    for i, (x, y) in enumerate(STEPS):
+        to = "good_applied" if (x, y) == ("good", "applied") else y
+        row = {"from": x, "to": y, "label": f"{STEP_NAMES[x]} → {STEP_NAMES[y]}", "pct": pct(c[to], c[x]), "week": None}
+        if w is not None and i < EARLY:
+            row["week"] = {"pct": pct(w[to], w[x]), "n": w[to], "of": w[x]}
+        out.append(row)
+    return out
+
+
+def cohort(evs, a, b):
+    """Вакансии, разобранные в период: сколько их, сколько с оценкой 7+ и на сколько из них откликнулись (когда угодно)."""
+    got = [(r, e) for r, e in evs if _in(e["analyzed"], a, b)]
+    good = [(r, e) for r, e in got if (r.get("score") or 0) >= GOOD]
+    return {"analyzed": len(got), "good": len(good), "good_applied": sum(1 for _, e in good if e["applied"])}
 
 
 def reasons(evs, a, b):
@@ -84,6 +106,20 @@ def title_drops(profile, seen, a, b):
             by[profile.title_reason(title) or "теперь подходит"].append(title)
     return [{"reason": k, "count": len(v), "examples": list(dict.fromkeys(v))[:EXAMPLES]}
             for k, v in sorted(by.items(), key=lambda kv: -len(kv[1]))][:TOP]
+
+
+def salary_filter(profile):
+    """Фильтр hh.ru по зарплате (шаг «Отбор при поиске»): такие вакансии hh не показывает — программа их не видит
+    и не считает; в итогах — только сам фильтр. None — фильтра нет."""
+    if not profile.search_salary and not profile.search_salary_only:
+        return None
+    return {"from": profile.search_salary, "only": profile.search_salary_only, "text": salary_text(profile)}
+
+
+def salary_text(profile):
+    parts = ([f"зарплата ниже {profile.search_salary:,} ₽".replace(",", " ")] if profile.search_salary else []) \
+        + (["зарплата не указана"] if profile.search_salary_only else [])
+    return " или ".join(parts).capitalize()
 
 
 def advice(week, prev, total, why, drops, waiting):
@@ -143,9 +179,9 @@ def compute(profile, rows, which="last", today=None):
         "metrics": [{"key": k, "label": ADDED_BOTH if search and k == "added" else l}
                     for k, l in METRICS if search or k not in ("found", "title_ok")],
         "week": week, "prev": prev, "total": total,
-        "conversions": conversions(total),
+        "conversions": conversions(total, cohort(evs, a, b)),
         "reasons": why, "reasons_total": reasons(evs, None, None),
-        "title_drops": drops, "waiting": waiting,
+        "title_drops": drops, "salary_filter": salary_filter(profile), "waiting": waiting,
         "advice": advice(week, prev, total, why, drops, waiting),
     }
 
@@ -157,13 +193,16 @@ def markdown(rep):
              "| | Неделя | Неделей раньше | Всё время |", "|---|---:|---:|---:|"]
     lines += [f"| {m['label']} | {rep['week'][m['key']]} | {rep['prev'][m['key']]} | {rep['total'][m['key']]} |"
               for m in rep["metrics"]]
-    lines += ["", "## Переходы за всё время", ""]
-    lines += [f"- {c['label']}: {'—' if c['pct'] is None else str(c['pct']) + '%'}"
-              for c in rep["conversions"]]
+    p = lambda v: "—" if v is None else f"{v}%"
+    lines += ["", "## Переходы", "", f"| | {'Эта неделя' if rep['partial'] else 'Неделя'} | За всё время |", "|---|---|---|"]
+    lines += [f"| {c['label']} | {p(c['week']['pct']) + ' (' + str(c['week']['n']) + ' из ' + str(c['week']['of']) + ')' if c['week'] else 'рано судить'} "
+              f"| {p(c['pct'])} |" for c in rep["conversions"]]
     if rep["reasons"]:
         lines += ["", "## Что чаще всего не подходило", ""] + [f"- {x['name']}: {x['count']}" for x in rep["reasons"]]
-    if rep["title_drops"]:
-        lines += ["", "## Отсеяно по названию", ""] + [f"- {x['reason']}: {x['count']}" for x in rep["title_drops"]]
+    if rep["title_drops"] or rep.get("salary_filter"):
+        lines += ["", "## Отсеяно при поиске", ""] + [f"- {x['reason']}: {x['count']}" for x in rep["title_drops"]]
+        if rep.get("salary_filter"):
+            lines += [f"- {rep['salary_filter']['text']}: отсекает hh.ru, программа такие вакансии не скачивает"]
     if rep["advice"]:
         lines += ["", "## Вывод", ""] + [f"- {x['text']}" for x in rep["advice"]]
     return "\n".join(lines)

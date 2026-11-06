@@ -13,7 +13,7 @@ from statistics import mean
 from .contacts import company_key
 from .files import decision_word
 
-STEPS = {"day": 30, "week": 12, "month": 12}       # шаг → сколько периодов показываем
+STEPS = {"day": 30, "week": 12, "all": None}       # шаг → сколько периодов показываем; «всё время» — месяцы с первого события
 METRICS = [("added", "Добавлено"), ("analyzed", "Разобрано ИИ"),
            ("applied", "Откликов"), ("answered", "Ответов"), ("rejected", "Отказов"), ("interview", "Интервью"), ("offer", "Офферов")]
 ANSWER = ("answered", "hr", "manager", "final", "offer", "rejected")   # любой отклик работодателя — ответ
@@ -58,9 +58,15 @@ def outcomes(evs):
             "answer": [group(a.capitalize(), [x for x in sent if answer(x[0].get("my_decision")) == a]) for a in ANSWERS]
                       + [group("нет вашего ответа", [x for x in sent if not answer(x[0].get("my_decision"))])]}
 
-def agreement(rows, today, edits=(), weeks=12):
+def agreement(rows, today, edits=(), weeks=None):
     """Модель и вы по неделям разбора (последнего): где есть обе оценки — совпало точно, ±1 балл, совпал ответ.
-    edits — даты правок критериев, чтобы видеть, стала ли модель точнее после них."""
+    edits — даты правок критериев, чтобы видеть, стала ли модель точнее после них. weeks — сколько последних
+    недель; None — за всё время: с недели первой вакансии, где есть обе оценки."""
+    if weeks is None:
+        dates = [r["scored_on"][:10] for r in rows if r.get("scored_on") and r.get("score") is not None
+                 and r.get("my_score") is not None]
+        first = date.fromisoformat(min(dates)) if dates else today
+        weeks = (today - timedelta(days=today.weekday()) - (first - timedelta(days=first.weekday()))).days // 7 + 1
     start = today - timedelta(days=today.weekday() + 7 * (weeks - 1))
     out = []
     for i in range(weeks):
@@ -133,10 +139,17 @@ def _add_months(d, k):
     return date(d.year + m // 12, m % 12 + 1, 1)
 
 
-def periods(step, today, back=0):
+def periods(step, today, back=0, first=None):
     """Периоды диапазона, старые первыми: [(начало, конец включительно, доля прошедшего)]. back=1 — прошлый
-    такой же диапазон (для сравнения). Текущий период неполный: доля — сколько его дней уже прошло."""
-    count = STEPS[step]
+    такой же диапазон (для сравнения). Текущий период неполный: доля — сколько его дней уже прошло.
+    «Всё время» (all) — месяцы с первого события (first) по текущий; прошлого диапазона у него нет."""
+    if step == "all":
+        if back:
+            return []
+        months = (today.year - first.year) * 12 + today.month - first.month + 1 if first and first <= today else 1
+        step, count = "month", max(months, 1)
+    else:
+        count = STEPS[step]
     if step == "day":
         last = today - timedelta(days=count * back)
         return [(d, d, 1.0) for d in (last - timedelta(days=i) for i in range(count - 1, -1, -1))]
@@ -171,20 +184,24 @@ def _days(x, y):
 def compute(rows, step="week", today=None, status_names=None, criteria_edits=()):
     """Всё для раздела «Статистика»: ряды по периодам, итоги и средние, воронка, скорость, ждущие ответа,
     источники, статусы сейчас."""
+    if step == "month":                               # «Месяцы» прежних версий — теперь «Всё время»
+        step = "all"
     if step not in STEPS:
         step = "week"
     today = today or date.today()
     evs = [(r, events(r)) for r in rows]
     only = [e for _, e in evs]
-    ps = periods(step, today)
+    dates = [d for e in only for d in e.values() if d] + [r.get("scored_on") or "" for r in rows if r.get("scored_on")]
+    first = date.fromisoformat(min(dates)[:10]) if dates else None
+    ps = periods(step, today, first=first)
     series = [{"start": a.isoformat(), "end": b.isoformat(), "partial": part < 1,
                **{k: _count(only, k, a, b) for k, _ in METRICS},
                "by_kind": {k: _split(evs, k, a, b) for k, _ in METRICS}} for a, b, part in ps]
     full = sum(part for *_, part in ps)              # неполный текущий период не занижает среднее
-    prev = periods(step, today, back=1)
+    prev = periods(step, today, back=1, first=first)
     a, b = ps[0][0], ps[-1][1]
     totals = {k: {"total": sum(s[k] for s in series), "avg": round(sum(s[k] for s in series) / full, 1),
-                  "prev": _count(only, k, prev[0][0], prev[-1][1])} for k, _ in METRICS}
+                  "prev": _count(only, k, prev[0][0], prev[-1][1]) if prev else None} for k, _ in METRICS}
 
     # Воронка — по вакансиям, добавленным в диапазоне: докуда каждая дошла (в любое время)
     cohort = [(r, e) for r, e in evs if e["added"] and a.isoformat() <= e["added"] <= b.isoformat()]
@@ -204,11 +221,12 @@ def compute(rows, step="week", today=None, status_names=None, criteria_edits=())
         funnel.append({"label": label, "count": sum(parts.values()), "by_kind": parts})
     scores = [r["score"] for r, _ in cohort if r.get("score") is not None]
 
-    # Скорость — по всем откликам профиля: в диапазоне их обычно слишком мало для средних
+    # Скорость — по откликам диапазона (отметка «Откликнулся» в нём); ответ и интервью — когда бы ни пришли
+    inrange = lambda d: bool(d) and a.isoformat() <= d[:10] <= b.isoformat()
     def avg_days(pairs):
         days = [_days(x, y) for x, y in pairs if x and y and y >= x]
         return {"days": round(mean(days), 1) if days else None, "count": len(days)}
-    marked = [e for _, e in evs if e["applied_mark"]]
+    marked = [e for _, e in evs if inrange(e["applied_mark"])]
     speed = {"to_apply": avg_days((e["added"], e["applied_mark"]) for e in marked),
              "to_answer": avg_days((e["applied_mark"], e["answered"]) for e in marked),
              "to_interview": avg_days((e["applied_mark"], e["interview"]) for e in marked)}
@@ -231,15 +249,18 @@ def compute(rows, step="week", today=None, status_names=None, criteria_edits=())
                                                            for k in ("answered", "rejected", "interview")}}
                for flag, group in ((True, [x for x in sent if x[0].get("cover_sent")]),
                                    (False, [x for x in sent if not x[0].get("cover_sent")]))]
+    # Оценки и модели — по вакансиям диапазона: разобранным моделью в нём (последний разбор), а неразобранным —
+    # добавленным в нём. «Всё время» — все вакансии профиля
+    scoped = [r for r, e in evs if inrange(r.get("scored_on") if r.get("analyzed") and r.get("scored_on") else e["added"])]
     # Оценки: сколько вакансий получили 1…10 у модели и у вас; где обе — насколько модель расходится с вами
     def bins(vals):
         out = [0] * 10
         for v in vals:
             out[min(max(round(v), 1), 10) - 1] += 1
         return out
-    model = [r["score"] for r in rows if r.get("score") is not None]
-    mine = [r["my_score"] for r in rows if r.get("my_score") is not None]
-    both = [(r["score"], r["my_score"]) for r in rows if r.get("score") is not None and r.get("my_score") is not None]
+    model = [r["score"] for r in scoped if r.get("score") is not None]
+    mine = [r["my_score"] for r in scoped if r.get("my_score") is not None]
+    both = [(r["score"], r["my_score"]) for r in scoped if r.get("score") is not None and r.get("my_score") is not None]
     scores_all = {"model": bins(model), "mine": bins(mine),
                   "model_avg": round(mean(model), 1) if model else None, "mine_avg": round(mean(mine), 1) if mine else None,
                   "both": len(both), "diff_avg": round(mean(abs(m - y) for m, y in both), 1) if both else None,
@@ -248,7 +269,7 @@ def compute(rows, step="week", today=None, status_names=None, criteria_edits=())
                   # разница «модель − вы» от −9 до +9: сколько вакансий с каждой
                   "diffs": [sum(1 for m, y in both if round(m) - round(y) == d) for d in range(-9, 10)],
                   # ответы «откликаться»: да / возможно / нет у модели и у вас; где оба — кто что ответил (строка — модель)
-                  **answers(rows)}
+                  **answers(scoped)}
     names = dict(status_names or [])
     now = {}                                         # по статусам: всего, закрытых на сайте, с флагом
     for r in rows:
@@ -266,12 +287,12 @@ def compute(rows, step="week", today=None, status_names=None, criteria_edits=())
         "speed": speed, "waiting": waiting, "wait_days": WAIT_DAYS,
         "letters": letters,
         "scores": scores_all,
-        "engines": engines(rows),
-        "outcomes": outcomes(evs),
+        "engines": engines(scoped),
+        "outcomes": outcomes([(r, e) for r, e in evs if inrange(e["applied"])]),   # отклики диапазона
         "agreement": agreement(rows, today, criteria_edits),
         "sources": sorted(sources.values(), key=lambda s: (-s["added"], s["source"])),
         "statuses": [{"key": k, "label": names.get(k, k), **now.get(k, {"count": 0, "closed": 0, "flagged": 0})}
                      for k in names],                # все статусы, и пустые
         "flags": sum(1 for r in rows if r.get("flag")),
-        "total_vacancies": len(rows),
+        "total_vacancies": len(rows), "scoped_vacancies": len(scoped),
     }

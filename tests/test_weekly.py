@@ -46,10 +46,27 @@ class Weekly(unittest.TestCase):
             self.assertTrue(all(d["reason"] for d in r["title_drops"]))
             self.assertIn("found", [m["key"] for m in r["metrics"]])
             self.assertIn("Добавлено: поиском hh и вручную", [m["label"] for m in r["metrics"]])
-            self.assertEqual(r["conversions"][2], {"from": "applied", "to": "answered", "label": "Отклик → Ответ", "pct": 33})
+            self.assertEqual(r["conversions"][2], {"from": "applied", "to": "answered", "label": "Отклик → Ответ", "pct": 33,
+                                                   "week": None})                       # дальше отклика по неделе — рано
+            # неделя: разобраны 1, 2, 3; оценка 7+ у 1 и 2, отклик на обе
+            self.assertEqual([c["week"] for c in r["conversions"][:2]],
+                             [{"pct": 67, "n": 2, "of": 3}, {"pct": 100, "n": 2, "of": 2}])
+            self.assertEqual(r["conversions"][1]["pct"], 100)                  # 7+ → отклик: 1, 2, 4 — все с откликом
             md = weekly.markdown(r)
             self.assertIn("# Итоги недели: 19.10.2026 — 25.10.2026", md)
             self.assertIn("| Откликов | 2 | 1 | 3 |", md)
+            self.assertIn("| Отклик → Ответ | рано судить | 33% |", md)
+
+    def test_salary_filter(self):
+        """Фильтр hh.ru по зарплате — строкой в «Отсеяно при поиске»: число неизвестно, его отсекает hh."""
+        from vacancy_assistant import setup as S
+        from vacancy_assistant.profile import Profile
+        with TempProfile() as t:
+            self.assertIsNone(weekly.compute(t.profile, [], "last", TODAY)["salary_filter"])
+            S.update_profile(t.profile, {"search_salary": "180000", "search_salary_only": True}, log=lambda *_: None)
+            r = weekly.compute(Profile("example", t.profiles), [], "last", TODAY)
+            self.assertEqual(r["salary_filter"]["text"], "Зарплата ниже 180 000 ₽ или зарплата не указана")
+            self.assertIn("## Отсеяно при поиске", weekly.markdown(r))
 
     def test_no_search_hides_rows(self):
         with TempProfile() as t:

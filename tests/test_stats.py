@@ -93,10 +93,22 @@ class Stats(unittest.TestCase):
                 dict(ROWS[1], scored_on="2026-10-27", my_score=7, decision="нет", my_decision="возможно"),
                 dict(ROWS[2], scored_on="2026-10-14", my_score=6)]
         w = stats.compute(rows, "week", TODAY, criteria_edits=["2026-10-29 16:19", "2026-08-01"])["agreement"]
-        self.assertEqual((len(w), w[-1]["start"]), (12, "2026-10-26"))
+        self.assertEqual((len(w), w[0]["start"], w[-1]["start"]), (3, "2026-10-12", "2026-10-26"))   # с первой оценки
         self.assertEqual({k: w[-1][k] for k in ("both", "same", "near", "ans_both", "ans_same", "edits")},
                          {"both": 2, "same": 1, "near": 1, "ans_both": 2, "ans_same": 1, "edits": ["2026-10-29"]})
-        self.assertEqual((w[-3]["both"], w[-3]["near"]), (1, 0))       # 9 и 6
+        self.assertEqual((w[0]["both"], w[0]["near"]), (1, 0))         # 9 и 6
+
+    def test_scope_by_period(self):
+        """Оценки, модели, скорость и «оценки и результат» — за выбранный период; «всё время» — все вакансии."""
+        rows = [dict(ROWS[0], scored_on="2026-10-28", my_score=8, model="gemma4:12b"),
+                dict(ROWS[3], scored_on="2026-09-01", my_score=7, model="gemma4:12b"), ROWS[4]]
+        d = stats.compute(rows, "day", TODAY)                    # 30 дней: 29.09–28.10
+        self.assertEqual((d["scoped_vacancies"], sum(d["scores"]["model"]), d["scores"]["both"]), (2, 1, 1))   # 1 и 5 (не разобрана)
+        self.assertEqual({e["key"]: e["count"] for e in d["engines"]}, {"local": 1, "cloud": 0, "none": 1})
+        self.assertEqual(d["speed"]["to_answer"]["count"], 1)        # отклик 4 — в сентябре
+        self.assertEqual(sum(g["applied"] for g in d["outcomes"]["model"]), 1)
+        a = stats.compute(rows, "all", TODAY)
+        self.assertEqual((a["scoped_vacancies"], a["scores"]["both"], a["speed"]["to_answer"]["count"]), (3, 2, 2))
 
     def test_engines(self):
         rows = [dict(ROWS[0], model="gemma4:12b", stage="short", decision="да", my_score=8),
@@ -128,10 +140,13 @@ class Stats(unittest.TestCase):
         d = stats.compute(ROWS, "day", TODAY)
         self.assertEqual((len(d["series"]), d["series"][-1]["start"], d["series"][0]["start"]), (30, "2026-10-28", "2026-09-29"))
         self.assertFalse(d["series"][-1]["partial"])
-        m = stats.compute(ROWS, "month", TODAY)
-        self.assertEqual([(x["start"], x["end"]) for x in m["series"][-2:]], [("2026-09-01", "2026-09-30"), ("2026-10-01", "2026-10-31")])
+        m = stats.compute(ROWS, "all", TODAY)            # всё время — месяцы с первого события (01.09.2026)
+        self.assertEqual(m["step"], "all")
+        self.assertEqual([(x["start"], x["end"]) for x in m["series"]], [("2026-09-01", "2026-09-30"), ("2026-10-01", "2026-10-31")])
         self.assertEqual((m["series"][-1]["added"], m["series"][-2]["added"], m["series"][-2]["interview"]), (4, 1, 1))
-        self.assertEqual(m["series"][0]["start"], "2025-11-01")
+        self.assertEqual((m["totals"]["added"]["total"], m["totals"]["added"]["prev"]), (5, None))   # сравнивать не с чем
+        self.assertEqual(stats.compute(ROWS, "month", TODAY)["step"], "all")      # «Месяцы» прежних версий
+        self.assertEqual(len(stats.compute([], "all", TODAY)["series"]), 1)
 
     def test_by_kind(self):
         """Столбики по периодам раскладываются: работодатель, кадровое агентство, работодатель скрыт."""

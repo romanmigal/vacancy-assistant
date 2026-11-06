@@ -29,8 +29,11 @@ function weeklyHtml(w) {
       ${w.metrics.map(m => `<tr><td>${m.label}</td><td class="nowrap"><b>${w.week[m.key]}</b> ${arrow(w.week[m.key], w.prev[m.key])}</td>
         <td class="muted">${w.prev[m.key]}</td><td>${w.total[m.key]}</td></tr>`).join("")}</table>
     <div class="stcols">
-      <div><h3>Переходы за всё время</h3><p class="hint">Какая доля дошла до следующего шага. Где процент ниже всего — там затык.</p>
-        <table class="stat">${w.conversions.map(c => `<tr><td>${c.label}</td>
+      <div><h3>Переходы</h3><p class="hint">Какая доля дошла до следующего шага. Где процент ниже всего — там затык. Неделя — вакансии, разобранные за ${w.partial ? "эту" : "прошлую"} неделю: докуда успели дойти; ответы и интервью приходят позже, поэтому дальше отклика по неделе судить рано. «Оценка 7+ → Отклик» — только отклики на вакансии с оценкой 7+.</p>
+        <table class="stat"><thead><tr><th></th><th>${w.partial ? "Эта неделя" : "Неделя"}</th><th>За всё время</th></tr></thead>
+        ${w.conversions.map(c => `<tr><td>${c.label}</td>
+          <td>${!c.week ? '<span class="muted small">рано судить</span>' : c.week.pct == null ? '<span class="muted">—</span>'
+            : `<b>${c.week.pct}%</b> <span class="muted small">${c.week.n} из ${c.week.of}</span>`}</td>
           <td>${c.pct == null ? '<span class="muted">—</span>' : `<b>${c.pct}%</b>`}</td></tr>`).join("")}</table></div>
       <div><h3>Что чаще всего не подходило</h3><p class="hint">Критерии с ❌ в разборах ${w.partial ? "этой" : "прошлой"} недели.</p>
         ${w.reasons.length ? `<table class="stat">${w.reasons.map(r => `<tr><td>${esc(r.name)}</td><td>${r.count}</td></tr>`).join("")}</table>`
@@ -38,10 +41,11 @@ function weeklyHtml(w) {
         ${w.reasons_total.length ? `<details class="mkmore"><summary>За всё время</summary><table class="stat">${
           w.reasons_total.map(r => `<tr><td>${esc(r.name)}</td><td>${r.count}</td></tr>`).join("")}</table></details>` : ""}</div>
     </div>
-    ${w.title_drops.length ? `<h3>Отсеяно по названию</h3>
-      <p class="hint">Найденные поиском hh, которые модель не разбирала: в названии стоп-слово или нет слов про уровень и сферу. Причина — по нынешним правилам отбора.</p>
+    ${w.title_drops.length || w.salary_filter ? `<h3>Отсеяно при поиске</h3>
+      <p class="hint">Найденные поиском hh, которые модель не разбирала: в названии стоп-слово или нет слов про уровень и сферу — причина по нынешним правилам отбора${w.salary_filter ? "; вакансии с низкой зарплатой отсекает сам hh.ru, поэтому их число неизвестно" : ""}. Настроить — «Параметры → Отбор при поиске».</p>
       <table class="stat">${w.title_drops.map(d => `<tr><td>${esc(d.reason)}</td><td>${d.count}</td>
-        <td class="muted small">${d.examples.map(esc).join("; ")}</td></tr>`).join("")}</table>` : ""}`;
+        <td class="muted small">${d.examples.map(esc).join("; ")}</td></tr>`).join("")}
+        ${w.salary_filter ? `<tr><td>${esc(w.salary_filter.text)}</td><td class="muted">—</td><td class="muted small">отсекает hh.ru: такие вакансии программа не скачивает</td></tr>` : ""}</table>` : ""}`;
 }
 
 // Плашка в начале новой недели: итоги прошлой, если на ней что-то было

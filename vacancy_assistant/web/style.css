@@ -742,7 +742,9 @@ table.funnel .fbar i.employer { background: var(--s-employer); } table.funnel .f
 .stcol1 { margin-top: 8px; }
 .salrow { display: flex; gap: 18px; align-items: center; flex-wrap: wrap; } .salrow input[type=text] { width: 120px; }   /* профиль: зарплата при поиске на hh.ru */
 .stcol1 > div, .stcards + h3 { border-top: 1px solid var(--line); margin-top: 22px; padding-top: 14px; }   /* разделители между разделами */
-.stcol1 > div > h3:first-child, .stcards + h3 { margin-top: 0; }                                          /* «Статистика»: блоки друг под другом, в одну колонку */
+.stcol1 > div > h3:first-child, .stcards + h3 { margin-top: 0; }
+.stcol1 > div.stalltime { border-top: 3px solid var(--text); margin-top: 32px; padding-top: 12px; }   /* дальше — не по периоду */
+.stalltime h2 { margin: 0 0 4px; font-size: 18px; } .stalltime + div { border-top: none; margin-top: 8px; }                                          /* «Статистика»: блоки друг под другом, в одну колонку */
 #wbody h3 { margin: 16px 0 6px; font-size: 15px; }
 .helplink { font-size: 12px; font-weight: normal; margin-left: 8px; color: var(--muted); }
 .helplink.guide { display: inline-flex; align-items: center; gap: 6px; margin-left: 12px; font-size: 13px; font-weight: 600; color: #c77700; vertical-align: 2px; }   /* мастер: гид «Первый запуск» — заметно */
