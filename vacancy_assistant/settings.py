@@ -51,6 +51,7 @@ MARKET_OPTIONS = {"temperature": 0.3, "num_predict": 1500, "num_ctx": 16384}
 RELEASES_PAGE = "https://github.com/romanmigal/job-search-assistant-releases/releases"   # публичный репозиторий: только релизы
 UPDATES_URL = RELEASES_PAGE + "/latest/download/latest.json"                             # проверка обновлений
 CONTACT_EMAIL = "job_search_assistant@inbox.ru"           # «О программе» и README: ошибки, вопросы, идеи
+CHAT_URL = "https://t.me/vacancy_assistant_chat"         # чат пользователей в Telegram — «О программе» и README; пусто — без ссылки
 DONATE_URL = "https://pay.cloudtips.ru/p/41e4a0ff"         # «Поддержать проект» в «О программе» и README; пусто — без ссылки
 SOURCE_URL = "https://github.com/romanmigal/vacancy-assistant"   # исходный код (GPL-3.0) — ссылка в «О программе»; пусто — без ссылки
 # Установка и обновление на Mac командой в Терминале: без карантина — без предупреждения о неподписанной программе

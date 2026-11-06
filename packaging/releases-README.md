@@ -69,7 +69,9 @@ curl -fsSL https://raw.githubusercontent.com/romanmigal/vacancy-assistant/main/p
 
 ## Ошибки, вопросы и идеи
 
-Пишите на [job_search_assistant@inbox.ru](mailto:job_search_assistant@inbox.ru?subject=Помощник%20по%20вакансиям). Укажите версию программы (видна в «Параметры → О программе») и, если это ошибка, что делали и что увидели.
+Вопросы, идеи и опыт других пользователей — в [чате пользователей в Telegram](https://t.me/vacancy_assistant_chat). Резюме и другие личные данные туда не выкладывайте: чат видят все участники.
+
+Написать автору — на [job_search_assistant@inbox.ru](mailto:job_search_assistant@inbox.ru?subject=Помощник%20по%20вакансиям). Укажите версию программы (видна в «Параметры → О программе») и, если это ошибка, что делали и что увидели.
 
 ## Лицензия
 

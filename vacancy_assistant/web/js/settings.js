@@ -70,6 +70,8 @@ function openAbout() {
     ${state.contact ? `<p class="aboutmail"><b>Связаться с автором</b> — ошибка, вопрос или идея:
       <a href="mailto:${esc(state.contact)}?subject=${encodeURIComponent("Помощник по вакансиям")}&body=${encodeURIComponent(`\n\n—\nВерсия ${state.version}`)}">${esc(state.contact)}</a>
       <button type="button" id="aboutCopy" class="small" title="Если почтовая программа не открылась">Скопировать адрес</button></p>` : ""}
+    ${state.chat ? `<p class="aboutchat"><b>Чат пользователей в Telegram</b> — вопросы, идеи и опыт других пользователей:
+      <a href="${esc(state.chat)}" target="_blank" rel="noopener">${esc(state.chat.replace(/^https?:\/\//, ""))}</a></p>` : ""}
     ${state.donate ? `<p class="aboutdonate"><b>Поддержать проект</b> — если программа помогла:
       <a href="${esc(state.donate)}" target="_blank" rel="noopener">перевести любую сумму</a> картой или через СБП.</p>` : ""}
     <p class="hint">Свободная программа: лицензия <a href="https://www.gnu.org/licenses/gpl-3.0.html" target="_blank" rel="noopener">GNU GPL 3.0</a> —

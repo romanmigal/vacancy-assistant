@@ -191,6 +191,14 @@ class AppServer(unittest.TestCase):
         self.assertEqual(self.call("/api/state?profile=example")[1]["contact"], settings.CONTACT_EMAIL)
         self.assertIn(settings.CONTACT_EMAIL, (Path(__file__).parent.parent / "README.md").read_text(encoding="utf-8"))
 
+    def test_chat_in_state(self):
+        """Ссылка на чат пользователей — одна константа: в состоянии для «О программе» и в обоих README."""
+        from vacancy_assistant import settings
+        self.assertEqual(self.call("/api/state?profile=example")[1]["chat"], settings.CHAT_URL)
+        root = Path(__file__).parent.parent
+        for readme in ("README.md", "packaging/releases-README.md"):
+            self.assertIn(settings.CHAT_URL, (root / readme).read_text(encoding="utf-8"))
+
     def test_donate_in_state(self):
         """Ссылка «Поддержать проект» — одна константа: в состоянии для «О программе» и в обоих README."""
         from vacancy_assistant import settings
