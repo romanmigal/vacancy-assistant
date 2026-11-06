@@ -277,18 +277,18 @@ function outcomesTable(o) {
 function agreementChart(weeks) {
   if (!weeks?.some(w => w.both)) return '<p class="hint">Пока нет вакансий, где есть и оценка модели, и ваша.</p>';
   weeks = weeks.slice(Math.max(0, Math.min(weeks.findIndex(w => w.both || w.edits.length), weeks.length - 4)));   // без пустых недель в начале
-  const W = 720, H = 120, pad = 20, w = W / weeks.length, bw = Math.min(w * .3, 20);
+  const W = 720, H = 120, pad = 20, w = W / weeks.length, bw = Math.min(w * .3, 28);
   const bar = (n, of, x, cls, what, wk) => { if (!of) return ""; const v = n / of, h = Math.max(v * (H - pad), 1);
     return `<rect x="${x}" y="${H - h}" width="${bw}" height="${h}" rx="2" class="${cls}"><title>${statPeriod(wk, "week")}: ${what} — ${n} из ${of} (${pct(n, of)})</title></rect>
-      <text x="${x + bw / 2}" y="${H - h - 4}" text-anchor="middle" class="small">${Math.round(v * 100)}</text>`; };
+      <text x="${x + bw / 2}" y="${H - h - 4}" text-anchor="middle" class="small">${Math.round(v * 100)}%</text>`; };
   return `<svg class="stchart stagree" viewBox="0 0 ${W} ${H + 44}" role="img" aria-label="Совпадение оценок модели с вашими по неделям">
     ${weeks.map((wk, i) => { const cx = i * w + w / 2;
       return `<g>${wk.edits.length ? `<line class="edit" x1="${i * w + 2}" x2="${i * w + 2}" y1="4" y2="${H}"/><text x="${i * w + 5}" y="12" class="edit"><title>Правка критериев: ${wk.edits.map(d => d.split("-").reverse().join(".")).join(", ")}</title>✎</text>` : ""}
-        ${bar(wk.near, wk.both, cx - bw - 1, "near", "оценка ±1 балл", wk)}${bar(wk.ans_same, wk.ans_both, cx + 1, "ans", "ответ совпал", wk)}
+        ${bar(wk.near, wk.both, cx - bw - 3, "near", "оценка ±1 балл", wk)}${bar(wk.ans_same, wk.ans_both, cx + 3, "ans", "ответ совпал", wk)}
         <text x="${cx}" y="${H + 16}" text-anchor="middle" class="axis">${statPeriod(wk, "week").split("–")[0]}</text>
-        <text x="${cx}" y="${H + 30}" text-anchor="middle" class="small">${wk.both ? `из ${wk.both}` : "—"}</text></g>`; }).join("")}
+        <text x="${cx}" y="${H + 30}" text-anchor="middle" class="small">${wk.both ? `из ${wk.both} ${plural(wk.both, "вакансии", "вакансий", "вакансий")}` : "—"}</text></g>`; }).join("")}
     <line x1="0" x2="${W}" y1="${H}" y2="${H}"/></svg>
-    <div class="stlegend"><span><i style="background:var(--s-model)"></i>оценка совпала ±1 балл, %</span><span><i style="background:var(--s-model2)"></i>ответ совпал, %</span><span>✎ правка критериев</span></div>`;
+    <div class="stlegend"><span><i style="background:var(--s-model)"></i>оценка совпала ±1 балл</span><span><i style="background:var(--s-model2)"></i>ответ совпал</span><span>✎ правка критериев</span></div>`;
 }
 
 // Модели: локальная, GigaChat, без оценки — вакансий и доля, быстрая оценка или полный разбор, решения, совпадение с вами
