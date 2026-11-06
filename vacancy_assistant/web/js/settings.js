@@ -35,6 +35,7 @@ $("mQuit").onclick = async () => {
 async function openEditStep(step) { await openEditProfile(); if (W.mode === "edit") { wgo(step); wizRender(); } }
 $("mResume").onclick = () => { $("paramsMenu").hidden = true; openEditStep(2); };
 $("mCrit").onclick = () => { $("paramsMenu").hidden = true; openEditStep(4); };
+$("mFilter").onclick = () => { $("paramsMenu").hidden = true; openEditStep(7); };
 $("mLetter").onclick = () => { $("paramsMenu").hidden = true; openTemplates(); };
 $("mCalib").onclick = () => { $("paramsMenu").hidden = true; openCalibration(); };
 $("mSettings").onclick = () => { $("paramsMenu").hidden = true; openSettings(); };

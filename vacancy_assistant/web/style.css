@@ -740,6 +740,7 @@ table.funnel .fbar i.employer { background: var(--s-employer); } table.funnel .f
 .stcols { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 8px; }
 @media (max-width: 760px) { .stcols { grid-template-columns: 1fr; } }
 .stcol1 { margin-top: 8px; }
+.salrow { display: flex; gap: 18px; align-items: center; flex-wrap: wrap; } .salrow input[type=text] { width: 120px; }   /* профиль: зарплата при поиске на hh.ru */
 .stcol1 > div, .stcards + h3 { border-top: 1px solid var(--line); margin-top: 22px; padding-top: 14px; }   /* разделители между разделами */
 .stcol1 > div > h3:first-child, .stcards + h3 { margin-top: 0; }                                          /* «Статистика»: блоки друг под другом, в одну колонку */
 #wbody h3 { margin: 16px 0 6px; font-size: 15px; }

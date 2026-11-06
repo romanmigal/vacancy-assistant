@@ -147,5 +147,15 @@ class Consent(unittest.TestCase):
             sites.add_saved(self.t.profile, page, log=lambda *_: None)
 
 
+    def test_create_with_search_salary(self):
+        """Новый профиль: зарплата при поиске на hh.ru — из шага «Отбор при поиске»."""
+        name = setup.create_profile({**ANSWERS, "name": "Вера", "search_salary": "180 000", "search_salary_only": True},
+                                    self.t.profiles, log=lambda *_: None)
+        p = Profile(name, self.t.profiles)
+        self.assertEqual((p.search_salary, p.search_salary_only), (180000, True))
+        self.assertIsNone(Profile(setup.create_profile({**ANSWERS, "name": "Ника"}, self.t.profiles, log=lambda *_: None),
+                                  self.t.profiles).search_salary)
+
+
 if __name__ == "__main__":
     unittest.main()

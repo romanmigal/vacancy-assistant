@@ -57,6 +57,28 @@ class Pipeline(unittest.TestCase):
             once = hh.search(t.profile, log=lambda *_: None, fetch_page=pages, sleep=lambda s: None, limit=1)
             self.assertEqual(len(once), 1)
 
+    def test_search_salary_filter(self):
+        """Зарплата на hh.ru: фильтр в каждом запросе выдачи; без настройки — адрес как раньше."""
+        from vacancy_assistant import setup
+        from vacancy_assistant.profile import Profile
+        with TempProfile() as t:
+            write_text(t.profile.searches, "CTO\n")
+            urls = []
+            fetch = lambda url: (urls.append(url), "")[1]
+            hh.search(t.profile, log=lambda *_: None, fetch_page=fetch, sleep=lambda s: None)
+            self.assertFalse(any("salary" in u for u in urls))
+            self.assertIn("зарплата в поиске", setup.update_profile(t.profile, {"search_salary": "250 000", "search_salary_only": True},
+                                                                      log=lambda *_: None)["changed"])
+            p, urls[:] = Profile("example", t.profiles), []
+            self.assertEqual(setup.answers_from_profile(p)["search_salary"], "250000")
+            self.assertEqual((p.search_salary, p.search_salary_only), (250000, True))
+            logs = []
+            hh.search(p, log=logs.append, fetch_page=fetch, sleep=lambda s: None)
+            self.assertTrue(urls and all("&salary=250000&only_with_salary=true" in u for u in urls))
+            self.assertIn("зарплата от 250 000 ₽", " ".join(logs))
+            setup.update_profile(p, {"search_salary": "", "search_salary_only": False}, log=lambda *_: None)
+            self.assertEqual(hh.salary_filter(Profile("example", t.profiles)), "")
+
     def test_analysis_letters_summary_statuses(self):
         with TempProfile() as t:
             p = t.profile

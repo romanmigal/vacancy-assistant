@@ -350,6 +350,9 @@ def build_config(a, resume="резюме.md"):
             "название_про_сферу": split_words(field_words),
             "название_уровень": split_words(level_words),
             "стоп_слова": stop_words,
+            # фильтр выдачи hh.ru по зарплате — шаг «Отбор при поиске»; при создании — из «Зарплата от» опросника
+            "зарплата_от": int(re.sub(r"\D", "", str(a.get("search_salary") or "")) or 0) or None,
+            "только_с_зарплатой": bool(a.get("search_salary_only")),
         },
     }
 
@@ -468,6 +471,9 @@ def answers_from_profile(p):
         "title_words": words(search.get("название_про_сферу", {})),
         "level_words": words(search.get("название_уровень", {})),
         "stop_words": "\n".join(search.get("стоп_слова", [])),
+        "search_salary": str(search.get("зарплата_от") or ""),
+        "search_salary_only": bool(search.get("только_с_зарплатой")),
+        "search_salary_set": "зарплата_от" in search,           # задавали ли фильтр (пусто — тоже выбор)
         "criteria": p.read_criteria() if p.criteria_file.exists() else "",
         "letter": read_text(p.letter_example).strip() if p.letter_example.exists() else "",
         "resume": p.read_resume() if p.resume.exists() else "",
@@ -522,6 +528,10 @@ def update_profile(p, answers, log=None):
     if changed("stop_words"):
         c["поиск"]["стоп_слова"] = lines(a.get("stop_words"))
         done.append("стоп-слова")
+    if changed("search_salary", "search_salary_only"):
+        c["поиск"]["зарплата_от"] = int(re.sub(r"\D", "", str(a.get("search_salary") or "")) or 0) or None
+        c["поиск"]["только_с_зарплатой"] = bool(a.get("search_salary_only"))
+        done.append("зарплата в поиске")
     p.save_config()
 
     if changed("titles"):

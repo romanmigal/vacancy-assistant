@@ -337,6 +337,13 @@ def search_url(query, where, days, page_no=0):
             f"&search_period={days}&page={page_no}")
 
 
+def salary_filter(profile):
+    """Фильтр выдачи hh.ru по зарплате — как «Уровень дохода» и «Указан доход» на сайте: без «только с указанной»
+    hh оставляет и вакансии без зарплаты."""
+    return ((f"&salary={int(profile.search_salary)}" if profile.search_salary else "")
+            + ("&only_with_salary=true" if profile.search_salary_only else ""))
+
+
 def read_queries(profile):
     return [l.strip() for l in read_text(profile.searches).splitlines() if l.strip() and not l.startswith("#")]
 
@@ -377,12 +384,15 @@ def search(profile, log=None, fetch_page=fetch, sleep=time.sleep, limit=None):
     seen = set(re.findall(r"^(\d+)", read_text(profile.seen), re.M)) if profile.seen.exists() else set()
     queries = read_queries(profile)
     phase(log, f"Ищу на hh.ru: {plural(len(queries), 'запрос', 'запроса', 'запросов')} × "
-               f"{len(profile.search_where)} (где искать), вакансии за {profile.search_days} дн.")
+               f"{len(profile.search_where)} (где искать), вакансии за {profile.search_days} дн."
+               + (f", зарплата от {profile.search_salary:,} ₽".replace(",", " ") if profile.search_salary else "")
+               + (", только с указанной зарплатой" if profile.search_salary_only else ""))
+    salary = salary_filter(profile)
     found, failed = {}, 0
     for query in queries:
         for label, where in profile.search_where:
             try:
-                results, pages = search_pages(query, where, profile.search_days, fetch_page, sleep)
+                results, pages = search_pages(query, where + salary, profile.search_days, fetch_page, sleep)
             except DayLimit:
                 raise
             except AssistantError as e:                  # один запрос не прочитался — остальные ищем дальше
