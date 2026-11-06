@@ -135,6 +135,7 @@ def vacancy_rows(profile):
             "analyzed": bool(meta),
             "analyzed_on": min([e["date"] for e in analyses.get(result.stem, [])] + [meta.get("date") or ""] if meta else [""],
                                key=lambda d: d or "9999"),       # первый разбор: история разборов или паспорт
+            "scored_on": (meta.get("date") or "")[:10] if meta else "",  # последний разбор — от него оценка модели
             "score": meta.get("score") if meta else None,
             "can": meta.get("can") if meta else None,
             "want": meta.get("want") if meta else None,
@@ -308,9 +309,27 @@ def vacancy_details(profile, n):
                               if interview.exists() else ""}
 
 
-def analyze_and_write(profile, log, ask):
-    """Разбор новых вакансий. Письма сами не пишутся — только кнопкой во вкладке «Письма» карточки."""
-    analysis.analyze(profile, log=log, ask=ask, summary=False)
+LOCAL_OFF = ("Локальная модель не запущена: запустите Ollama (приложение Ollama или команда  ollama serve  в терминале) "
+             "и повторите.")
+
+
+def local_off(profile, ask=None):
+    """Профиль оценивает локальной моделью, а Ollama не запущена. ask — подмена модели в тестах: тогда не проверяем."""
+    return ask is None and not profile.no_model and not cloud.active(profile) and setup.ollama_models() is None
+
+
+def analyze_and_write(profile, log, ask, only=None):
+    """Разбор новых вакансий (only — только этих). Письма сами не пишутся — только кнопкой во вкладке «Письма» карточки.
+    Локальная модель не запущена — вакансии остаются неразобранными, поиск не падает: разобрать их можно потом
+    кнопкой ↻ «Пересчитать оценки» → «Неразобранные»."""
+    if local_off(profile, ask):
+        files = [profile.vacancies / n for n in only] if only is not None else sorted(profile.vacancies.glob("*.md"))
+        left = sum(1 for f in files if analysis.unanalyzed(profile.results / f.name))
+        if left:
+            log(f"Локальная модель не запущена — вакансии сохранены без оценки, ждут разбора: {left}. Запустите Ollama "
+                "(приложение Ollama или команда  ollama serve  в терминале) и нажмите ↻ «Пересчитать оценки» → «Неразобранные».")
+        return
+    analysis.analyze(profile, log=log, ask=ask, summary=False, only=only)
 
 
 def hh_info(p):
@@ -335,6 +354,8 @@ def make_work(profile, action, data, fetch_page=None, ask=None):
     """Задача для кнопки окна. fetch_page и ask — подмена hh.ru и модели в тестах."""
     if action in NEEDS_MODEL and profile.no_model:
         raise AssistantError(NO_MODEL_ERROR)
+    if action in NEEDS_MODEL and local_off(profile, ask):        # сразу, а не ошибкой на первой же вакансии
+        raise AssistantError(LOCAL_OFF)
     hh_kw = {"fetch_page": fetch_page} if fetch_page else {}
     if action == "update":
         feeds = rss.enabled(profile)
@@ -366,13 +387,13 @@ def make_work(profile, action, data, fetch_page=None, ask=None):
         def work(log):                          # разбираются только добавленные: остальное — дело пачки
             added = sites.add_any(profile, links, log, fetch_page, ask)
             if added:
-                analysis.analyze(profile, log=log, ask=ask, summary=False, only=[f.name for f in added])
+                analyze_and_write(profile, log, ask, only=[f.name for f in added])
         return "Добавить вакансию по ссылке", work
     if action == "add_text":                    # вакансия, вставленная текстом (сайт не отдаёт страницу)
         def work(log):
             added = sites.add_text(profile, data.get("text", ""), data.get("link", ""), log, ask)
             if added:                                   # None — та же вакансия уже есть
-                analysis.analyze(profile, log=log, ask=ask, summary=False, only=[added.name])
+                analyze_and_write(profile, log, ask, only=[added.name])
         if len((data.get("text") or "").strip()) < 100:
             raise AssistantError("Вставьте текст вакансии целиком — название, обязанности, требования.")
         return "Добавить вакансию из текста", work
@@ -383,7 +404,7 @@ def make_work(profile, action, data, fetch_page=None, ask=None):
         def work(log):
             added = sites.add_saved(profile, page, name, log, ask)
             if added:
-                analysis.analyze(profile, log=log, ask=ask, summary=False, only=[added.name])
+                analyze_and_write(profile, log, ask, only=[added.name])
         return "Добавить вакансию из сохранённой страницы", work
     if action == "analyze":
         return "Разбор новых вакансий", lambda log: analyze_and_write(profile, log, ask)
@@ -454,6 +475,14 @@ def make_work(profile, action, data, fetch_page=None, ask=None):
         return "Резюме против рынка: формулировки", work
     if action == "rescore_all":                 # кнопка ↻ в шапке: устаревшие или все разобранные в выбранных разделах
         statuses = set(data.get("statuses") or [])
+        if data.get("mode") == "new":           # не разобраны: модель была выключена, Ollama не запущена
+            names = [n for n in with_status(profile, statuses) if analysis.unanalyzed(profile.results / n)]
+            if not names:
+                raise AssistantError("В выбранных разделах нет неразобранных вакансий.")
+
+            def work(log):
+                analysis.analyze(profile, log=log, ask=ask, summary=False, only=names)
+            return "Разбор неразобранных вакансий", work
         if data.get("mode") == "all":
             names = analyzed_with_status(profile, statuses)
             if not names:
@@ -951,7 +980,8 @@ class App:
 
     @route("/api/stats")                               # раздел «Статистика»: шаг — day, week, month
     def api_stats(self, p, a):
-        return stats.compute(vacancy_rows(p), a.get("step", "week"), status_names=summary.statuses(p))
+        edits = [v["date"] for v in criteria_history.versions(p) if v["kind"] == "manual" or v["current"]]   # правки критериев — на график совпадений
+        return stats.compute(vacancy_rows(p), a.get("step", "week"), status_names=summary.statuses(p), criteria_edits=edits)
 
     @route("/api/weekly")                              # «Итоги недели»: week — last (прошлая) или this
     def api_weekly(self, p, a):

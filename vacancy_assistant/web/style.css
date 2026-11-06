@@ -666,6 +666,13 @@ button.icon.tool { gap: 5px; font-size: 12.5px; }
 .tlseg i { display: block; width: 100%; height: 4px; border-radius: 2px; background: var(--accent); opacity: .55; }
 .tlseg.none i { background: none; border-top: 2px dashed var(--line); opacity: 1; height: 0; }
 .stchart rect.same { fill: var(--accent); }
+/* «Оценки и результат откликов»: полоска — доля ответивших, поверх — доля интервью */
+.stoutcomes tr.ohead th { text-align: left !important; padding-top: 12px; font-size: 12px; color: var(--muted); font-weight: 600; }
+.stoutcomes td.obar { width: 30%; } .stoutcomes .obar span { display: block; position: relative; height: 10px; border-radius: 3px; background: var(--s-src0); overflow: hidden; }
+.stoutcomes .obar i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 3px; } .stoutcomes .obar i.ans { background: var(--s-src1); } .stoutcomes .obar i.int { background: var(--s-src3); }
+.stoutcomes tr.zero td { color: var(--muted); }
+.stchart rect.near { fill: var(--s-model); } .stchart rect.ans { fill: var(--s-model2); }
+.stchart line.edit { stroke: var(--mid); stroke-dasharray: 3 3; } .stchart text.edit { fill: var(--mid); font-size: 12px; cursor: default; }
 .stchart rect.model2 { fill: var(--s-model2); } .stchart rect.mine2 { fill: var(--s-mine2); }   /* ответы: модель и вы — своя пара цветов */
 .stpair { display: grid; grid-template-columns: 3fr 2fr; gap: 28px; align-items: start; } .stpair > div { min-width: 0; }
 @media (max-width: 760px) { .stpair { grid-template-columns: 1fr; } }

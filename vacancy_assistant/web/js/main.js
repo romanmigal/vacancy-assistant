@@ -91,11 +91,12 @@ function render() {
     </tr>`).join("");
   renderPhoneSort(cols);
   // Кнопка ↻ в шапке — всегда, кроме «Без модели»; число — сколько вакансий оценено по прежним данным
-  const stale = state.rows.filter(r => r.criteria_changed).length;
+  const stale = state.rows.filter(r => r.criteria_changed).length, raw = state.rows.filter(r => !r.analyzed || r.stage === "none").length;
   $("btnRescore").hidden = state.no_model;
-  $("rescoreCount").textContent = stale || "";
-  $("btnRescore").title = stale ? `Пересчитать оценки — ${stale} ${plural(stale, "вакансия оценена", "вакансии оценены", "вакансий оценены")} по прежним резюме, критериям или фактам о себе`
-                                : "Пересчитать оценки заново — например, после смены модели";
+  $("rescoreCount").textContent = stale + raw || "";        // и неразобранные: их тоже разбирают отсюда
+  $("btnRescore").title = stale || raw ? "Пересчитать оценки — " + [raw && `${raw} ${plural(raw, "вакансия ждёт", "вакансии ждут", "вакансий ждут")} разбора`,
+      stale && `${stale} ${plural(stale, "вакансия оценена", "вакансии оценены", "вакансий оценены")} по прежним резюме, критериям или фактам о себе`].filter(Boolean).join("; ")
+    : "Пересчитать оценки заново — например, после смены модели";
   if (!state.profiles.length) {                          // мастер закрыли, не создав профиль
     $("empty").hidden = false;
     $("empty").innerHTML = `Профиля пока нет. Мастер задаст несколько вопросов и соберёт профиль — после этого программа начнёт искать и разбирать вакансии.
@@ -107,11 +108,11 @@ function render() {
   const hint = !state.rows.length
     ? (hhOn() ? "Вакансий пока нет. Нажмите «Найти новые вакансии» — программа найдёт их на hh.ru по запросам профиля, — или добавьте по ссылке."
               : `Вакансий пока нет. Нажмите «Добавить вакансию» — по ссылке, сохранённой страницей или текстом. ${HH_MANUAL}`)
-    : waiting && !busyMine() ? `Ждут разбора: ${waiting}.${hhOn() ? " Нажмите «Найти новые вакансии»." : ""}`
+    : waiting && !busyMine() ? `Ждут разбора: ${waiting}.`
     : rows.length ? "" : tabRows.length ? "Под фильтр в этой вкладке ничего не подходит — измените или сбросьте его." : "В этом списке пусто.";
   $("empty").hidden = !hint;
   $("empty").textContent = hint;
-  if (hint && waiting && state.rows.length && !hhOn() && !busyMine()) {   // без поиска на hh — разбор отдельной кнопкой
+  if (hint && waiting && state.rows.length && !busyMine()) {   // разобрать ждущих — без нового поиска (например, Ollama была не запущена)
     $("empty").insertAdjacentHTML("beforeend", ' <button class="primary" id="emptyAnalyze">Разобрать</button>');
     $("emptyAnalyze").onclick = () => run("analyze");
   } else if (!state.rows.length && !hhOn()) {
@@ -696,22 +697,24 @@ $("btnRescore").onclick = () => openRescoreAll();
 // Пересчёт оценок: а) только устаревшие — после оценки поменялись резюме, критерии или «о себе»;
 // б) все разобранные в выбранных разделах — например, после смены модели. В скобках — сколько вакансий
 function openRescoreAll() {
-  const RA = {mode: state.rows.some(r => r.criteria_changed) ? "stale" : "all"};
-  const fits = r => r.analyzed && r.stage !== "none" && (RA.mode === "all" || r.criteria_changed);
+  const raw = r => !r.analyzed || r.stage === "none";            // не разобраны: модель была выключена или Ollama не запущена
+  const RA = {mode: state.rows.some(raw) ? "new" : state.rows.some(r => r.criteria_changed) ? "stale" : "all"};
+  const fits = r => RA.mode === "new" ? raw(r) : r.analyzed && r.stage !== "none" && (RA.mode === "all" || r.criteria_changed);
   const count = st => state.rows.filter(r => r.status === st && fits(r)).length;
   dialog("Пересчитать оценки", field("Что пересчитать?",
     `<div class="checks stack">
+      <label><input type="radio" name="ramode" value="new" ${RA.mode === "new" ? "checked" : ""}> Неразобранные — ещё без оценки: например, сохранены, пока модель не была запущена (${state.rows.filter(raw).length})</label>
       <label><input type="radio" name="ramode" value="stale" ${RA.mode === "stale" ? "checked" : ""}> Только устаревшие — после оценки поменялись резюме, критерии или «Дополнительно о себе»</label>
       <label><input type="radio" name="ramode" value="all" ${RA.mode === "all" ? "checked" : ""}> Все вакансии в выбранных разделах — например, после смены модели или если оценки кажутся странными</label></div>`)
     + field("В каких разделах?", '<div class="checks" id="raBoxes"></div>',
-      "Каждая выбранная вакансия получит полный разбор по текущим данным. В скобках — сколько таких вакансий в разделе. Комментарии, статусы и флаги сохранятся.")
+      "Каждая выбранная вакансия получит разбор по текущим данным. В скобках — сколько таких вакансий в разделе. Комментарии, статусы и флаги сохранятся.")
     + '<p class="hint" id="raEst"></p>', [{label: "Отмена"}, {label: "Пересчитать", primary: true, id: "raGo"}]);
   const picked = () => [...document.querySelectorAll("#wbody [data-ra]")].filter(c => c.checked).map(c => c.dataset.ra);
   const est = () => {
     const n = picked().reduce((sum, st) => sum + count(st), 0);
     const none = RA.mode === "stale" && !state.statuses.some(([v]) => count(v));
     $("raEst").innerHTML = none ? "Устаревших оценок нет — всё оценено по текущим резюме, критериям и «о себе». Чтобы пересчитать заново, выберите «Все вакансии в выбранных разделах»."
-      : n ? `Всего: ${n} — ${state.cloud ? `примерно ${Math.max(1, Math.ceil(n / 6))} мин` : `примерно ${n} мин`}. Разбор можно остановить, уже сделанное сохранится.`
+      : n ? `Всего: ${n} — ${state.cloud ? `примерно ${Math.max(1, Math.ceil(n / 6))} мин` : RA.mode === "new" && state.two_stage ? `примерно ${Math.max(1, Math.ceil(n * .4))} мин: сначала быстрая оценка, полный разбор — для «да» и «возможно»` : `примерно ${n} мин`}. Разбор можно остановить, уже сделанное сохранится.`
       : "В выбранных разделах таких вакансий нет.";
     $("raGo").disabled = !n;
   };

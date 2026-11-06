@@ -72,6 +72,10 @@ function statsHtml(s) {
         <div class="stpair"><div><h4 class="stsub">Оценки</h4>${scoresChart(s.scores)}</div><div><h4 class="stsub">Ответ «откликаться»</h4>${answersChart(s.scores)}</div></div></div>
       <div><h3>Общая оценка: модель и вы</h3><p class="hint">Только вакансии, где есть и оценка модели, и ваша: насколько модель ставит выше или ниже вас. Чем больше столбик в центре, тем точнее модель настроена под вас; если вакансий по краям много — пора откалибровать критерии.</p>
         <div class="stpair"><div><h4 class="stsub">Оценки</h4>${diffChart(s.scores)}</div><div><h4 class="stsub">Ответ «откликаться»</h4>${answersMatrix(s.scores)}</div></div></div>
+      <div><h3>Оценки и результат откликов</h3><p class="hint">Все отклики профиля: как часто отвечают и зовут на интервью в зависимости от оценки. Если у вакансий с высокой оценкой ответов не больше, чем у остальных, — оценка отражает критерии, а не шансы.</p>
+        ${outcomesTable(s.outcomes)}</div>
+      <div><h3>Модель и вы по неделям</h3><p class="hint">Вакансии с вашей оценкой — по неделе последнего разбора моделью: сколько оценок совпало с вашими (±1 балл) и сколько ответов «откликаться». ✎ — неделя, когда меняли критерии: видно, стала ли модель после этого точнее.</p>
+        ${agreementChart(s.agreement)}</div>
       <div><h3>Модели</h3><p class="hint">Все вакансии профиля: какая модель их оценила. «Совпало с вами» — по вакансиям, где есть и ваша оценка: точно и с разницей не больше балла.</p>
         ${enginesTable(s.engines, s.total_vacancies)}</div>
     </div>`;
@@ -253,6 +257,38 @@ function diffChart(sc) {
     <text x="4" y="${H + 34}" class="axis">← модель ниже вас</text><text x="${W / 2}" y="${H + 34}" text-anchor="middle" class="axis">совпали</text>
     <text x="${W - 4}" y="${H + 34}" text-anchor="end" class="axis">модель выше вас →</text></svg>
     <p class="small">Из ${sc.both}: совпали — ${same} (${pct(same, sc.both)}), модель выше вас — ${sc.higher}, ниже — ${sc.lower}.</p>`;
+}
+
+// Чем кончились отклики: группы по оценке модели, вашей оценке и вашему ответу; полоска — ответили, внутри — интервью
+function outcomesTable(o) {
+  if (!o) return "";
+  const total = o.model.reduce((a, g) => a + g.applied, 0);
+  if (!total) return '<p class="muted">Откликов пока нет.</p>';
+  const row = g => `<tr class="${g.applied ? "" : "zero"}"><td>${esc(g.label)}</td><td><b>${g.applied}</b></td>
+    <td class="obar" title="Ответили ${g.answered} из ${g.applied}, интервью — ${g.interview}"><span><i class="ans" style="width:${g.applied ? g.answered / g.applied * 100 : 0}%"></i><i class="int" style="width:${g.applied ? g.interview / g.applied * 100 : 0}%"></i></span></td>
+    <td>${g.applied ? pct(g.answered, g.applied) : "—"}</td><td>${g.applied ? pct(g.interview, g.applied) : "—"}</td><td>${g.applied ? pct(g.rejected, g.applied) : "—"}</td></tr>`;
+  const block = (title, list) => `<tr class="ohead"><th colspan="6">${title}</th></tr>${list.map(row).join("")}`;
+  return `<table class="stat stoutcomes"><thead><tr><th></th><th>Откликов</th><th></th><th>Ответили</th><th>Интервью</th><th>Отказ</th></tr></thead>
+    ${block("Оценка модели", o.model)}${block("Ваша оценка", o.mine)}${block("Ваш ответ «откликаться»", o.answer)}</table>
+    <div class="stlegend"><span><i style="background:var(--s-src1)"></i>ответили</span><span><i style="background:var(--s-src3)"></i>из них интервью</span></div>`;
+}
+
+// Совпадение модели с вами по неделям: пара столбиков — оценка ±1 и ответ; ✎ — правка критериев
+function agreementChart(weeks) {
+  if (!weeks?.some(w => w.both)) return '<p class="hint">Пока нет вакансий, где есть и оценка модели, и ваша.</p>';
+  weeks = weeks.slice(Math.max(0, Math.min(weeks.findIndex(w => w.both || w.edits.length), weeks.length - 4)));   // без пустых недель в начале
+  const W = 720, H = 120, pad = 20, w = W / weeks.length, bw = Math.min(w * .3, 20);
+  const bar = (n, of, x, cls, what, wk) => { if (!of) return ""; const v = n / of, h = Math.max(v * (H - pad), 1);
+    return `<rect x="${x}" y="${H - h}" width="${bw}" height="${h}" rx="2" class="${cls}"><title>${statPeriod(wk, "week")}: ${what} — ${n} из ${of} (${pct(n, of)})</title></rect>
+      <text x="${x + bw / 2}" y="${H - h - 4}" text-anchor="middle" class="small">${Math.round(v * 100)}</text>`; };
+  return `<svg class="stchart stagree" viewBox="0 0 ${W} ${H + 44}" role="img" aria-label="Совпадение оценок модели с вашими по неделям">
+    ${weeks.map((wk, i) => { const cx = i * w + w / 2;
+      return `<g>${wk.edits.length ? `<line class="edit" x1="${i * w + 2}" x2="${i * w + 2}" y1="4" y2="${H}"/><text x="${i * w + 5}" y="12" class="edit"><title>Правка критериев: ${wk.edits.map(d => d.split("-").reverse().join(".")).join(", ")}</title>✎</text>` : ""}
+        ${bar(wk.near, wk.both, cx - bw - 1, "near", "оценка ±1 балл", wk)}${bar(wk.ans_same, wk.ans_both, cx + 1, "ans", "ответ совпал", wk)}
+        <text x="${cx}" y="${H + 16}" text-anchor="middle" class="axis">${statPeriod(wk, "week").split("–")[0]}</text>
+        <text x="${cx}" y="${H + 30}" text-anchor="middle" class="small">${wk.both ? `из ${wk.both}` : "—"}</text></g>`; }).join("")}
+    <line x1="0" x2="${W}" y1="${H}" y2="${H}"/></svg>
+    <div class="stlegend"><span><i style="background:var(--s-model)"></i>оценка совпала ±1 балл, %</span><span><i style="background:var(--s-model2)"></i>ответ совпал, %</span><span>✎ правка критериев</span></div>`;
 }
 
 // Модели: локальная, GigaChat, без оценки — вакансий и доля, быстрая оценка или полный разбор, решения, совпадение с вами

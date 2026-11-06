@@ -228,6 +228,37 @@ class AppServer(unittest.TestCase):
         self.assertEqual(sorted(A.analyzed_with_status(self.t.profile, {"new", "no"})),
                          [f.name for n, f in sorted(numbered_files(self.t.profile.vacancies).items()) if n != 4])
 
+    def test_rescore_unanalyzed(self):
+        """«Неразобранные»: вакансии без оценки — например, сохранены, пока Ollama не была запущена."""
+        self.t.add_vacancy(1, "ИТ-директор")
+        self.call("/api/run", {"profile": "example", "action": "analyze"})
+        self.wait_job()
+        self.t.add_vacancy(2, "CTO")
+        self.t.add_vacancy(3, "Начальник отдела ИТ")
+        self.call("/api/status", {"profile": "example", "n": 3, "value": "no"})
+        self.call("/api/run", {"profile": "example", "action": "rescore_all", "statuses": ["new", "no"], "mode": "new"})
+        job = self.wait_job()
+        self.assertEqual(sum("Оцениваю:" in line for line in job["log"]), 2)          # 2 и 3, разобранная 1 — нет
+        rows = {r["n"]: r for r in self.call("/api/state?profile=example")[1]["rows"]}
+        self.assertTrue(all(r["analyzed"] for r in rows.values()))
+        code, err = self.call("/api/run", {"profile": "example", "action": "rescore_all", "statuses": ["new"], "mode": "new"})
+        self.assertEqual(code, 400)
+
+    def test_local_model_off(self):
+        """Ollama не запущена: поиск не падает — вакансии ждут разбора; кнопки разбора отказывают сразу."""
+        self.t.add_vacancy(1, "ИТ-директор")
+        logs, real = [], A.setup.ollama_models
+        A.setup.ollama_models = lambda: None
+        try:
+            A.analyze_and_write(self.t.profile, logs.append, None)
+            self.assertIn("ждут разбора: 1", logs[0])
+            self.assertFalse(any(self.t.profile.results.glob("*.md")) if self.t.profile.results.exists() else False)
+            with self.assertRaises(A.AssistantError) as e:
+                A.make_work(self.t.profile, "analyze", {})
+            self.assertIn("Ollama", str(e.exception))
+        finally:
+            A.setup.ollama_models = real
+
     def test_calibration_shows_flag_and_note(self):
         self.t.add_vacancy(1, "ИТ-директор")
         self.call("/api/run", {"profile": "example", "action": "analyze"})

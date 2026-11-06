@@ -78,6 +78,26 @@ class Stats(unittest.TestCase):
         self.assertEqual((sc["ans_model"], sc["ans_mine"], sc["ans_both"]), ([1, 1, 2], [1, 1, 2], 3))
         self.assertEqual(sc["ans_matrix"], [[1, 0, 0], [0, 0, 0], [0, 1, 1]])   # строка — модель, столбец — вы
 
+    def test_outcomes(self):
+        rows = [dict(ROWS[0], my_score=9, my_decision="да"), dict(ROWS[2], my_score=5, my_decision="возможно"), *ROWS[3:]]
+        o = stats.compute(rows, "week", TODAY)["outcomes"]
+        # отклики: 1 (8, ответили), 3 (9, молчат), 4 (7, интервью)
+        self.assertEqual(o["model"][0], {"label": "7–10", "applied": 3, "answered": 2, "interview": 1, "rejected": 0})
+        self.assertEqual([g["applied"] for g in o["model"]], [3, 0, 0, 0])
+        self.assertEqual([g["applied"] for g in o["mine"]], [1, 1, 0, 1])
+        self.assertEqual([(g["label"], g["applied"], g["answered"]) for g in o["answer"]],
+                         [("Да", 1, 1), ("Возможно", 1, 0), ("Нет", 0, 0), ("нет вашего ответа", 1, 1)])
+
+    def test_agreement_by_week(self):
+        rows = [dict(ROWS[0], scored_on="2026-10-26", my_score=8, decision="да", my_decision="да"),
+                dict(ROWS[1], scored_on="2026-10-27", my_score=7, decision="нет", my_decision="возможно"),
+                dict(ROWS[2], scored_on="2026-10-14", my_score=6)]
+        w = stats.compute(rows, "week", TODAY, criteria_edits=["2026-10-29 16:19", "2026-08-01"])["agreement"]
+        self.assertEqual((len(w), w[-1]["start"]), (12, "2026-10-26"))
+        self.assertEqual({k: w[-1][k] for k in ("both", "same", "near", "ans_both", "ans_same", "edits")},
+                         {"both": 2, "same": 1, "near": 1, "ans_both": 2, "ans_same": 1, "edits": ["2026-10-29"]})
+        self.assertEqual((w[-3]["both"], w[-3]["near"]), (1, 0))       # 9 и 6
+
     def test_engines(self):
         rows = [dict(ROWS[0], model="gemma4:12b", stage="short", decision="да", my_score=8),
                 dict(ROWS[1], model="GigaChat-2-Pro", decision="нет", my_score=7),

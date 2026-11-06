@@ -37,6 +37,45 @@ def answers(rows):
     return {"ans_model": [model.count(a) for a in ANSWERS], "ans_mine": [mine.count(a) for a in ANSWERS],
             "ans_matrix": [[pair.count((m, y)) for y in ANSWERS] for m in ANSWERS], "ans_both": len(pair)}
 
+BUCKETS = (("7–10", 7, 10), ("5–6", 5, 6), ("1–4", 1, 4))
+
+def _bucket(score):
+    if score is None:
+        return None
+    v = min(max(round(score), 1), 10)
+    return next(label for label, lo, hi in BUCKETS if lo <= v <= hi)
+
+def outcomes(evs):
+    """Чем кончились отклики (все отклики профиля): по оценке модели, по вашей оценке и по вашему ответу.
+    В каждой группе: откликов, ответили, интервью, отказ."""
+    sent = [(r, e) for r, e in evs if e["applied"]]
+    def group(label, items):
+        return {"label": label, "applied": len(items), **{k: sum(1 for _, e in items if e[k]) for k in ("answered", "interview", "rejected")}}
+    def by(key, none_label):
+        out = [group(label, [x for x in sent if _bucket(x[0].get(key)) == label]) for label, *_ in BUCKETS]
+        return out + [group(none_label, [x for x in sent if x[0].get(key) is None])]
+    return {"model": by("score", "без оценки"), "mine": by("my_score", "не оценено вами"),
+            "answer": [group(a.capitalize(), [x for x in sent if answer(x[0].get("my_decision")) == a]) for a in ANSWERS]
+                      + [group("нет вашего ответа", [x for x in sent if not answer(x[0].get("my_decision"))])]}
+
+def agreement(rows, today, edits=(), weeks=12):
+    """Модель и вы по неделям разбора (последнего): где есть обе оценки — совпало точно, ±1 балл, совпал ответ.
+    edits — даты правок критериев, чтобы видеть, стала ли модель точнее после них."""
+    start = today - timedelta(days=today.weekday() + 7 * (weeks - 1))
+    out = []
+    for i in range(weeks):
+        a = start + timedelta(days=7 * i)
+        b = a + timedelta(days=6)
+        both = [r for r in rows if r.get("score") is not None and r.get("my_score") is not None
+                and a.isoformat() <= (r.get("scored_on") or "")[:10] <= b.isoformat()]
+        ans = [r for r in both if answer(r.get("decision")) and answer(r.get("my_decision"))]
+        out.append({"start": a.isoformat(), "end": b.isoformat(), "both": len(both),
+                    "same": sum(1 for r in both if round(r["score"]) == round(r["my_score"])),
+                    "near": sum(1 for r in both if abs(round(r["score"]) - round(r["my_score"])) <= 1),
+                    "ans_both": len(ans), "ans_same": sum(1 for r in ans if answer(r["decision"]) == answer(r["my_decision"])),
+                    "edits": sorted({d[:10] for d in edits if a.isoformat() <= d[:10] <= b.isoformat()})})
+    return out
+
 def engine(r):
     """Кто оценивал вакансию: локальная модель, облачный GigaChat или никто (не разобрана, «Без модели»)."""
     if not r.get("analyzed") or r.get("stage") == "none" or r.get("score") is None:
@@ -129,7 +168,7 @@ def _days(x, y):
     return (date.fromisoformat(y) - date.fromisoformat(x)).days
 
 
-def compute(rows, step="week", today=None, status_names=None):
+def compute(rows, step="week", today=None, status_names=None, criteria_edits=()):
     """Всё для раздела «Статистика»: ряды по периодам, итоги и средние, воронка, скорость, ждущие ответа,
     источники, статусы сейчас."""
     if step not in STEPS:
@@ -228,6 +267,8 @@ def compute(rows, step="week", today=None, status_names=None):
         "letters": letters,
         "scores": scores_all,
         "engines": engines(rows),
+        "outcomes": outcomes(evs),
+        "agreement": agreement(rows, today, criteria_edits),
         "sources": sorted(sources.values(), key=lambda s: (-s["added"], s["source"])),
         "statuses": [{"key": k, "label": names.get(k, k), **now.get(k, {"count": 0, "closed": 0, "flagged": 0})}
                      for k in names],                # все статусы, и пустые
