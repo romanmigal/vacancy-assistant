@@ -133,6 +133,9 @@ function md(text) {
     if ((m = line.match(/^\s*(?:[-*•]|(\d+)[.)])\s+(.*)/))) {
       flushPara(); const tag = m[1] ? "ol" : "ul";
       if (!list || list.tag !== tag) { flushList(); list = {tag, items: []}; }
+      // Сохранённые раньше вакансии hh.ru: «- последний пункт. **Требования:**» — заголовок секции отдельной строкой
+      const tail = m[2].match(/^(.*\S)\s+(\*\*[^*]{2,60}:\*\*)$/);
+      if (tail) { list.items.push(inline(tail[1])); flushList(); para.push(inline(tail[2])); continue; }
       list.items.push(inline(m[2])); continue;
     }
     flushList(); para.push(inline(line.trim()));

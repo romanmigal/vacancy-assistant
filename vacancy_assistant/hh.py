@@ -107,6 +107,8 @@ class DescriptionToMarkdown(HTMLParser):
     def handle_endtag(self, tag):
         if tag in ("strong", "b"):
             self.parts.append("**")
+        elif tag in ("ul", "ol", "p", "div", "h1", "h2", "h3"):
+            self.parts.append("\n\n")              # «</ul><strong>Требования:</strong>» — заголовок с новой строки, а не в конце пункта
 
     def handle_data(self, data):
         self.parts.append(data)
@@ -117,8 +119,8 @@ class DescriptionToMarkdown(HTMLParser):
         t = re.sub(r"[ \t]+", " ", t)
         t = re.sub(r"\n[ \t]+", "\n", t)
         t = re.sub(r"\n{3,}", "\n\n", t)
-        t = re.sub(r"(\n- [^\n]*)\n\n(?=- )", r"\1\n", t)   # пункты списка подряд
         t = re.sub(r"\n- \n+", "\n- ", t)
+        t = re.sub(r"(\n- [^\n]*)\n\n(?=- )", r"\1\n", t)   # пункты списка подряд
         return t.strip()
 
 
