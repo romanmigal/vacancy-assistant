@@ -9,6 +9,8 @@ const STAT_STEPS = {day: ["Дни", "день", "30 дней", "30 днями", 
 // Мало данных за период — средние и проценты случайны: предупреждаем (0 — секция сама скажет, что пусто)
 const FEW = 5;
 const few = (n, what) => n && n < FEW ? `<p class="cwarn small">Мало данных: ${what} — ${n}, цифры случайны. Выберите период длиннее.</p>` : "";
+// Узкий экран (телефон): подписи в диаграммах крупнее (CSS), поэтому их меньше — иначе налезают друг на друга
+const narrow = () => matchMedia("(max-width: 600px)").matches;
 const within = step => step === "all" ? "за всё время" : `за эти ${STAT_STEPS[step][2]}`;   // «Вакансии, добавленные …»
 const MONTHS = ["янв", "фев", "мар", "апр", "май", "июн", "июл", "авг", "сен", "окт", "ноя", "дек"];
 const statPeriod = (s, step) => step === "day" ? ddmm(s.start)
@@ -94,7 +96,8 @@ const STAT_KINDS = [["employer", "Работодатель"], ["agency", "Кад
 function statChart(s) {
   const W = 720, H = 150, pad = 18, gap = 2, n = s.series.length, w = W / n;
   const max = Math.max(1, ...s.series.map(p => p[statMetric]));
-  const every = Math.ceil(n / 12);                   // подписи периодов — не чаще 12 на график
+  const every = Math.ceil(n / (narrow() ? 5 : 12));  // подписи периодов — не чаще 12 на график, на телефоне — 5
+  const values = !narrow() || n <= 12;                // 30 чисел над столбиками на телефоне не помещаются — в подсказке
   const sum = Object.fromEntries(STAT_KINDS.map(([k]) => [k, s.series.reduce((a, p) => a + (p.by_kind?.[statMetric]?.[k] || 0), 0)]));
   return `<svg class="stchart" viewBox="0 0 ${W} ${H + 30}" role="img" aria-label="График по периодам: работодатели, кадровые агентства, скрытые работодатели">
     ${s.series.map((p, i) => { const v = p[statMetric], h = v / max * (H - pad), parts = p.by_kind?.[statMetric] || {employer: v};
@@ -105,7 +108,7 @@ function statChart(s) {
       }).join("");
       return `<g><title>${statPeriod(p, s.step)}: ${v}${v ? "\n" + STAT_KINDS.filter(([k]) => parts[k]).map(([k, l]) => `${l} — ${parts[k]}`).join("\n") : ""}</title>
         <rect class="hit" x="${i * w}" y="0" width="${w}" height="${H}"/>${segs}
-        ${v ? `<text x="${i * w + w / 2}" y="${H - h - 4}" text-anchor="middle">${v}</text>` : ""}
+        ${v && values ? `<text x="${i * w + w / 2}" y="${H - h - 4}" text-anchor="middle">${v}</text>` : ""}
         ${(n - 1 - i) % every === 0 ? `<text x="${i * w + w / 2}" y="${H + 16}" text-anchor="middle" class="axis">${statPeriod(p, s.step).split("–")[0]}</text>` : ""}</g>`; }).join("")}
     <line x1="0" x2="${W}" y1="${H}" y2="${H}"/></svg>
     ${statLegend(sum)}`;
@@ -190,7 +193,7 @@ function speedTimeline(sp) {
     [ans, sp.to_answer.count, "отв."],
     [intv != null && ans != null ? Math.max(Math.round((intv - ans) * 10) / 10, 0) : intv, sp.to_interview.count, "инт."]];
   const nodes = ["Добавлена", "Отклик", "Ответ", "Интервью"];
-  const seg = ([d, n, what]) => `<div class="tlseg ${d == null ? "none" : ""}" style="flex-grow:${d == null ? 1 : Math.max(d, .6)}">
+  const seg = ([d, n, what]) => `<div class="tlseg ${d == null ? "none" : ""}" style="flex-grow:${d == null ? 1 : Math.max(d, .6)}" ${n ? `title="Среднее по ${n} ${what}"` : ""}>
       <span class="tld">${d == null ? "нет данных" : `${String(d).replace(".", ",")} дн.`}</span><i></i>
       <span class="tln muted">${n ? `по ${n} ${what}` : ""}</span></div>`;
   return `<div class="sttl">${nodes.map((l, i) => `<div class="tlnode"><b></b><span>${l}</span></div>${i < segs.length ? seg(segs[i]) : ""}`).join("")}</div>`;
@@ -226,7 +229,7 @@ function answersChart(sc) {
   const bar = (v, x, cls, who, i) => { if (!v) return ""; const h = val(v, cls) / max * (H - pad), p = Math.round(val(v, cls));
     return `<rect x="${x}" y="${H - h}" width="${bw}" height="${h}" rx="2" class="${cls}2"><title>${who}: «${ANSWERS[i].toLowerCase()}» — ${v} ${plural(v, "вакансия", "вакансии", "вакансий")} (${p}% ответов)</title></rect>
       <text x="${x + bw / 2}" y="${H - h - 4}" text-anchor="middle" class="small">${p}%</text>`; };
-  return `<svg class="stchart stscores" viewBox="0 0 ${W} ${H + 24}" role="img" aria-label="Ответы «откликаться» в долях: модель и вы">
+  return `<svg class="stchart stans" viewBox="0 0 ${W} ${H + 24}" role="img" aria-label="Ответы «откликаться» в долях: модель и вы">
     ${ANSWERS.map((l, i) => `<g>${bar(m[i], i * w + w / 2 - bw - 2, "model", "Модель", i)}${bar(y[i], i * w + w / 2 + 2, "mine", "Вы", i)}
       <text x="${i * w + w / 2}" y="${H + 16}" text-anchor="middle" class="axis">${l}</text></g>`).join("")}
     <line x1="0" x2="${W}" y1="${H}" y2="${H}"/></svg>
@@ -283,7 +286,8 @@ function outcomesTable(o) {
 function agreementChart(weeks) {
   if (!weeks?.some(w => w.both)) return '<p class="hint">Пока нет вакансий, где есть и оценка модели, и ваша.</p>';
   weeks = weeks.slice(Math.max(0, Math.min(weeks.findIndex(w => w.both || w.edits.length), weeks.length - 4)));   // без пустых недель в начале
-  const W = 720, H = 120, pad = 20, w = W / weeks.length, bw = Math.min(w * .3, 28);
+  const W = narrow() ? 360 : 720, H = 120, pad = 20, w = W / weeks.length,   // на телефоне — выше и подписи крупнее;
+    bw = narrow() ? Math.min(w * .4, 40) : Math.min(w * .3, 28);
   const bar = (n, of, x, cls, what, wk) => { if (!of) return ""; const v = n / of, h = Math.max(v * (H - pad), 1);
     return `<rect x="${x}" y="${H - h}" width="${bw}" height="${h}" rx="2" class="${cls}"><title>${statPeriod(wk, "week")}: ${what} — ${n} из ${of} (${pct(n, of)})</title></rect>
       <text x="${x + bw / 2}" y="${H - h - 4}" text-anchor="middle" class="small">${Math.round(v * 100)}%</text>`; };
@@ -292,7 +296,7 @@ function agreementChart(weeks) {
       return `<g>${wk.edits.length ? `<line class="edit" x1="${i * w + 2}" x2="${i * w + 2}" y1="4" y2="${H}"/><text x="${i * w + 5}" y="12" class="edit"><title>Правка критериев: ${wk.edits.map(d => d.split("-").reverse().join(".")).join(", ")}</title>✎</text>` : ""}
         ${bar(wk.near, wk.both, cx - bw - 3, "near", "оценка ±1 балл", wk)}${bar(wk.ans_same, wk.ans_both, cx + 3, "ans", "ответ совпал", wk)}
         <text x="${cx}" y="${H + 16}" text-anchor="middle" class="axis">${statPeriod(wk, "week").split("–")[0]}</text>
-        <text x="${cx}" y="${H + 30}" text-anchor="middle" class="small">${wk.both ? `из ${wk.both} ${plural(wk.both, "вакансии", "вакансий", "вакансий")}` : "—"}</text></g>`; }).join("")}
+        <text x="${cx}" y="${H + 30}" text-anchor="middle" class="small">${wk.both ? narrow() ? `из ${wk.both}` : `из ${wk.both} ${plural(wk.both, "вакансии", "вакансий", "вакансий")}` : "—"}</text></g>`; }).join("")}
     <line x1="0" x2="${W}" y1="${H}" y2="${H}"/></svg>
     <div class="stlegend"><span><i style="background:var(--s-model)"></i>оценка совпала ±1 балл</span><span><i style="background:var(--s-model2)"></i>ответ совпал</span><span>✎ правка критериев</span></div>`;
 }

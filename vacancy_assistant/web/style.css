@@ -676,6 +676,28 @@ button.icon.tool { gap: 5px; font-size: 12.5px; }
 .stchart rect.model2 { fill: var(--s-model2); } .stchart rect.mine2 { fill: var(--s-mine2); }   /* ответы: модель и вы — своя пара цветов */
 .stpair { display: grid; grid-template-columns: 3fr 2fr; gap: 28px; align-items: start; } .stpair > div { min-width: 0; }
 @media (max-width: 760px) { .stpair { grid-template-columns: 1fr; } }
+/* «Статистика» на телефоне: таблицы — без второстепенных колонок, подписи диаграмм — крупнее (у SVG они в единицах viewBox) */
+@media (max-width: 600px) {
+  .wbody table.stat.stengines, .wbody table.stat.stoutcomes, .wbody table.stat.stpietab, .wbody table.stat.stanswers { display: table; overflow: visible; }
+  .stengines th:nth-child(2), .stengines td:nth-child(2), .stengines th:nth-child(4), .stengines td:nth-child(4) { display: none; }
+  .stengines td.ename { padding-left: 30px; } .stengines .eicon { left: 0; } table.stat.stengines td, table.stat.stengines th { white-space: normal; }
+  .stoutcomes th:nth-child(3), .stoutcomes td:nth-child(3) { display: none; }
+  .stoutcomes th, .stoutcomes td { padding-left: 4px; padding-right: 4px; }
+  .stpie table.stpietab { width: 100%; min-width: 0; margin-left: 0; }
+  .stpietab th:nth-child(4), .stpietab td:nth-child(4), .stpietab th:nth-child(5), .stpietab td:nth-child(5) { display: none; }
+  .stpietab td, .stpietab th { padding-left: 6px; padding-right: 6px; } .stpietab .fl { padding: 4px 6px; }
+  table.stat.stanswers th:not(:first-child), table.stat.stanswers td { min-width: 40px; padding: 5px 4px; }
+  table.stat.stanswers tr > :last-child { display: none; } table.stat.stanswers tr > th:first-child { white-space: normal; }
+  .stoutcomes tr > :nth-child(6) { display: none; } .stoutcomes tr.ohead th { display: table-cell; }
+  .stengines, .stoutcomes { font-size: 12px; } .stengines th, .stengines td { padding-left: 4px; padding-right: 4px; }
+  .stengines td.ename { padding-left: 28px; }
+  .sttl { margin: 22px 26px 30px; } .tlseg { flex: 1 1 0; min-width: 0; flex-basis: 0; }
+  .tlseg .tld { font-size: 12px; } .tlnode span { font-size: 11px; } .tlseg .tln { display: none; }   /* «по N откл.» — в подсказке */
+  .stchart { overflow: visible; }
+  .stchart text, .stchart text.small { font-size: 22px; }                 /* ширина 720 */
+  .stscores text, .stscores text.small, .stdiff text, .stdiff text.small { font-size: 15px; }   /* ширина 460 */
+  .stans text, .stans text.small { font-size: 12px; } .stagree text { font-size: 11px; } .stagree text.small { font-size: 10px; }
+}
 /* Ответы модели и ваши: таблица 3×3, насыщенность — сколько вакансий; диагональ — совпали, углы — «да» против «нет» */
 table.stat.stanswers { width: auto; } table.stat.stanswers th:not(:first-child), table.stat.stanswers td { text-align: center; min-width: 52px; padding: 5px 6px; } table.stat.stanswers tr > th:first-child { text-align: left; padding-right: 10px; white-space: nowrap; }
 .stanswers td:not(.muted) { background: color-mix(in srgb, var(--s-model) calc(var(--a, 0) * 55%), transparent); font-weight: 600; }
