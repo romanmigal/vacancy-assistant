@@ -30,6 +30,13 @@ ADDRESS = re.compile(r"(?:ул\.|улица|пр-т|проспект|пер\.|п
 EXPERIENCE = re.compile(r"^\*\*(.+?)\*\*\s*·", re.M)       # «**ООО «Пример» (Москва)** · должность · годы»
 # выгрузка hh: «### Апрель 2019 — настоящее время (…)», следующей строкой — компания, за ней «Город, сайт»
 HH_EXPERIENCE = re.compile(r"^###[^\n]*\d{4}[^\n]*\n+([^\n#*-][^\n]*)(?:\n([^\n]*))?", re.M)
+# резюме простым текстом: «2021 — н.в. — Team Lead, «Компания» (…)», «Март 2019 – 2021: ООО Пример, …»
+_WHEN = r"(?:[А-Яа-яЁё]+\.?[ \t]+|\d{1,2}[./])?"
+PLAIN_EXPERIENCE = re.compile(
+    rf"^[ \t]*(?:[-*•][ \t]*)?{_WHEN}\d{{4}}[ \t]*[—–-][ \t]*{_WHEN}"
+    r"(?:\d{4}|(?:по[ \t]+)?н\.?[ \t]?в\.?|наст\w*(?:[ \t]+время)?|сейчас)[ \t]*[—–:,|·-]?[ \t]*(.+)$", re.M | re.I)
+_FORMS = r"(?:ООО|ОАО|ПАО|ЗАО|АО|НАО|ИП|ФГУП|ГК|LLC|Ltd|Inc)\.?"
+PLAIN_COMPANY = re.compile(rf"(?:{_FORMS}[ \t]+)?«[^»]{{2,60}}»|(?<![\w«]){_FORMS}[ \t]+[^,()\n—–;]{{2,60}}")
 DOMAIN = re.compile(r"(?:https?://)?(?:www\.)?([\w-]+(?:\.[\w-]+)+)/?\s*$")
 LABEL = re.compile(r"\[(Кандидат|Контакт|Компания|Ссылка|Телефон|Почта|Адрес)[а-яё]*(?:\s+(\d+))?\]")
 LEGAL = re.compile(r"^(?:ООО|ОАО|ПАО|ЗАО|АО|НАО|ИП|ФГУП|ГК|LLC|Ltd|Inc)\.?\s+", re.I)
@@ -67,7 +74,9 @@ def past_employers(resume):
     """Прошлые работодатели из раздела «Опыт» резюме: названия без формы собственности и города."""
     out = []
     found = [(m.group(1), "") for m in EXPERIENCE.finditer(resume)] + \
-            [(m.group(1), m.group(2) or "") for m in HH_EXPERIENCE.finditer(resume)]
+            [(m.group(1), m.group(2) or "") for m in HH_EXPERIENCE.finditer(resume)] + \
+            [(c.group(0).strip(), "") for m in PLAIN_EXPERIENCE.finditer(resume)
+             for c in [PLAIN_COMPANY.search(m.group(1))] if c]
     for raw, where in found:
         name = re.sub(r"\s*\([^)]*\)\s*$", "", raw).strip()
         inner = re.search(r"«([^»]{2,60})»|\"([^\"]{2,60})\"", name)

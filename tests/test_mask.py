@@ -51,6 +51,20 @@ class Hide(unittest.TestCase):
         self.assertNotIn("Северный Завод", out)
         self.assertNotIn("szmk.example", out)
 
+    def test_plain_text_experience(self):
+        """Резюме простым текстом: период, должность и компания в одной строке."""
+        md = ("Опыт работы — 10 лет\n\n"
+              "2021 — н.в. — Team Lead Java, «Северный ритейл» (e-commerce, 4 000 сотрудников)\n"
+              "- Руковожу командой из 9 разработчиков, 2019 — 2020 — миграция\n"
+              "Март 2017 – 2021: ООО Финтех Решения, Senior Java Developer\n"
+              "01.2015 - 12.2016, Java Developer в АО «Интеграционные системы»\n"
+              "2014 — 2015 — Java Developer, стартап\n")
+        self.assertEqual([p[0] for p in mask.past_employers(md)],
+                         ["«Северный ритейл»", "ООО Финтех Решения", "АО «Интеграционные системы»"])
+        out = mask.Mask([], [], companies=mask.past_employers(md)).hide(md)
+        self.assertNotIn("Северный ритейл", out)
+        self.assertNotIn("Финтех Решения", out)
+
     def test_vacancy_company_stays(self):
         m = masked(companies=mask.past_employers("**ООО «Пример Ритейл» (Москва)** · ИТ-директор · 2021 — 2026\n"))
         out = m.hide("Был в ООО «Пример Ритейл», потом в Пример Ритейл. Вакансия: ООО «Ромашка».")
