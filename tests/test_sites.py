@@ -69,6 +69,19 @@ class Sites(unittest.TestCase):
             self.assertIn("- руководить ИТ-направлением", text)
             self.assertNotIn("Меню сайта", text)
 
+    def test_job_posting_with_short_description(self):
+        """В разметке вместо описания одна строка-аннотация: текст — со страницы, поля — из разметки."""
+        page = JOBPOSTING_PAGE.replace(json.dumps(DESCRIPTION, ensure_ascii=False)[1:-1],
+                                       "Вакансия Директор по ИТ, работа в компании Ромашка, в Москве.")
+        page = page.replace("<h1>Директор по ИТ (CIO)</h1>", "<main><h1>Директор по ИТ (CIO)</h1>" + DESCRIPTION + "</main>")
+        with TempProfile() as t:
+            saved = sites.add_pages(t.profile, ["https://romashka.ru/jobs/cio"], log=lambda *_: None,
+                                    fetch_page=lambda url: page, ask=no_model)
+            text, info = read_vacancy(saved[0])
+            self.assertEqual((info["title"], info["company"]), ("Директор по ИТ (CIO)", "ООО Ромашка"))
+            self.assertEqual(info["salary"], "от 500 000 до 700 000 RUB в месяц")
+            self.assertIn("- руководить ИТ-направлением", text)
+
     def test_plain_page_with_and_without_model(self):
         with TempProfile() as t:
             t.profile.llm_pages = True                                                   # человек разрешил модель

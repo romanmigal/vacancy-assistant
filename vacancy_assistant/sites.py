@@ -270,6 +270,20 @@ def from_page(page, url):
             "guess": ["company"] + ([] if from_h1 else ["title"])}       # название не из <h1> — тоже уточнить
 
 
+def page_info(page, url):
+    """Вакансия со страницы и взят ли текст из разметки JobPosting. Бывает, что в разметке вместо описания —
+    одна строка-аннотация («Вакансия CTO, работа в компании…», так у getmatch): тогда название, компания,
+    зарплата и город — из разметки, а текст — со страницы."""
+    jp = job_posting(page)
+    if not jp:
+        return from_page(page, url), False
+    info = from_job_posting(jp)
+    if len(info["text"]) >= MIN_TEXT:
+        return info, True
+    text = from_page(page, url)
+    return {**text, **{k: v for k, v in info.items() if v and k != "text"}, "guess": []}, False
+
+
 FIELDS_PROMPT = """Ответь строго в таком виде, по одной строке, ничего не добавляя:
 Название: <должность>
 Компания: <работодатель>
@@ -394,8 +408,7 @@ def add_pages(profile, urls, log=None, fetch_page=fetch, ask=None, via=""):
         except AssistantError as e:
             log(f"      {e}")
             continue
-        jp = job_posting(page)
-        info = from_job_posting(jp) if jp else from_page(page, url)
+        info, jp = page_info(page, url)
         if len(info["text"]) < MIN_TEXT or not info["title"]:
             log(f"      На странице почти нет текста вакансии — сайт показывает её только в браузере или после входа. "
                 f"Добавьте вакансию, вставив её текст.")
@@ -429,8 +442,7 @@ def refresh(profile, path, log=None, fetch_page=fetch, ask=None, seen=None):
                 seen["actual"] = "closed"
             log(f"      {e} Оставляю прежний текст.")
             return False
-        jp = job_posting(page)
-        info = from_job_posting(jp) if jp else from_page(page, url)
+        info, jp = page_info(page, url)
         if len(info["text"]) < MIN_TEXT or not info["title"]:
             log("      На странице почти нет текста вакансии — оставляю прежний текст.")
             return False
@@ -546,8 +558,7 @@ def add_saved(profile, page, name="", log=None, ask=None):
         existing = next((p for p in sorted(profile.vacancies.glob("*.md")) if key(url) in key_text(read_text(p))), None)
         if existing:
             raise AssistantError(f"Эта вакансия уже есть в списке под номером {vacancy_number(existing):02d}.")
-    jp = job_posting(page)
-    info = from_job_posting(jp) if jp else from_page(page, url)
+    info, jp = page_info(page, url)
     if len(info["text"]) < MIN_TEXT or not info["title"]:
         raise AssistantError("В сохранённой странице почти нет текста вакансии. Сохраните страницу целиком "
                              "(«Веб-страница полностью») или вставьте текст вакансии.")
