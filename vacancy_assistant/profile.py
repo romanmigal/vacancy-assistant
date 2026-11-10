@@ -425,11 +425,13 @@ class Profile:
             t = t.replace(k, v)
         return t.replace("{resume}", resume).replace("{vac}", vacancy).replace("{strengths}", strengths_text)
 
-    def letter_prompt(self, resume, vacancy, strengths_text, example=None, template=None, samples=None):
+    def letter_prompt(self, resume, vacancy, strengths_text, example=None, template=None, samples=None,
+                      requirements="", earlier=""):
         """Промпт письма: общий шаблон + образец, подпись и фразы из профиля. example — свой образец
         для этого письма (поправили перед тем, как писать), иначе — образец профиля. template — файл
         промпта вместо текущего (сравнение версий промпта на эталоне, letter_bench). samples — свои
-        отправленные письма, образцы стиля (letter_samples)."""
+        отправленные письма, образцы стиля; requirements — требования вакансии с ✅ из разбора; earlier — письмо,
+        уже отправленное в эту компанию (letter_samples)."""
         from . import letter_samples                        # он берёт plain_title отсюда
         l = self.config["письмо"]
         example = (example or read_text(self.letter_example)).strip()
@@ -437,7 +439,9 @@ class Profile:
         low, high = letter_length(example)
         for k, v in (("{who}", l["кому_помогаем"]), ("{example}", example), ("{availability}", l["готовность"]),
                      ("{closing}", l["завершение"]), ("{signature}", l["подпись"]),
-                     ("{min_chars}", str(low)), ("{max_chars}", str(high)), ("{samples}", letter_samples.block(samples))):
+                     ("{min_chars}", str(low)), ("{max_chars}", str(high)), ("{samples}", letter_samples.block(samples)),
+                     ("{requirements}", letter_samples.requirements_block(requirements)),
+                     ("{earlier}", letter_samples.earlier_block(earlier))):
             t = t.replace(k, v)
         return (t.replace("{resume}", self.with_facts(resume, TEXT_FACTS_HEAD)).replace("{vac}", vacancy)
                 .replace("{strengths}", strengths_text))

@@ -24,7 +24,7 @@ from pathlib import Path
 from . import cloud, letter_frame, letter_samples, letter_templates, settings
 from .analysis import HISTORY, SOURCES
 from .errors import AssistantError
-from .files import read_meta, read_vacancy, strengths, vacancy_number
+from .files import read_meta, read_vacancy, requirements, strengths, vacancy_number
 from .model import ask_local
 from .profile import TEXT_FACTS_HEAD, letter_length
 from .textio import read_text, write_text
@@ -59,7 +59,7 @@ def reference(profile, only=None):
             continue
         meta, human = next(((m, t) for m, t in own if m.get("sent")), own[0])
         info = read_meta(analysis) or {}
-        items.append({"number": number, "name": name, "role": info.get("title", ""),
+        items.append({"number": number, "name": name, "role": info.get("title", ""), "company": info.get("company", ""),
                       "title": f"{info.get('title', '')} — {info.get('company', '')}",
                       "source": meta["source"], "sent": meta.get("sent", ""), "human": human,
                       "vacancy": read_vacancy(vacancy)[0], "analysis": analysis})
@@ -92,12 +92,14 @@ def generate(profile, item, template, ask, resume, example):
     """Письмо для вакансии эталона этой версией промпта по образцу example — как пишет программа, но без файла.
     Свои отправленные письма — образцы, кроме писем к этой же вакансии: как у нового отклика. (письмо, секунд)."""
     samples = letter_samples.pick(profile, item["name"], item["role"])
+    text = read_text(item["analysis"])
+    extra = {"samples": samples, "requirements": requirements(text),
+             "earlier": letter_samples.earlier(profile, item["name"], item["company"])}
     if framed(template):
         greeting, middle = letter_frame.split_example(example, profile)
-        prompt = profile.letter_prompt(resume, item["vacancy"], strengths(read_text(item["analysis"])), middle, template,
-                                       samples)
+        prompt = profile.letter_prompt(resume, item["vacancy"], strengths(text), middle, template, **extra)
     else:                                           # старые промпты: всё письмо целиком пишет модель
-        prompt = profile.letter_prompt(resume, item["vacancy"], strengths(read_text(item["analysis"])), example, template)
+        prompt = profile.letter_prompt(resume, item["vacancy"], strengths(text), example, template, **extra)
     start = time.time()
     raw = ask(prompt, settings.LETTER_MODEL, settings.LETTER_OPTIONS)
     seconds = round(time.time() - start)

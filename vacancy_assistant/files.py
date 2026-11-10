@@ -74,6 +74,13 @@ def strengths(text):
     return "\n".join(f"- {x}" for x in answer.parse(text)["strengths"])
 
 
+def requirements(text, limit=8):
+    """Требования вакансии из разбора, которые подтверждает резюме (✅), — опора для письма: пункты списком.
+    Требования с ❌ и строки без отметки (пояснения к оценке) не идут."""
+    items = [r["text"] for r in answer.parse(text)["requirements"] if r["ok"] and "✅" in r["text"]]
+    return "\n".join(f"- {x}" for x in items[:limit])
+
+
 def md_path(path):
     """Путь для markdown-ссылки: кодируем пробелы и скобки, кириллицу оставляем читаемой.
     Разделители — всегда «/», и на Windows тоже."""

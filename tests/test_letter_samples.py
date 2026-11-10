@@ -60,6 +60,33 @@ class Samples(unittest.TestCase):
         self.assertNotIn("ОТПРАВЛЕННЫЕ", prompts[1])
         self.assertNotIn("{samples}", prompts[1])
 
+    def test_requirements_in_prompt(self):
+        """В промпт — требования с ✅ из разбора; требования с ❌ и пояснения к оценке — нет."""
+        f = self.r[2]
+        text = read_text(f).replace("Сильные стороны:", "Требования:\n- Опыт в ритейле — ✅ Пример Ритейл\n"
+                                    "- Знание SAP — ❌ нет в резюме\n- Опыт покрывает почти всё.\n\nСильные стороны:")
+        f.write_text(text, encoding="utf-8")
+        prompts = []
+        analysis.write_letter(self.p, f, ask=lambda prompt, *a: prompts.append(prompt) or "Середина.", **LOG)
+        block = prompts[0].split("=== ТРЕБОВАНИЯ ВАКАНСИИ И МОЙ ОПЫТ ===\n")[1].split("\n===")[0]
+        self.assertEqual(block, "- Опыт в ритейле — ✅ Пример Ритейл")
+        self.assertNotIn("{requirements}", prompts[0])
+
+    def test_earlier_letter_same_company(self):
+        """Письмо, уже отправленное в эту компанию к другой вакансии (и версия модели), — в промпт: не повторять.
+        Другая компания и «Анонимный работодатель» — нет."""
+        self.t.add_vacancy(5, "CIO", company="ООО Пример 1")
+        r5 = analysis.analyze(self.p, ask=fake_model, summary=False, **LOG)[0]
+        analysis.write_letter(self.p, self.r[0], ask=lambda *a: "Первое письмо в Пример 1.", **LOG)
+        analysis.mark_sent(self.p, self.r[0], "cover", when="2026-11-09")
+        self.assertEqual(S.earlier(self.p, r5.name, "Пример 1"), "Первое письмо в Пример 1.")
+        self.assertEqual(S.earlier(self.p, self.r[0].name, "ООО Пример 1"), "")       # своё письмо — не «прежнее»
+        self.assertEqual(S.earlier(self.p, r5.name, "ООО Пример 2"), "")
+        prompts = []
+        analysis.write_letter(self.p, r5, ask=lambda prompt, *a: prompts.append(prompt) or "Середина.", **LOG)
+        self.assertIn("=== ПИСЬМО, УЖЕ ОТПРАВЛЕННОЕ В ЭТУ КОМПАНИЮ ===\nПервое письмо в Пример 1.", prompts[0])
+        self.assertNotIn("{earlier}", prompts[0])
+
 
 if __name__ == "__main__":
     unittest.main()
