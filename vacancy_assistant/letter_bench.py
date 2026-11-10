@@ -21,7 +21,7 @@ from collections import Counter
 from datetime import datetime
 from pathlib import Path
 
-from . import cloud, letter_frame, letter_templates, settings
+from . import cloud, letter_frame, letter_samples, letter_templates, settings
 from .analysis import HISTORY, SOURCES
 from .errors import AssistantError
 from .files import read_meta, read_vacancy, strengths, vacancy_number
@@ -59,7 +59,8 @@ def reference(profile, only=None):
             continue
         meta, human = next(((m, t) for m, t in own if m.get("sent")), own[0])
         info = read_meta(analysis) or {}
-        items.append({"number": number, "name": name, "title": f"{info.get('title', '')} — {info.get('company', '')}",
+        items.append({"number": number, "name": name, "role": info.get("title", ""),
+                      "title": f"{info.get('title', '')} — {info.get('company', '')}",
                       "source": meta["source"], "sent": meta.get("sent", ""), "human": human,
                       "vacancy": read_vacancy(vacancy)[0], "analysis": analysis})
     return sorted(items, key=lambda x: x["number"] or 0)
@@ -89,10 +90,12 @@ def framed(template):
 
 def generate(profile, item, template, ask, resume, example):
     """Письмо для вакансии эталона этой версией промпта по образцу example — как пишет программа, но без файла.
-    (письмо, секунд)."""
+    Свои отправленные письма — образцы, кроме писем к этой же вакансии: как у нового отклика. (письмо, секунд)."""
+    samples = letter_samples.pick(profile, item["name"], item["role"])
     if framed(template):
         greeting, middle = letter_frame.split_example(example, profile)
-        prompt = profile.letter_prompt(resume, item["vacancy"], strengths(read_text(item["analysis"])), middle, template)
+        prompt = profile.letter_prompt(resume, item["vacancy"], strengths(read_text(item["analysis"])), middle, template,
+                                       samples)
     else:                                           # старые промпты: всё письмо целиком пишет модель
         prompt = profile.letter_prompt(resume, item["vacancy"], strengths(read_text(item["analysis"])), example, template)
     start = time.time()

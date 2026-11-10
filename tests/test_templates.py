@@ -64,6 +64,13 @@ class Templates(unittest.TestCase):
         card = self.card()
         self.assertEqual((card["letters"][0]["template"], card["templates"]), ("Ответ на вопросы", 2))
 
+    def test_samples_switch(self):
+        """«Учитывать мои отправленные письма»: по умолчанию включено, выключатель — в «Шаблонах писем»."""
+        self.assertEqual(self.app.handle("GET", "/api/letter/templates", {"profile": ["example"]}, {})["samples"],
+                         {"on": True, "count": 0})
+        self.assertEqual(self.post("/api/letter/templates/save", do="samples", on=False)["samples"]["on"], False)
+        self.assertFalse(self.p().config["письмо"]["учитывать_отправленные"])
+
     def test_delete_goes_to_trash(self):
         tid = T.save(self.p(), None, "Временный", "текст", default=True)
         res = self.post("/api/letter/templates/save", id=tid, do="delete")

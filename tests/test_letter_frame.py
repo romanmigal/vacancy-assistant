@@ -26,6 +26,7 @@ class Frame(unittest.TestCase):
                        f"{BODY}\n\nБуду рад обсудить детали.\nРоман Мигаль",
                        f"{BODY}\n\nМогу приступить через две недели. Буду рад обсудить детали.\n\nИван Петров",
                        f"{BODY}\n\nБуду рад обсудить детали.\n\n[Cандидат]",     # GigaChat: метка маски с латинской C
+                       f"Александра, здравствуйте!\n\n{BODY}\n\nИван Петров",           # приветствие по имени
                        BODY):
             self.assertEqual(letter_frame.strip_frame(answer, self.p), BODY, answer)
 

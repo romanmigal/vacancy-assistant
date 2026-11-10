@@ -23,7 +23,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
-from . import __version__, analysis, artifacts, backup, calibration, cloud, company, contacts, criteria_history, datadir, dupes, fix, funnel, gaps, help, hh, letter_templates, links, mails, market, mask, network, ratings, rss, resume_pdf, salaries, settings, setup, similar, stats, summary, tasks, tune, updates, weekly
+from . import __version__, analysis, artifacts, backup, calibration, cloud, company, contacts, criteria_history, datadir, dupes, fix, funnel, gaps, help, hh, letter_samples, letter_templates, links, mails, market, mask, network, ratings, rss, resume_pdf, salaries, settings, setup, similar, stats, summary, tasks, tune, updates, weekly
 from .model import current_model
 from .errors import AssistantError
 from .files import REFERRER_ID_PROP, REFERRER_PROP, read_note, read_prop, read_vacancy, set_note, set_prop
@@ -473,7 +473,8 @@ class App:
 
     @route("/api/letter/templates")                     # шаблоны сопроводительного письма
     def api_letter_templates(self, p, a):
-        return {"templates": letter_templates.all_templates(p), "max": letter_templates.MAX}
+        return {"templates": letter_templates.all_templates(p), "max": letter_templates.MAX,
+                "samples": {"on": letter_samples.enabled(p), "count": len(letter_samples.sent(p))}}
 
     @route("/api/letter/templates/save", "POST", writes=True)
     def api_letter_templates_save(self, p, a):
@@ -482,9 +483,11 @@ class App:
             letter_templates.delete(p, tid, self.trash or backup.move_to_trash)
         elif a.get("do") == "default":
             letter_templates.set_default(p, tid)
+        elif a.get("do") == "samples":                  # «Учитывать мои отправленные письма»
+            letter_samples.set_enabled(p, a.get("on"))
         else:
             tid = letter_templates.save(p, tid, a.get("name", ""), a.get("text", ""), bool(a.get("default")))
-        return {"templates": letter_templates.all_templates(p), "max": letter_templates.MAX, "id": tid}
+        return {**self.api_letter_templates(p, a), "id": tid}
 
     @route("/api/artifacts/add", "POST", writes=True)  # вкладка «Артефакты»: приложить файл или заметку
     def api_artifacts_add(self, p, a):

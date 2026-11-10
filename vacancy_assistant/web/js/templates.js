@@ -14,6 +14,8 @@ function drawTemplates(res, pick) {
     : list.find(t => t.id === pick) || list.find(t => t.default) || list[0];
   dialog("Шаблоны писем", `
     <p class="hint">Образцы сопроводительного письма — разные по структуре: короткое для hh, развёрнутое для прямого обращения, ответ на вопросы из вакансии. ИИ берёт из шаблона стиль, длину и структуру, а факты — только из резюме и вакансии. Шаблон выбирают перед тем, как ИИ напишет письмо.</p>
+    <label class="checks"><input type="checkbox" id="tplSamples" ${res.samples.on ? "checked" : ""}> Учитывать мои отправленные письма</label>
+    <p class="hint">ИИ пишет по образцу двух ваших последних отправленных писем к похожей роли — тех, что вы поправили или написали сами и отметили «Отправлено»: их форма, длина и стиль важнее шаблона. Факты — по-прежнему только из резюме и вакансии. ${res.samples.count ? `Таких писем сейчас: ${res.samples.count}.` : "Таких писем пока нет — включённая галочка ничего не меняет."}</p>
     <div class="lkinds">${list.map(t => `<button type="button" class="lkind ${t.id === cur.id ? "on" : ""}" data-tpl="${t.id}">${esc(t.name)}${t.default ? " ★" : ""}</button>`).join("")}
       ${list.length < res.max ? `<button type="button" class="lkind ${cur.id === null ? "on" : ""}" data-tpl="new">+ Новый шаблон</button>` : ""}</div>
     ${field("Название", `<input id="tplName" maxlength="40" value="${esc(cur.name)}" placeholder="например: Короткое для hh">`)}
@@ -26,6 +28,12 @@ function drawTemplates(res, pick) {
   document.querySelectorAll("#wbody [data-tpl]").forEach(b => b.onclick = () =>
     leaveTemplate(cur, () => drawTemplates(res, b.dataset.tpl === "new" ? "new" : +b.dataset.tpl)));
   if ($("tplHist")) $("tplHist").onclick = () => templateHistory(cur);
+  $("tplSamples").onchange = async e => {
+    const on = e.target.checked;
+    const r = await api("/api/letter/templates/save", {profile: state.profile, do: "samples", on}).catch(fail);
+    if (r) { res.samples = r.samples; toast(on ? "Отправленные письма учитываются" : "Отправленные письма не учитываются"); }
+    else e.target.checked = !on;
+  };
 }
 
 const tplChanged = cur => $("tplName").value.trim() !== cur.name || $("tplText").value.trim() !== cur.text.trim();
