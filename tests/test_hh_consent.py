@@ -5,7 +5,7 @@ from datetime import date
 
 from helpers import FIXTURES, SEARCH_HTML, TempProfile, VACANCY_HTML, fake_model, vacancy_page
 
-from vacancy_assistant import app as A, hh, setup, sites
+from vacancy_assistant import app as A, hh, setup, sites, work as W
 from vacancy_assistant.errors import AssistantError
 from vacancy_assistant.profile import Profile
 from vacancy_assistant.textio import read_json, read_text, write_json, write_text
@@ -59,7 +59,7 @@ class Consent(unittest.TestCase):
             sites.add_any(p, "https://hh.ru/vacancy/123456", lambda *_: None, no_network)
         for action, data in (("update", {}), ("add", {"links": "https://hh.ru/vacancy/123456"})):
             with self.assertRaises(AssistantError):                                 # отказ до запуска задачи
-                A.make_work(p, action, data, no_network, fake_model)
+                W.make_work(p, action, data, no_network, fake_model)
         logs = []                                                                   # вместе с другим сайтом — hh пропускаем
         sites.add_any(p, "https://hh.ru/vacancy/123456 https://example.com/job/1", logs.append,
                       lambda url: "<html><body>пусто</body></html>" if "example" in url else no_network(url))
@@ -135,7 +135,7 @@ class Consent(unittest.TestCase):
                        .replace('<meta property="og:url" content="https://hh.ru/vacancy/987654321">', "")
         self.assertEqual(sites.hh_page_id(bare, sites.page_url(bare)), "987654321")   # из данных страницы
         with self.assertRaises(AssistantError):
-            A.make_work(p, "add_page", {"page": "не страница"}, no_network, fake_model)
+            W.make_work(p, "add_page", {"page": "не страница"}, no_network, fake_model)
 
     def test_saved_other_site(self):
         page = ('<html><head><link rel="canonical" href="https://career.example.com/jobs/42"></head><body><main>'

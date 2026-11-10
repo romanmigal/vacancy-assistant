@@ -464,13 +464,11 @@ async function openVacancy(n) {
     const res = await api("/api/dupe", {profile: state.profile, n, action: b.dataset.dupe}).catch(fail);
     if (!res) return;
     await refreshRows();
-    const target = state.rows.find(x => x.n === res.n);
-    if (target) { tab = target.status; render(); openVacancy(target.n); }
+    goToVacancy(res.n);
     toast(b.dataset.dupe === "merge" ? `Склеено с № ${res.n}` : "Пометка снята — это разные вакансии");
   });
   document.querySelectorAll("[data-like]").forEach(b => b.onclick = () => {   // вакансия-отклик, на которую похожа эта
-    const like = state.rows.find(x => x.n === +b.dataset.like);
-    if (like) { tab = like.status; render(); openVacancy(like.n); }
+    goToVacancy(+b.dataset.like);
   });
   if ($("coFilter")) $("coFilter").onclick = () => openCompanyFilter(r.company);
   $("titleFilter").onclick = () => openTitleFilter(r.title);
@@ -1113,8 +1111,7 @@ async function start() {
   if (!state.profiles.length) openWizard();     // первый запуск: профилей ещё нет — сразу мастер
   if (recall("tasksOpen") && state.tasks.length) setPanel(true);   // панель задач — как оставили
   const n = +(location.hash.match(/^#(\d+)$/) || [])[1];
-  const row = n && state.rows.find(r => r.n === n);
-  if (row) { tab = row.status; openVacancy(n); openPhoneDetail(false); }
+  if (n && goToVacancy(n)) openPhoneDetail(false);
   if (!REMOTE) checkUpdates();
   checkWeekly();
 }

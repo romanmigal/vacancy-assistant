@@ -46,6 +46,15 @@ const COLUMNS = [
 // Вкладка «Фильтр» — не статус: в ней вакансии всех статусов по фильтру, и только в ней видна колонка «Статус».
 // В меню «Колонки» она есть всегда: место и флажок можно менять из любой вкладки
 const FILTER_TAB = "filter";
+// Открыть вакансию из окна, ссылки или списка: перейти на вкладку её статуса. Во вкладке «Фильтр» остаёмся,
+// если вакансия проходит её фильтр. Нет такой вакансии — false
+function goToVacancy(n) {
+  const row = state.rows.find(r => r.n === n);
+  if (!row) return false;
+  if (tab !== FILTER_TAB || !filterRows([row], filters, hideClosed, new Date()).length) tab = row.status;
+  openVacancy(n);
+  return true;
+}
 const columnHere = k => k !== "status" || tab === FILTER_TAB;
 const LOCKED_COLUMN = "title";
 const DEFAULT_HIDDEN = ["posted", "mine", "referrer", "artifacts"];

@@ -4,7 +4,7 @@ from datetime import date
 
 from helpers import TempProfile
 
-from vacancy_assistant import app as A, funnel, market
+from vacancy_assistant import app as A, funnel, market, vacancies as V, work as W
 from vacancy_assistant.textio import read_json, write_text
 
 ANSWER = """Критерии:
@@ -77,7 +77,7 @@ class Report(unittest.TestCase):
             for n in range(1, 4):
                 setup(t, n, "Нужны ITIL и Kafka.")
             t.profile.write_facts("Внедрил процессы по итил в Пример Ритейл")
-            words = {w["term"]: w["in_resume"] for w in market.report(t.profile, A.vacancy_rows(t.profile))["words"]}
+            words = {w["term"]: w["in_resume"] for w in market.report(t.profile, V.vacancy_rows(t.profile))["words"]}
             self.assertEqual((words["ITIL"], words["Kafka"]), (True, False))
 
     def test_progress(self):
@@ -116,16 +116,16 @@ class Advice(unittest.TestCase):
                 setup(t, n, "Нужны ITIL и Kafka.")
             asked = []
             ask = lambda prompt, *a: asked.append(prompt) or "### ITIL\n**Было:** в резюме этого нет\n**Стало:** в резюме этого нет — добавьте, если это правда"
-            market.write_advice(t.profile, A.vacancy_rows(t.profile), lambda *_: None, ask)
+            market.write_advice(t.profile, V.vacancy_rows(t.profile), lambda *_: None, ask)
             self.assertIn("ITIL", asked[0])
             self.assertIn("Перевод ИТ в облако", asked[0])                # резюме — в запросе
-            saved = market.report(t.profile, A.vacancy_rows(t.profile))["advice"]
+            saved = market.report(t.profile, V.vacancy_rows(t.profile))["advice"]
             self.assertIn("**Было:**", saved["text"])
             self.assertEqual(saved["vacancies"], 3)
 
     def test_route_needs_model(self):
         with TempProfile() as t:
-            title, work = A.make_work(t.profile, "market_advice", {})
+            title, work = W.make_work(t.profile, "market_advice", {})
             self.assertIn("Резюме против рынка", title)
 
 

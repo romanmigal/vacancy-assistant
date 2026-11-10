@@ -5,7 +5,7 @@ from pathlib import Path
 
 from helpers import TempProfile
 
-from vacancy_assistant import app as A, hh, sites
+from vacancy_assistant import hh, sites, vacancies as V
 from vacancy_assistant.files import read_vacancy
 from vacancy_assistant.textio import read_text
 
@@ -35,7 +35,7 @@ class Posted(unittest.TestCase):
             other = sites.add_saved(t.profile, f"<html><head><title>CTO — Ромашка</title>{LD}</head><body></body></html>",
                                     log=lambda *_: None)
             self.assertEqual(read_vacancy(other)[1]["posted"], "03.09.2026")
-            row = next(r for r in A.vacancy_rows(t.profile) if r["n"] == 1)
+            row = next(r for r in V.vacancy_rows(t.profile) if r["n"] == 1)
             self.assertEqual(row["posted"], "20.10.2026")
 
     def test_no_date_site(self):
@@ -53,8 +53,8 @@ class Posted(unittest.TestCase):
             text = read_text(path)
             self.assertEqual(text.count("Опубликовано"), 1)
             self.assertEqual(read_vacancy(path)[1]["posted"], "28.10.2026")
-            self.assertNotIn("Опубликовано", A.without_saved(text))
-            self.assertNotIn("Сохранено", A.without_saved(text))
+            self.assertNotIn("Опубликовано", V.without_saved(text))
+            self.assertNotIn("Сохранено", V.without_saved(text))
 
 
 if __name__ == "__main__":

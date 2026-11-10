@@ -9,7 +9,7 @@ from pathlib import Path
 
 from helpers import TempProfile
 
-from vacancy_assistant import app as A, ratings
+from vacancy_assistant import ratings, vacancies as V
 from vacancy_assistant.errors import AssistantError
 from vacancy_assistant.textio import read_text, write_text
 
@@ -52,7 +52,7 @@ class Ratings(unittest.TestCase):
             t.add_vacancy(2, "CTO")
             ratings.set_rating(t.profile, 1, 5, 8, "возможно", "далеко", today=date(2026, 11, 2))
             got = {r["n"]: (r["my_score"], r["my_can"], r["my_want"], r["my_decision"], r["my_date"], r["my_reason"])
-                   for r in A.vacancy_rows(t.profile)}
+                   for r in V.vacancy_rows(t.profile)}
             self.assertEqual(got, {1: (6, 5, 8, "возможно", "2026-11-02", "далеко"), 2: (None, None, None, "", "", "")})
 
     def test_history(self):
@@ -62,7 +62,7 @@ class Ratings(unittest.TestCase):
             ratings.set_rating(t.profile, 1, 5, 8, "возможно", "далеко", when=datetime(2026, 11, 2, 10, 0))
             ratings.set_rating(t.profile, 1, 5, 8, "возможно", "далеко", when=datetime(2026, 11, 2, 11, 0))
             ratings.set_rating(t.profile, 1, 3, 8, "нет", "нет | разработки", when=datetime(2026, 11, 3, 9, 30))
-            got = A.vacancy_details(t.profile, 1)["ratings"]
+            got = V.vacancy_details(t.profile, 1)["ratings"]
             self.assertEqual([(e["date"], e["time"], e["score"], e["can"], e["want"], e["decision"], e["reason"]) for e in got],
                              [("2026-11-02", "10:00:00", 6, 5, 8, "возможно", "далеко"),
                               ("2026-11-03", "09:30:00", 4, 3, 8, "нет", "нет / разработки")])
@@ -72,9 +72,9 @@ class Ratings(unittest.TestCase):
         with TempProfile() as t:
             t.add_vacancy(1, "ИТ-директор")
             write_text(t.profile.ratings, OLD_TABLE)
-            self.assertEqual(A.vacancy_details(t.profile, 1)["ratings"], [])
+            self.assertEqual(V.vacancy_details(t.profile, 1)["ratings"], [])
             write_text(t.profile.ratings, read_text(t.profile.ratings).replace("| интересно |", "| интересно | 01.11.2026 | | |"))
-            got = A.vacancy_details(t.profile, 1)["ratings"]
+            got = V.vacancy_details(t.profile, 1)["ratings"]
             self.assertEqual([(e["date"], e["time"], e["score"], e["decision"]) for e in got], [("2026-11-01", "", 7, "да")])
 
     def test_total(self):

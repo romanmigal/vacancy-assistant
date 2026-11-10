@@ -6,7 +6,7 @@ import zipfile
 
 from helpers import TempProfile, fake_model
 
-from vacancy_assistant import analysis, app as A, artifacts, backup
+from vacancy_assistant import analysis, app as A, artifacts, backup, vacancies as V
 from vacancy_assistant.errors import AssistantError
 from vacancy_assistant.profile import Profile
 
@@ -67,7 +67,7 @@ class Artifacts(unittest.TestCase):
         self.assertEqual((artifacts.folder(self.p(), self.result) / "задание.pdf").read_bytes(), pdf)
         self.assertEqual({(e["source"], e["title"]) for e in card["texts"]},
                          {("artifact", "задание.pdf"), ("artifact", "Ответ HR в Telegram")})
-        rows = A.vacancy_rows(self.p())
+        rows = V.vacancy_rows(self.p())
         self.assertEqual(rows[0]["artifacts"], 2)
         with zipfile.ZipFile(backup.make(self.p())) as z:                           # файлы — в резервной копии
             self.assertTrue(any(n.endswith("артефакты/" + self.result.stem + "/задание.pdf") for n in z.namelist()))

@@ -24,7 +24,7 @@ import urllib.parse
 import urllib.request
 from datetime import date
 
-from . import company, dupes, settings
+from . import company, dupes, legal, settings
 from .errors import AssistantError
 from .files import read_vacancy, save_numbered, vacancy_number
 from . import hh
@@ -55,7 +55,7 @@ def split_links(text):
 BOARDS = {"hh.ru": "HH", "career.habr.com": "Хабр Карьера", "linkedin.com": "LinkedIn", "superjob.ru": "SuperJob",
           "rabota.ru": "Работа.ру", "zarplata.ru": "Зарплата.ру", "avito.ru": "Авито", "getmatch.ru": "getmatch",
           "geekjob.ru": "GeekJob", "trudvsem.ru": "Работа России", "t.me": "Telegram"}
-LEGAL = r"^(?:ООО|ПАО|ОАО|АО|ЗАО|НАО|АНО|ИП|ГК|ФГУП|МУП|Группа компаний|LLC|Ltd\.?|Inc\.?|JSC)\s+|,?\s+(?:LLC|Ltd\.?|Inc\.?)$"
+LEGAL = legal.PREFIX + "|" + legal.SUFFIX
 
 
 def company_name(company):

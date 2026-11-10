@@ -3,7 +3,7 @@ import unittest
 
 from helpers import VACANCY_HTML, TempProfile
 
-from vacancy_assistant import app as A, company, hh, setup, sites
+from vacancy_assistant import app as A, company, hh, setup, sites, vacancies as V
 from datetime import date
 from vacancy_assistant.errors import AssistantError
 from vacancy_assistant.files import read_vacancy
@@ -119,7 +119,7 @@ class About(unittest.TestCase):
             self.assertEqual(a["past"], [{"n": 2, "exact": True}, {"n": 3, "exact": False}])   # похожее — с «?»
             self.assertEqual((a["agency"], a["hh"]), (False, None))
             company.set_mark(t.profile, "Ромашка", True)
-            rows = {r["n"]: r for r in A.vacancy_rows(t.profile)}
+            rows = {r["n"]: r for r in V.vacancy_rows(t.profile)}
             self.assertEqual([rows[n]["agency"] for n in (1, 2, 3, 4)], [True, True, False, False])   # на всю компанию
             self.assertEqual(rows[1]["agency_why"], "mark")
             company.set_mark(t.profile, "Ромашка", None)
@@ -169,7 +169,7 @@ class Companies(unittest.TestCase):
             self.assertEqual(res["anonymous"], [4])
             self.assertIn("bo.nalog.gov.ru", by["Hays"]["finance"]["url"])
             app.handle("POST", "/api/company/agency", {}, {"profile": "example", "n": by["«Ромашка»"]["n"], "agency": True})
-            again = {c["name"]: c for c in company.companies(t.profile, A.vacancy_rows(t.profile))["items"]}
+            again = {c["name"]: c for c in company.companies(t.profile, V.vacancy_rows(t.profile))["items"]}
             self.assertEqual((again["«Ромашка»"]["agency"], again["«Ромашка»"]["marked"]), (True, True))
             self.assertTrue(company.about(t.profile, 1)["agency"])               # и в карточке вакансии
 
@@ -179,7 +179,7 @@ class Companies(unittest.TestCase):
             path.write_text(read_text(path).replace("vacancy/100005", "vacancy/555"), encoding="utf-8")
             with self.assertRaises(AssistantError):
                 sites.add_saved(t.profile, SAVED_PAGE, log=lambda *_: None)
-            c = company.companies(t.profile, A.vacancy_rows(t.profile))["items"][0]
+            c = company.companies(t.profile, V.vacancy_rows(t.profile))["items"][0]
             self.assertEqual((c["hh"]["url"], c["hh"]["rating"], c["hh"]["reviews"], c["hh"]["it"], c["site"]),
                              ("https://hh.ru/employer/2804", 4.2, 41, True, "https://www.primer.ru"))
 

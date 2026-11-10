@@ -4,7 +4,7 @@ from datetime import date
 
 from helpers import TempProfile, fake_model
 
-from vacancy_assistant import analysis, app as A, funnel, stats
+from vacancy_assistant import analysis, app as A, funnel, stats, vacancies as V
 
 TODAY = date(2026, 10, 28)                          # среда
 
@@ -169,13 +169,13 @@ class Stats(unittest.TestCase):
             app = A.App(t.profiles, ask=fake_model)
             s = app.handle("GET", "/api/stats", {"profile": ["example"], "step": ["day"]}, {})
             self.assertEqual(s["step"], "day")
-            row = A.vacancy_rows(t.profile)[0]
+            row = V.vacancy_rows(t.profile)[0]
             self.assertEqual(row["analyzed_on"], date.today().isoformat())
             self.assertEqual(stats.events(row)["applied"], date.today().isoformat())
             self.assertFalse(row["cover_sent"])
             analysis.write_letter(t.profile, result, ask=lambda *a: "Письмо.", log=lambda *_: None)
             analysis.mark_sent(t.profile, result, "cover", "", date.today().isoformat())
-            self.assertTrue(A.vacancy_rows(t.profile)[0]["cover_sent"])
+            self.assertTrue(V.vacancy_rows(t.profile)[0]["cover_sent"])
 
 
 if __name__ == "__main__":

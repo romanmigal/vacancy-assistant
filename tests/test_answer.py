@@ -4,7 +4,7 @@ from pathlib import Path
 
 from helpers import TempProfile
 
-from vacancy_assistant import answer, app as A, files
+from vacancy_assistant import answer, files, vacancies as V
 
 SAMPLES = Path(__file__).parent / "fixtures" / "ответы"
 
@@ -112,7 +112,7 @@ class Users(unittest.TestCase):
             meta = {"title": "Тест", "score": 5, "can": 9, "want": 8, "decision": "да", "stage": "full"}
             import json
             path.write_text(f"<!-- {json.dumps(meta, ensure_ascii=False)} -->\n# Тест — Компания\n\n" + sample("оценка в конце"), encoding="utf-8")
-            p = A.parsed_analysis(path)
+            p = V.parsed_analysis(path)
             self.assertEqual(scores(p), (9, 8, 5))
             self.assertEqual(p["total"]["why"], [])
             self.assertEqual(answer.check_profile(t.profile), [(path.name, ["«Оценка» 8 в тексте, 5 в таблице"])])

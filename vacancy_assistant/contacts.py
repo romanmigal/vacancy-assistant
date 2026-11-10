@@ -19,6 +19,7 @@ import uuid
 import zipfile
 from datetime import date
 
+from . import legal
 from .errors import AssistantError
 from .textio import read_json, write_json
 
@@ -28,8 +29,8 @@ BASIC_FILES = ("profile.csv", "skills.csv", "recommendations_received.csv", "inv
 STATUSES = [("", "—"), ("wrote", "написал"), ("answered", "ответил"), ("talked", "поговорили"), ("referred", "передал резюме")]
 FIELDS = ("name", "company", "position", "url", "email", "status", "note")
 
-LEGAL = (r"\b(ооо|пао|оао|ао|зао|нао|ано|ип|гк|фгуп|муп|группа компаний|холдинг|llc|ltd|inc|jsc|plc|gmbh|"
-         r"corp|corporation|company|group|груп+а)\b")
+LEGAL = (r"\b(" + "|".join(f.lower() for f in legal.FORMS) +       # формы и общие слова — не часть имени
+         r"|холдинг|plc|gmbh|corp|corporation|company|group|груп+а)\b")
 # Одна компания под разными именами (ключи — после translit и без пробелов)
 ALIASES = {"sberbank": "sber", "sberteh": "sber", "sberbankrossii": "sber", "tinkoff": "tbank", "tinkoffbank": "tbank",
            "vtbbank": "vtb", "alfabank": "alfa", "mobiletelesystems": "mts", "mobilnyetelesistemy": "mts",

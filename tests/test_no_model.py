@@ -4,7 +4,7 @@ import unittest
 
 from helpers import TempProfile, fake_model
 
-from vacancy_assistant import analysis, app as A, funnel, setup, stats, summary
+from vacancy_assistant import analysis, app as A, funnel, setup, stats, summary, vacancies as V, work as W
 from vacancy_assistant.errors import AssistantError
 from vacancy_assistant.files import read_meta, set_prop
 from vacancy_assistant.profile import Profile
@@ -30,9 +30,9 @@ class NoModel(unittest.TestCase):
         return Profile("example", self.t.profiles)
 
     def add(self):
-        _, work = A.make_work(self.p(), "add_text", {"text": TEXT, "link": "https://example.ru/job/1"}, ask=no_ask)
+        _, work = W.make_work(self.p(), "add_text", {"text": TEXT, "link": "https://example.ru/job/1"}, ask=no_ask)
         work(lambda *_: None)
-        return A.vacancy_rows(self.p())[0]
+        return V.vacancy_rows(self.p())[0]
 
     def test_mode(self):
         p = self.p()
@@ -61,9 +61,9 @@ class NoModel(unittest.TestCase):
 
     def test_model_actions_refused(self):
         self.t.add_vacancy(1, "ИТ-директор")
-        for action in sorted(A.NEEDS_MODEL):
+        for action in sorted(W.NEEDS_MODEL):
             with self.assertRaises(AssistantError, msg=action) as e:
-                A.make_work(self.p(), action, {"n": 1, "reanalyze": ["new"], "statuses": ["new"]}, ask=no_ask)
+                W.make_work(self.p(), action, {"n": 1, "reanalyze": ["new"], "statuses": ["new"]}, ask=no_ask)
             self.assertIn("Нужна модель", str(e.exception))
 
     def test_saved_without_analysis(self):
@@ -73,7 +73,7 @@ class NoModel(unittest.TestCase):
         result = next(self.p().results.glob("01 *.md"))
         funnel.set_stage(result, "applied")
         set_prop(result, "заметка", "написал HR")
-        row = A.vacancy_rows(self.p())[0]
+        row = V.vacancy_rows(self.p())[0]
         self.assertEqual((row["funnel"]["stage"], row["note"]), ("applied", "написал HR"))
         self.assertEqual(stats.compute([row])["totals"]["analyzed"]["total"], 0)   # «Разобрано ИИ» — нет
         self.assertEqual(stats.compute([row])["totals"]["applied"]["total"], 1)
@@ -84,7 +84,7 @@ class NoModel(unittest.TestCase):
 
     def test_refresh_card_checks_only(self):
         self.add()
-        _, work = A.make_work(self.p(), "refresh_card", {"n": 1}, fetch_page=lambda url: TEXT, ask=no_ask)
+        _, work = W.make_work(self.p(), "refresh_card", {"n": 1}, fetch_page=lambda url: TEXT, ask=no_ask)
         work(lambda *_: None)
         result = next(self.p().results.glob("01 *.md"))
         self.assertEqual(read_meta(result)["stage"], "none")                # разбора не было
@@ -96,7 +96,7 @@ class NoModel(unittest.TestCase):
         self.p().set_model(False)
         p = self.p()
         self.assertFalse(p.no_model)
-        _, work = A.make_work(p, "analyze", {}, ask=fake_model)
+        _, work = W.make_work(p, "analyze", {}, ask=fake_model)
         work(lambda *_: None)
         meta = read_meta(result)
         self.assertNotEqual(meta["stage"], "none")
@@ -107,7 +107,7 @@ class NoModel(unittest.TestCase):
         self.add()
         self.p().set_model(False)
         prompts = []
-        _, work = A.make_work(self.p(), "letter", {"n": 1}, ask=lambda prompt, *a: prompts.append(prompt) or fake_model(prompt))
+        _, work = W.make_work(self.p(), "letter", {"n": 1}, ask=lambda prompt, *a: prompts.append(prompt) or fake_model(prompt))
         work(lambda *_: None)
         self.assertGreaterEqual(len(prompts), 2)                             # сначала разбор, потом письмо
         self.assertTrue((self.p().letters / next(self.p().results.glob("01 *.md")).name).exists())

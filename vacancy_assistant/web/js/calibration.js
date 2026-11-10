@@ -140,9 +140,8 @@ function calBindList() {
   });
   document.querySelectorAll("#wbody [data-cvac]").forEach(b => b.onclick = e => {
     e.preventDefault();
-    const n = +b.dataset.cvac, row = state.rows.find(r => r.n === n);
     closeWizard();
-    if (row) { tab = row.status; openVacancy(n); }
+    goToVacancy(+b.dataset.cvac);
   });
   document.querySelectorAll("#wbody [data-peek]").forEach(el => {
     el.onmouseenter = () => calPeek(el, +el.dataset.peek);

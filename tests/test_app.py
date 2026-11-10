@@ -11,7 +11,7 @@ from pathlib import Path
 
 from helpers import VACANCY_HTML, TempProfile, fake_model
 
-from vacancy_assistant import app as A, ratings, summary as S
+from vacancy_assistant import app as A, ratings, summary as S, vacancies as V, work as W
 from vacancy_assistant.files import numbered_files, read_note
 from vacancy_assistant.textio import read_text, write_text
 
@@ -241,7 +241,7 @@ class AppServer(unittest.TestCase):
         self.call("/api/run", {"profile": "example", "action": "rescore_all", "statuses": ["new"], "mode": "all"})
         job = self.wait_job()
         self.assertEqual(sum("Разбираю:" in line for line in job["log"]), 2)          # 1 и 2: без архива и без 4
-        self.assertEqual(sorted(A.analyzed_with_status(self.t.profile, {"new", "no"})),
+        self.assertEqual(sorted(V.analyzed_with_status(self.t.profile, {"new", "no"})),
                          [f.name for n, f in sorted(numbered_files(self.t.profile.vacancies).items()) if n != 4])
 
     def test_rescore_unanalyzed(self):
@@ -266,11 +266,11 @@ class AppServer(unittest.TestCase):
         logs, real = [], A.setup.ollama_models
         A.setup.ollama_models = lambda: None
         try:
-            A.analyze_and_write(self.t.profile, logs.append, None)
+            W.analyze_and_write(self.t.profile, logs.append, None)
             self.assertIn("ждут разбора: 1", logs[0])
             self.assertFalse(any(self.t.profile.results.glob("*.md")) if self.t.profile.results.exists() else False)
             with self.assertRaises(A.AssistantError) as e:
-                A.make_work(self.t.profile, "analyze", {})
+                W.make_work(self.t.profile, "analyze", {})
             self.assertIn("Ollama", str(e.exception))
         finally:
             A.setup.ollama_models = real

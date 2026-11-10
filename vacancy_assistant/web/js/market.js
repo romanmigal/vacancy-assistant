@@ -149,9 +149,8 @@ function bindMarket() {
   $("mkSince").onkeydown = e => { if (e.key === "Enter") $("mkShow").click(); };
   document.querySelectorAll("#mkBody [data-mkvac]").forEach(b => b.onclick = e => {
     e.preventDefault();
-    const n = +b.dataset.mkvac, row = state.rows.find(r => r.n === n);
     closeWizard();
-    if (row) { tab = row.status; openVacancy(n); }
+    goToVacancy(+b.dataset.mkvac);
   });
   const count = () => { if ($("mkCount")) { $("mkCount").textContent = MK.picked.size; $("mkRecheck").disabled = state.no_model || !MK.picked.size; } };
   document.querySelectorAll("#mkBody [data-mkpick]").forEach(c => c.onchange = () => {

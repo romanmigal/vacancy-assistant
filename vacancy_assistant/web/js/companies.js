@@ -96,9 +96,8 @@ function renderCompanies() {
         <tbody>${list.map(companyRow).join("")}${anonShown ? anonymousRow(anon) : ""}</tbody></table></div>` : `<p class="muted">Ничего не нашлось.</p>`}`;
   document.querySelectorAll("#coList [data-cofilter]").forEach(b => b.onclick = () => { closeWizard(); openCompanyFilter(JSON.parse(b.dataset.cofilter)); });
   document.querySelectorAll("#coList [data-covac]").forEach(b => b.onclick = () => {
-    const n = +b.dataset.covac, row = state.rows.find(r => r.n === n);
     closeWizard();
-    if (row) { tab = row.status; openVacancy(n); }
+    goToVacancy(+b.dataset.covac);
   });
   document.querySelectorAll("#coList [data-coagency]").forEach(b => b.onclick = async () => {
     const v = b.dataset.coagency === "1";

@@ -369,9 +369,8 @@ function bindStats() {
     $("stChart").innerHTML = statChart(statData);
   });
   document.querySelectorAll("#wbody [data-vac]").forEach(b => b.onclick = () => {
-    const n = +b.dataset.vac, row = state.rows.find(r => r.n === n);
     closeWizard();
-    if (row) { tab = row.status; openVacancy(n); }
+    goToVacancy(+b.dataset.vac);
   });
 }
 

@@ -4,7 +4,7 @@ from pathlib import Path
 
 from helpers import TempProfile
 
-from vacancy_assistant import app as A, dupes, hh, sites
+from vacancy_assistant import app as A, dupes, hh, sites, vacancies as V
 from vacancy_assistant.files import numbered_files, read_vacancy
 from vacancy_assistant.textio import read_text, write_text
 
@@ -31,9 +31,9 @@ class Find(unittest.TestCase):
             self.assertEqual(len(numbered_files(t.profile.vacancies)), 1)
             self.assertIn("Ещё ссылки:** https://example.ru/jobs/cio", read_text(first))
             self.assertIn("добавил ссылку", logs[-1])
-            row = A.vacancy_rows(t.profile)[0]
+            row = V.vacancy_rows(t.profile)[0]
             self.assertEqual(row["more_links"][0]["url"], "https://example.ru/jobs/cio")
-            self.assertNotIn("Ещё ссылки", A.without_saved(read_text(first)))
+            self.assertNotIn("Ещё ссылки", V.without_saved(read_text(first)))
 
     def test_hh_after_site(self):
         """Наоборот: сначала сайт компании, потом та же вакансия на hh — hh-ссылка в «Ещё ссылки»."""
@@ -98,7 +98,7 @@ class Maybe(unittest.TestCase):
 
     def test_marked(self):
         self.assertEqual(read_vacancy(self.second)[1]["maybe"], "1")
-        self.assertEqual({r["n"]: r["maybe_dupe"] for r in A.vacancy_rows(self.t.profile)}, {1: None, 2: 1})
+        self.assertEqual({r["n"]: r["maybe_dupe"] for r in V.vacancy_rows(self.t.profile)}, {1: None, 2: 1})
 
     def test_merge(self):
         write_text(self.t.profile.results / self.second.name, "разбор")

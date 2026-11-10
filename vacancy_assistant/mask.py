@@ -11,7 +11,7 @@
 """
 import re
 
-from . import contacts
+from . import contacts, legal
 from .textio import read_text
 
 NOTE = ("Метки в квадратных скобках ([Кандидат], [Контакт 1], [Компания 1], [Ссылка 1], [Телефон 1], [Почта 1], [Адрес 1]) — "
@@ -35,11 +35,11 @@ _WHEN = r"(?:[А-Яа-яЁё]+\.?[ \t]+|\d{1,2}[./])?"
 PLAIN_EXPERIENCE = re.compile(
     rf"^[ \t]*(?:[-*•][ \t]*)?{_WHEN}\d{{4}}[ \t]*[—–-][ \t]*{_WHEN}"
     r"(?:\d{4}|(?:по[ \t]+)?н\.?[ \t]?в\.?|наст\w*(?:[ \t]+время)?|сейчас)[ \t]*[—–:,|·-]?[ \t]*(.+)$", re.M | re.I)
-_FORMS = r"(?:ООО|ОАО|ПАО|ЗАО|АО|НАО|ИП|ФГУП|ГК|LLC|Ltd|Inc)\.?"
+_FORMS = legal.FORM
 PLAIN_COMPANY = re.compile(rf"(?:{_FORMS}[ \t]+)?«[^»]{{2,60}}»|(?<![\w«]){_FORMS}[ \t]+[^,()\n—–;]{{2,60}}")
 DOMAIN = re.compile(r"(?:https?://)?(?:www\.)?([\w-]+(?:\.[\w-]+)+)/?\s*$")
 LABEL = re.compile(r"\[(Кандидат|Контакт|Компания|Ссылка|Телефон|Почта|Адрес)[а-яё]*(?:\s+(\d+))?\]")
-LEGAL = re.compile(r"^(?:ООО|ОАО|ПАО|ЗАО|АО|НАО|ИП|ФГУП|ГК|LLC|Ltd|Inc)\.?\s+", re.I)
+LEGAL = re.compile(legal.PREFIX, re.I)
 
 
 def _latin(word):

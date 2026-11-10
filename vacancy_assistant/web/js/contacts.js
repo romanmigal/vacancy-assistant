@@ -88,9 +88,8 @@ function renderContacts() {
     contactsCache.contacts = all.filter(x => x.id !== c.id); renderContacts(); refreshRows();
   });
   document.querySelectorAll("[data-vac]").forEach(b => b.onclick = () => {
-    const n = +b.dataset.vac, row = state.rows.find(r => r.n === n);
     closeWizard();
-    if (row) { tab = row.status; openVacancy(n); }
+    goToVacancy(+b.dataset.vac);
   });
 }
 

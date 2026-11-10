@@ -5,7 +5,7 @@ from datetime import date
 
 from helpers import TempProfile, answer_for, fake_model
 
-from vacancy_assistant import analysis, app as A, gaps, market, ratings
+from vacancy_assistant import analysis, app as A, gaps, market, ratings, vacancies as V, work as W
 from vacancy_assistant.errors import AssistantError
 from vacancy_assistant.textio import read_text
 
@@ -53,7 +53,7 @@ class Gaps(unittest.TestCase):
         ratings.set_rating(p, 3, 3, 3, "нет", "далеко", today=date(2026, 11, 3))     # модель «да», я «нет»
         ratings.set_rating(p, 4, 8, 8, "да", "", today=date(2026, 11, 3))            # совпало
         ratings.set_rating(p, 5, 8, 8, "да", "", today=date(2026, 9, 1))             # раньше даты — не берём
-        self.rows = lambda: A.vacancy_rows(self.t.profile)
+        self.rows = lambda: V.vacancy_rows(self.t.profile)
 
     def tearDown(self):
         self.t.__exit__(None, None, None)
@@ -76,7 +76,7 @@ class Gaps(unittest.TestCase):
         self.assertEqual(len(rep["own"]["under"]), 2)
         prompts = []
         ask = lambda prompt, *a: prompts.append(prompt) or model(prompt)
-        _, work = A.make_work(self.t.profile, "market_advice", {"since": "2026-11-01"}, ask=ask)
+        _, work = W.make_work(self.t.profile, "market_advice", {"since": "2026-11-01"}, ask=ask)
         work(lambda *_: None)
         self.assertIn("Внедрение ERP", prompts[0])
         self.assertIn("Моя причина: моё", prompts[0])
@@ -89,7 +89,7 @@ class Gaps(unittest.TestCase):
         p = self.t.profile
         result = next(p.results.glob("01*.md"))
         before = read_text(result)
-        _, work = A.make_work(p, "market_recheck", {"ns": [1, 2], "facts": f"- {FACT}\n"}, ask=model)
+        _, work = W.make_work(p, "market_recheck", {"ns": [1, 2], "facts": f"- {FACT}\n"}, ask=model)
         work(lambda *_: None)
         rc = market.report(p, self.rows(), "2026-11-01")["recheck"]
         self.assertEqual(rc["changed"], ["facts"])
@@ -102,8 +102,8 @@ class Gaps(unittest.TestCase):
         with self.assertRaises(AssistantError):
             gaps.undo(p)
         with self.assertRaises(AssistantError):
-            A.make_work(p, "market_recheck", {"ns": []})
-        self.assertIn("market_recheck", A.NEEDS_MODEL)
+            W.make_work(p, "market_recheck", {"ns": []})
+        self.assertIn("market_recheck", W.NEEDS_MODEL)
 
 
 if __name__ == "__main__":

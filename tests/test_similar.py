@@ -4,7 +4,7 @@ from datetime import date
 
 from helpers import TempProfile
 
-from vacancy_assistant import app as A, funnel, similar
+from vacancy_assistant import app as A, funnel, similar, vacancies as V
 from vacancy_assistant.textio import write_text
 
 PAY = ("---\n\nРазвитие платёжного процессинга и эквайринга, микросервисы на Kubernetes, высоконагруженные сервисы, "
@@ -78,7 +78,7 @@ class Rows(unittest.TestCase):
                            f"\"score\": 6, \"can\": 6, \"want\": 5, \"decision\": \"да\", \"stage\": \"full\"}} -->\n# Технический директор\n")
                 if n <= 3:
                     funnel.set_stage(t.profile.results / path.name, "applied", date.today(), "new")
-            rows = {r["n"]: r for r in A.vacancy_rows(t.profile)}
+            rows = {r["n"]: r for r in V.vacancy_rows(t.profile)}
             self.assertEqual(rows[4]["want_bonus"], 2)
             self.assertEqual(rows[4]["want"], 5)                              # «Хочу» модели не меняется
             self.assertEqual(rows[5]["want_bonus"], 0)
@@ -86,7 +86,7 @@ class Rows(unittest.TestCase):
             app.handle("POST", "/api/profile/settings", {}, {"profile": "example", "want_similar": False})
             again = t.profile.__class__("example", t.profiles)                 # как после перезапуска
             self.assertFalse(similar.enabled(again))
-            self.assertEqual({r["want_bonus"] for r in A.vacancy_rows(again)}, {0})
+            self.assertEqual({r["want_bonus"] for r in V.vacancy_rows(again)}, {0})
 
 
 if __name__ == "__main__":

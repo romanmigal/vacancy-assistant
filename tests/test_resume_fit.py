@@ -5,7 +5,7 @@ import unittest
 
 from helpers import TempProfile, fake_model
 
-from vacancy_assistant import analysis, app as A
+from vacancy_assistant import analysis, app as A, work as W
 from vacancy_assistant.textio import read_text
 
 
@@ -55,7 +55,7 @@ class ResumeFit(unittest.TestCase):
 
     def test_route_and_card(self):
         app = A.App(self.t.profiles, ask=fake_model)
-        title, work = A.make_work(self.t.profile, "resume_fit", {"n": 1}, ask=fake_model)
+        title, work = W.make_work(self.t.profile, "resume_fit", {"n": 1}, ask=fake_model)
         self.assertEqual(title, "Резюме под вакансию")
         work(lambda *_: None)
         d = app.handle("GET", "/api/vacancy", {"profile": ["example"], "n": ["1"]}, {})
@@ -65,7 +65,7 @@ class ResumeFit(unittest.TestCase):
         self.assertNotIn("<!--", d["resume_fits"][0]["text"])
         self.t.add_vacancy(2, "Без разбора")
         with self.assertRaises(A.AssistantError):                            # без разбора — понятный отказ
-            A.make_work(self.t.profile, "resume_fit", {"n": 2}, ask=fake_model)
+            W.make_work(self.t.profile, "resume_fit", {"n": 2}, ask=fake_model)
 
 
 if __name__ == "__main__":

@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 
 from helpers import TempProfile
 
-from vacancy_assistant import app as A, rss
+from vacancy_assistant import app as A, rss, work as W
 from vacancy_assistant.files import read_vacancy
 from vacancy_assistant.textio import read_text
 
@@ -118,10 +118,10 @@ class Search(unittest.TestCase):
             p.save_config()
             fetch = Fetch()
             with self.assertRaises(Exception):                     # ни hh, ни лент — отказ
-                A.make_work(A.Profile("example", t.profiles), "update", {}, fetch_page=fetch, ask=lambda *a, **k: "")
+                W.make_work(A.Profile("example", t.profiles), "update", {}, fetch_page=fetch, ask=lambda *a, **k: "")
             rss.set_enabled(p, {"geekjob": True})
             lines = []
-            _, work = A.make_work(A.Profile("example", t.profiles), "update", {}, fetch_page=fetch,
+            _, work = W.make_work(A.Profile("example", t.profiles), "update", {}, fetch_page=fetch,
                                   ask=lambda *a, **k: "Оценка: 5/10\nОткликаться: нет")
             work(lines.append)
             self.assertTrue(any("только ленты" in l for l in lines))

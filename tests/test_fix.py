@@ -4,7 +4,7 @@ import unittest
 
 from helpers import TempProfile, answer_for, fake_model
 
-from vacancy_assistant import analysis, app as A, criteria_history, fix, ratings
+from vacancy_assistant import analysis, app as A, criteria_history, fix, ratings, vacancies as V, work as W
 from vacancy_assistant.errors import AssistantError
 from vacancy_assistant.textio import read_text, write_text
 
@@ -60,7 +60,7 @@ class Fix(unittest.TestCase):
     def suggest(self, ask=None, **extra):
         data = {"n": 1, "direction": "up", "reason": "направление с разработкой мне интересно",
                 "marks": ["К3: руководитель направления"], **extra}
-        _, work = A.make_work(self.t.profile, "fix_suggest", data, ask=ask or model())
+        _, work = W.make_work(self.t.profile, "fix_suggest", data, ask=ask or model())
         work(lambda *_: None)
         return fix.read_state(self.t.profile, 1)
 
@@ -105,7 +105,7 @@ class Fix(unittest.TestCase):
         ratings.set_rating(p, 1, 7, 7, "да", "направление с разработкой")
         ratings.set_rating(p, 2, 8, 8, "да", "")
         self.suggest()
-        _, work = A.make_work(p, "fix_check", {"n": 1}, ask=model())
+        _, work = W.make_work(p, "fix_check", {"n": 1}, ask=model())
         work(lambda *_: None)
         ref = fix.read_state(p, 1)["reference"]
         self.assertEqual((ref["before"]["решение совпало"], ref["after"]["решение совпало"]), (1, 2))
@@ -117,7 +117,7 @@ class Fix(unittest.TestCase):
         self.assertTrue(vs[0]["current"] and vs[0]["source"].startswith("правка по вакансии 01"))
         self.assertEqual(vs[0]["measure"]["совпало"], 2)
         self.assertTrue(any(v["source"] == "до правки по вакансии 01" for v in vs))
-        self.assertTrue(A.vacancy_rows(p)[0]["criteria_changed"])                  # предложат пересчитать оценки
+        self.assertTrue(V.vacancy_rows(p)[0]["criteria_changed"])                  # предложат пересчитать оценки
 
     def test_stale_after_criteria_change(self):
         self.suggest()
@@ -128,7 +128,7 @@ class Fix(unittest.TestCase):
 
     def test_check_needs_ratings(self):
         self.suggest()
-        _, work = A.make_work(self.t.profile, "fix_check", {"n": 1}, ask=model())
+        _, work = W.make_work(self.t.profile, "fix_check", {"n": 1}, ask=model())
         with self.assertRaises(AssistantError) as e:
             work(lambda *_: None)
         self.assertIn("Нет оценённых", str(e.exception))
@@ -138,10 +138,10 @@ class Fix(unittest.TestCase):
         v = app.handle("GET", "/api/fix", {"profile": ["example"], "n": ["1"]}, {})
         self.assertEqual((v["model"]["score"], v["model"]["decision"], v["reference"], v["state"]), (3, "нет", 0, None))
         self.assertEqual(v["factors"]["criteria"][0]["k"], "1")
-        self.assertIn("Правка критериев", A.make_work(self.t.profile, "fix_suggest", {"n": 1, "direction": "up"})[0])
+        self.assertIn("Правка критериев", W.make_work(self.t.profile, "fix_suggest", {"n": 1, "direction": "up"})[0])
         with self.assertRaises(AssistantError):
-            A.make_work(self.t.profile, "fix_suggest", {"n": 1})
-        self.assertIn("fix_suggest", A.SINGLE)
+            W.make_work(self.t.profile, "fix_suggest", {"n": 1})
+        self.assertIn("fix_suggest", W.SINGLE)
         self.assertEqual(read_text(self.t.profile.criteria_file).strip(), self.criteria.strip())
 
 
@@ -160,7 +160,7 @@ class Recheck(unittest.TestCase):
         self.t.__exit__(None, None, None)
 
     def recheck(self, **data):
-        _, work = A.make_work(self.t.profile, "fix_recheck", {"n": 1, **data}, ask=model())
+        _, work = W.make_work(self.t.profile, "fix_recheck", {"n": 1, **data}, ask=model())
         work(lambda *_: None)
         return fix.read_recheck(self.t.profile, 1)
 
@@ -187,8 +187,8 @@ class Recheck(unittest.TestCase):
             self.recheck(criteria="  ")
 
     def test_route(self):
-        self.assertIn("fix_recheck", A.SINGLE)
-        self.assertIn("fix_recheck", A.NEEDS_MODEL)
+        self.assertIn("fix_recheck", W.SINGLE)
+        self.assertIn("fix_recheck", W.NEEDS_MODEL)
         with self.assertRaises(AssistantError):
             fix.undo(self.t.profile, 1)
 

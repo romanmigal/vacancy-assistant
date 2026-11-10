@@ -72,9 +72,8 @@ function bindSalaries() {
     bindSalaries();
   });
   document.querySelectorAll("#salBody [data-vac]").forEach(c => c.onclick = () => {
-    const n = +c.dataset.vac, row = state.rows.find(r => r.n === n);
     closeWizard();
-    if (row) { tab = row.status; openVacancy(n); }
+    goToVacancy(+c.dataset.vac);
   });
 }
 

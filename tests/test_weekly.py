@@ -4,7 +4,7 @@ from datetime import date
 
 from helpers import TempProfile
 
-from vacancy_assistant import app as A, funnel, weekly
+from vacancy_assistant import app as A, funnel, vacancies as V, weekly
 from vacancy_assistant.textio import write_text
 
 TODAY = date(2026, 10, 28)              # среда; прошлая неделя — 19–25.10, позапрошлая — 12–18.10
@@ -35,7 +35,7 @@ class Weekly(unittest.TestCase):
             setup(t, 4, "14.10.2026", "2026-10-14", 7, "applied", date(2026, 10, 15))     # позапрошлая неделя
             write_text(t.profile.seen, "1\t20.10.2026\tвзята\tИТ-директор\n2\t20.10.2026\tотсеяна\tМенеджер проектов\n"
                                        "3\t21.10.2026\tотсеяна\tДиректор по продажам\n4\t21.10.2026\tпо ссылке\tCIO\n")
-            r = weekly.compute(t.profile, A.vacancy_rows(t.profile), "last", TODAY)
+            r = weekly.compute(t.profile, V.vacancy_rows(t.profile), "last", TODAY)
             w, p, a = r["week"], r["prev"], r["total"]
             self.assertEqual((w["added"], w["analyzed"], w["good"], w["applied"], w["answered"], w["interview"]), (3, 3, 2, 2, 1, 1))
             self.assertEqual((p["added"], p["applied"]), (1, 1))
@@ -70,7 +70,7 @@ class Weekly(unittest.TestCase):
 
     def test_no_search_hides_rows(self):
         with TempProfile() as t:
-            r = weekly.compute(t.profile, A.vacancy_rows(t.profile), "last", TODAY)
+            r = weekly.compute(t.profile, V.vacancy_rows(t.profile), "last", TODAY)
             self.assertNotIn("found", [m["key"] for m in r["metrics"]])
             self.assertIn("не добавлено ни одной", r["advice"][0]["text"])
 
