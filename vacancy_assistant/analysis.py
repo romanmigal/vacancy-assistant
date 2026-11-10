@@ -10,7 +10,7 @@ from . import settings
 from .hh import ARCHIVED_FIELD, phase
 from .files import decision_yes, say_decision, frontmatter, md_path, parse_answer, read_meta, read_vacancy, strengths
 from .errors import AssistantError
-from . import actual, artifacts, cloud, funnel, letter_templates
+from . import actual, artifacts, cloud, funnel, letter_frame, letter_templates
 from .model import ask_local, ask_model, current_model
 from .summary import write_summary
 from .textio import log_print, read_text, write_text
@@ -203,10 +203,12 @@ def write_letter(profile, path, resume=None, log=None, ask=None, example=None, t
     profile.letters.mkdir(exist_ok=True)
     meta = read_meta(path)
     vacancy, _ = read_vacancy(profile.vacancies / path.name)
-    prompt = profile.letter_prompt(resume, vacancy, strengths(read_text(path)), example or tpl["text"])
+    greeting, middle = letter_frame.split_example(example or tpl["text"], profile)   # модели — образец без рамки
+    prompt = profile.letter_prompt(resume, vacancy, strengths(read_text(path)), middle)
     start = time.time()
     letter = ask(prompt, settings.LETTER_MODEL, settings.LETTER_OPTIONS)
     seconds = round(time.time() - start)
+    letter = letter_frame.assemble(profile, greeting, letter_frame.strip_frame(letter, profile))
     info = {"model": current_model(), "prompt": settings.LETTER_TEMPLATE.name, "template": tpl["name"],
             "date": date.today().isoformat(), "chars": len(letter), "seconds": seconds}
     target = profile.letters / path.name

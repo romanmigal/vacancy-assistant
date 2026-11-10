@@ -41,7 +41,8 @@ class Artifacts(unittest.TestCase):
         analysis.write_letter(self.p(), self.result, ask=lambda *a: "Письмо работодателю.", log=lambda *_: None)
         self.post("/api/letter/sent", kind="cover", key="", date="2026-10-27")
         shelf = self.card()["artifacts"]
-        self.assertEqual([(e["type"], e["date"], e["text"]) for e in shelf], [("cover", "2026-10-27", "Письмо работодателю.")])
+        self.assertEqual([(e["type"], e["date"]) for e in shelf], [("cover", "2026-10-27")])
+        self.assertIn("\n\nПисьмо работодателю.\n\n", shelf[0]["text"])          # середина от модели — в рамке письма
         self.post("/api/letter/sent", kind="cover", key="", date="2026-10-26")       # поправили дату — та же копия
         self.assertEqual([e["date"] for e in self.card()["artifacts"]], ["2026-10-26"])
         self.post("/api/letter/sent", kind="cover", key="", date="")                 # сняли отметку — копия в Корзину

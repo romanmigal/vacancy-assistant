@@ -81,7 +81,7 @@ class Templates(unittest.TestCase):
         self.assertEqual(f.stat().st_mtime, mtime)                                   # место в списке версий не меняется
         card = self.card()
         self.assertEqual([v.get("sent") for v in card["letters"]], [None, "2026-10-27"])
-        self.assertEqual(card["letters"][1]["text"], "Первое.")
+        self.assertIn("\n\nПервое.\n\n", card["letters"][1]["text"])
         self.assertIn({"date": "2026-10-27", "time": "", "kind": "cover", "source": "sent"}, card["texts"])   # прошлая дата — без времени
         self.post("/api/letter/sent", n=1, kind="cover", key=old["key"], date="")       # снять отметку
         self.assertNotIn("sent", self.card()["letters"][1])

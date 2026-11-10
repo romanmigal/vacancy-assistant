@@ -33,7 +33,7 @@ AREAS = {"Москва": 1, "Санкт-Петербург": 2, "Екатери�
 REMOTE = ("удалённо", "area=113&work_format=REMOTE")
 
 START = {"сразу": "Могу приступить сразу.", "2 недели": "Могу приступить через две недели.",
-         "месяц": "Могу приступить через месяц."}
+         "месяц": "Могу приступить через месяц.", "не писать": ""}     # «не писать» — письмо без фразы о готовности
 
 LETTER_TEMPLATE = """Здравствуйте!
 
@@ -362,10 +362,11 @@ def letter_sample(a):
     """Заготовка образца письма с подсказками в [скобках]."""
     config = build_config({"name": "", **a})
     titles = lines(a.get("titles"))
-    return LETTER_TEMPLATE.format(
+    text = LETTER_TEMPLATE.format(
         title=titles[0] if titles else "[должность]", solved="решала" if a.get("female") else "решал",
         did="сделала" if a.get("female") else "сделал", start=config["письмо"]["готовность"],
         closing=config["письмо"]["завершение"], name=(a.get("name") or "").strip() or "[имя]")
+    return re.sub(r"\n{3,}", "\n\n", text)            # «не писать» о готовности — без пустого абзаца
 
 
 def create_profile(a, profiles_dir=None, log=None):

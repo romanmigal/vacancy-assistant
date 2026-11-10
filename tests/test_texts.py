@@ -38,8 +38,8 @@ class Texts(unittest.TestCase):
         analysis.write_letter(self.p(), self.result, ask=lambda *a: "Письмо модели.", log=lambda *_: None)
         self.assertEqual(self.save("cover", "Письмо модели, поправленное.\n\nС уважением", "edit"), {"ok": True})
         letters = self.card()["letters"]
-        self.assertEqual([(v["text"].splitlines()[0], v.get("source"), v["current"]) for v in letters],
-                         [("Письмо модели, поправленное.", "edit", True), ("Письмо модели.", None, False)])
+        self.assertEqual([(v["text"].split("\n\n")[0 if v["current"] else 1], v.get("source"), v["current"]) for v in letters],
+                         [("Письмо модели, поправленное.", "edit", True), ("Письмо модели.", None, False)])   # у модели — после приветствия
         self.assertEqual([(e["kind"], e["source"]) for e in self.card()["texts"]], [("cover", "edit")])
 
     def test_two_own_referrer_letters(self):
