@@ -16,7 +16,7 @@ async function openContacts() {
   closeMenus();
   if (!await loadContacts().catch(fail)) return;
   dialog("Контакты", `
-    <p class="hint">Знакомые, через которых можно подать резюме. Программа сама сверяет их компании с компаниями вакансий и показывает кандидатов в референсеры в карточке вакансии. Контакты хранятся только на этом компьютере.</p>
+    <p class="hint">Знакомые, через которых можно подать резюме. Программа сама сверяет их компании с компаниями вакансий и показывает кандидатов в референсеры в карточке вакансии. Если компания в LinkedIn названа иначе, чем в вакансии, нажмите «≡» у контакта или откройте <button type="button" class="linkbtn" id="cSyn">синонимы компаний</button>. Контакты хранятся только на этом компьютере.</p>
     <div class="ctools">
       <input type="search" id="cSearch" placeholder="Поиск: имя, компания, должность" value="${esc(contactsFilter.text)}">
       <label class="checks"><input type="checkbox" id="cWithVac" ${contactsFilter.withVacancies ? "checked" : ""}> только с вакансиями</label>
@@ -35,6 +35,7 @@ async function openContacts() {
   $("cSearch").oninput = () => { contactsFilter.text = $("cSearch").value; renderContacts(); };
   $("cWithVac").onchange = () => { contactsFilter.withVacancies = $("cWithVac").checked; renderContacts(); };
   $("cAdd").onclick = () => editContact({}, openContacts);
+  $("cSyn").onclick = openSynonyms;
   $("cImport").onclick = () => $("cFile").click();
   $("cFile").onchange = async () => {
     const f = $("cFile").files[0];
@@ -69,7 +70,7 @@ function renderContacts() {
         <td>${esc(c.company)}</td><td class="muted">${esc(c.position)}</td>
         <td><select data-status="${c.id}">${contactsCache.statuses.map(([v, n]) => `<option value="${v}" ${v === c.status ? "selected" : ""}>${n}</option>`).join("")}</select>${c.status && c.status_date ? ` <span class="muted sdate" title="Когда отмечен статус">${ddmm(c.status_date)}</span>` : ""}</td>
         <td>${c.vacancies.map(v => `<button type="button" class="small ${v.exact ? "" : "near"}" data-vac="${v.n}" title="${v.exact ? "Открыть вакансию" : "Похожее название компании — проверьте. Открыть вакансию"}">${String(v.n).padStart(2, "0")}${v.exact ? "" : "?"}</button>`).join(" ")}</td>
-        <td class="nowrap"><button type="button" class="small" data-edit="${c.id}" title="Изменить">✎</button> <button type="button" class="small danger" data-del="${c.id}" title="Удалить">✕</button></td>
+        <td class="nowrap">${c.company ? `<button type="button" class="small" data-same="${c.id}" title="Это та же компания, что… — например, «${esc(c.company)}» в LinkedIn и по-русски в вакансии">≡</button> ` : ""}<button type="button" class="small" data-edit="${c.id}" title="Изменить">✎</button> <button type="button" class="small danger" data-del="${c.id}" title="Удалить">✕</button></td>
       </tr>`).join("")}</tbody></table></div>`;
   const byId = id => all.find(c => c.id === id);
   document.querySelectorAll("[data-status]").forEach(s => s.onchange = async () => {
@@ -79,6 +80,7 @@ function renderContacts() {
     renderContacts(); refreshRows(); toast("Статус сохранён");
   });
   document.querySelectorAll("[data-edit]").forEach(b => b.onclick = () => editContact(byId(b.dataset.edit), openContacts));
+  document.querySelectorAll("[data-same]").forEach(b => b.onclick = () => sameCompanyFor(byId(b.dataset.same), openContacts));
   document.querySelectorAll("[data-del]").forEach(b => b.onclick = async () => {
     const c = byId(b.dataset.del);
     if (!confirm(`Удалить контакт «${c.name}»?`)) return;
@@ -135,7 +137,12 @@ function bindReferrerCandidates(r, d, n) {
     await api("/api/referrer", {profile: state.profile, n, text, contact_id: c.id}).catch(fail);
     r.referrer = text; render(); openVacancy(n); toast("Референсер выбран");
   };
-  document.querySelectorAll("[data-pick]").forEach(b => b.onclick = () => pick(d.referrer_candidates.find(c => c.id === b.dataset.pick)));
+  document.querySelectorAll("[data-pick]").forEach(b => b.onclick = () => {
+    const c = d.referrer_candidates.find(c => c.id === b.dataset.pick);
+    if (c.exact) return pick(c);
+    // похожее название «?»: сначала спросить, одна ли компания, — ответ запомнится в синонимах профиля
+    askSameCompany(r.company, c, () => pick(c), () => openVacancy(n));
+  });
   if ($("openReferrer")) $("openReferrer").onclick = () => openReferrer(r);
   if ($("addContact")) $("addContact").onclick = async () => {
     if (!contactsCache) await loadContacts().catch(() => {});

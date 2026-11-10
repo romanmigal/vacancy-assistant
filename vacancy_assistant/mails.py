@@ -139,7 +139,7 @@ def inbox(profile, letters):
             problems.append(f"{name}: {e}")
     seen = set(re.findall(r"^(\d+)", read_text(profile.seen), re.M)) if profile.seen.exists() else set()
     added = _in_list(profile)
-    people = contacts.load(profile)
+    people, syn = contacts.load(profile), contacts.synonyms(profile)
     items, ids = [], set()
     for letter in read_ok:
         for it in letter["items"]:
@@ -148,7 +148,7 @@ def inbox(profile, letters):
             ids.add(it["id"])
             state = "added" if it["id"] in added else "seen" if it["id"] in seen else "new"
             items.append({**it, "state": state, "n": added.get(it["id"]), "fits": profile.title_fits(it["title"]),
-                          "contacts": sum(1 for c in people if contacts.match_level(it["company"], c.get("company", "")) == 2)})
+                          "contacts": sum(1 for c in people if contacts.match_level(it["company"], c.get("company", ""), syn) == 2)})
     new = [(it["id"], it["title"]) for it in items if it["state"] == "new"]
     if new:
         hh.remember_seen(profile, new, MARK)

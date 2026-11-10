@@ -160,9 +160,9 @@ def vacancy_rows(profile):
     for r in rows:
         r["want_bonus"], r["want_like"] = like.get(r["n"], {}).get("bonus", 0), like.get(r["n"], {}).get("like", [])
     people = contacts.load(profile)                    # сколько знакомых в компании вакансии — значок в таблице
-    by_id = {c["id"]: c for c in people}
+    by_id, syn = {c["id"]: c for c in people}, contacts.synonyms(profile)
     for r in rows:
-        r["contacts"] = sum(1 for c in people if contacts.match_level(r["company"], c.get("company", "")) == 2)
+        r["contacts"] = sum(1 for c in people if contacts.match_level(r["company"], c.get("company", ""), syn) == 2)
         linked = by_id.get(r.pop("referrer_id", ""))  # референсер из контактов — имя и должность, остальное в подсказке
         r["referrer_contact"] = contacts.brief(linked) if linked else None
     rows.sort(key=lambda r: (not r["analyzed"], -(r["score"] or 0), r["n"]))
@@ -945,7 +945,28 @@ class App:
 
     @route("/api/contacts")
     def api_contacts(self, p, a):
-        return {"contacts": contacts.public(contacts.load(p), vacancy_rows(p)), "statuses": contacts.STATUSES}
+        return {"contacts": contacts.public(contacts.load(p), vacancy_rows(p), contacts.synonyms(p)), "statuses": contacts.STATUSES}
+
+    @route("/api/synonyms")
+    def api_synonyms(self, p, a):
+        """Синонимы компаний профиля: группы одной компании и пары «разные»; companies — названия для подсказок."""
+        syn = contacts.synonyms(p)
+        names = {r["company"] for r in vacancy_rows(p) if r.get("company")} | {c.get("company", "") for c in contacts.load(p)}
+        return {"groups": syn.groups, "apart": syn.apart, "companies": sorted((n for n in names if n), key=str.lower)}
+
+    @route("/api/synonyms/save", "POST", writes=True)
+    def api_synonyms_save(self, p, a):
+        """action: same — одна компания, apart — разные, set — список целиком (окно «Синонимы компаний»)."""
+        action = a.get("action")
+        if action == "same":
+            contacts.mark_same(p, a.get("a", ""), a.get("b", ""))
+        elif action == "apart":
+            contacts.mark_apart(p, a.get("a", ""), a.get("b", ""))
+        elif action == "set":
+            contacts.save_synonyms(p, a.get("groups") or [], a.get("apart") or [])
+        else:
+            raise AssistantError("Неизвестное действие с синонимами.")
+        return self.api_synonyms(p, a)
 
     @route("/api/contacts/save", "POST", writes=True)
     def api_contacts_save(self, p, a):

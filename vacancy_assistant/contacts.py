@@ -9,6 +9,8 @@
 - вручную — в окне «Контакты» или из карточки вакансии.
 Кандидатов в референсеры программа находит сама: сравнивает компанию вакансии с компаниями контактов —
 без «ПАО», «ООО», кавычек и с учётом записи латиницей (МТС = MTS, Сбербанк = Sberbank). Модель не нужна.
+Названия, которые правилами не свести («Дойче Банк» = «Deutsche Bank»), человек сам отмечает одной компанией —
+синонимы профиля (синонимы_компаний.json); «это разные» тоже запоминается, чтобы не показывать пару как похожую.
 """
 import csv
 import io
@@ -21,6 +23,7 @@ from .errors import AssistantError
 from .textio import read_json, write_json
 
 FILE = "контакты.json"
+SYN_FILE = "синонимы_компаний.json"    # {"группы": [["Дойче Банк", "Deutsche Bank"], …], "разные": [["МТС Банк", "MTS"], …]}
 BASIC_FILES = ("profile.csv", "skills.csv", "recommendations_received.csv", "invitations.csv", "registration.csv")   # базовая выгрузка
 STATUSES = [("", "—"), ("wrote", "написал"), ("answered", "ответил"), ("talked", "поговорили"), ("referred", "передал резюме")]
 FIELDS = ("name", "company", "position", "url", "email", "status", "note")
@@ -38,9 +41,10 @@ ALIASES = {"sberbank": "sber", "sberteh": "sber", "sberbankrossii": "sber", "tin
            "rayffayzenbank": "raiffeisenbank", "raiffeisenbankrussia": "raiffeisenbank",
            "bnppariba": "bnpparibas", "bnpparibaskib": "bnpparibas",
            "kitfinanke": "kitfinans", "lyuxoft": "luxoft", "vtbkapital": "vtb"}
+ALIASES = {k.replace("kh", "h"): v.replace("kh", "h") for k, v in ALIASES.items()}   # «kh» и «h» — одно (см. latin)
 # Общие слова названий (латиницей, по началу слова): по ним компании не сравниваются — иначе любой
 # «Банк X» похож на любой «Банк Y», а «VTB Capital» — на «Альфа Капитал»
-GENERIC = ("bank", "akb", "kapital", "finan", "tehnolog", "tekhnolog", "tekh", "digit", "tsifrov", "servi",
+GENERIC = ("bank", "akb", "kapital", "finan", "tehnolog", "teh", "digit", "tsifrov", "servi",
            "sistem", "system", "reshen", "solution", "holding", "kompani", "rossi", "russia", "invest")
 LEADING = {"bank", "akb", "kb"}       # в начале названия — описание, а не имя: «Банк ВТБ» = «ВТБ»
 TRANSLIT = dict(zip("абвгдеёжзийклмнопрстуфхцчшщъыьэюя",
@@ -51,7 +55,8 @@ TRANSLIT = dict(zip("абвгдеёжзийклмнопрстуфхцчшщъы�
 def latin(s):
     """Строчными латинскими буквами, с выравниванием написания: «Яндекс» и «Yandex», «Кредит» и «Credit»."""
     s = "".join(TRANSLIT.get(ch, ch) for ch in s.lower().replace("ё", "е"))
-    for a, b in (("ks", "x"), ("ph", "f"), ("w", "v"), ("ck", "k"), ("c", "k")):
+    # «ch» после «c → k» — «kh», а кириллическая «х» — «h»: «Технологии» и «Technology» — одно
+    for a, b in (("ks", "x"), ("ph", "f"), ("w", "v"), ("ck", "k"), ("c", "k"), ("kh", "h")):
         s = s.replace(a, b)
     return s
 
@@ -66,6 +71,87 @@ def company_key(name):
         tokens = tokens[1:]
     s = "".join(tokens)
     return ALIASES.get(s, s)
+
+
+# Не компании: с вакансиями не сравниваем («Self-employed» в LinkedIn — у многих)
+JUNK = {company_key(x) for x in ("Self-employed", "Self employed", "Freelance", "Freelancer", "Фриланс", "Фрилансер",
+                                 "Индивидуальный предприниматель", "Самозанятый", "Retired", "Пенсионер", "Stealth",
+                                 "Stealth Startup", "Stealth Mode", "Unemployed", "Безработный", "Open to work",
+                                 "Career break", "Sabbatical", "Confidential", "Конфиденциально")}
+
+
+class Synonyms:
+    """Синонимы компаний профиля: группы названий одной компании и пары «это разные компании»."""
+
+    def __init__(self, groups=(), apart=()):
+        self.groups = [list(g) for g in groups]
+        self.apart = [list(p) for p in apart]
+        self.map = {}
+        for g in self.groups:
+            keys = [k for k in (company_key(n) for n in g) if k]
+            for k in keys:
+                self.map[k] = keys[0]
+        self.apart_keys = {frozenset((self.key(a), self.key(b))) for a, b in self.apart}
+
+    def key(self, name):
+        k = company_key(name)
+        return self.map.get(k, k)
+
+    def data(self):
+        return {"группы": self.groups, "разные": self.apart}
+
+
+def _clean_names(names):
+    out = []
+    for n in names if isinstance(names, list) else []:
+        n = re.sub(r"\s+", " ", str(n)).strip()[:80]
+        if n and company_key(n) and all(company_key(x) != company_key(n) for x in out):
+            out.append(n)
+    return out
+
+
+def synonyms(profile):
+    data = read_json(profile.dir / SYN_FILE, {}) if (profile.dir / SYN_FILE).exists() else {}
+    data = data if isinstance(data, dict) else {}
+    groups = [g for g in (_clean_names(g) for g in data.get("группы") or []) if len(g) >= 2]
+    apart = [p for p in (_clean_names(p) for p in data.get("разные") or []) if len(p) == 2]
+    return Synonyms(groups, apart)
+
+
+def save_synonyms(profile, groups, apart):
+    """Сохраняет синонимы целиком: группы с общим названием сливаются, пары из одной группы — не «разные»."""
+    merged = []
+    for g in (_clean_names(g) for g in groups or []):
+        keys = {company_key(n) for n in g}
+        joined = [m for m in merged if keys & {company_key(n) for n in m}]
+        for m in joined:
+            merged.remove(m)
+            g = _clean_names(m + g)
+        merged.append(g)
+    merged = [g for g in merged if len(g) >= 2]
+    syn = Synonyms(merged)
+    apart = [p for p in (_clean_names(p) for p in apart or []) if len(p) == 2 and syn.key(p[0]) != syn.key(p[1])]
+    syn = Synonyms(merged, apart)
+    write_json(profile.dir / SYN_FILE, syn.data())
+    return syn
+
+
+def mark_same(profile, a, b):
+    """«Это одна компания»: оба названия — в одну группу (с прежними синонимами каждого)."""
+    syn = synonyms(profile)
+    if not company_key(a) or not company_key(b):
+        raise AssistantError("Укажите оба названия компании.")
+    pair = {syn.key(a), syn.key(b)}
+    return save_synonyms(profile, syn.groups + [[a, b]],
+                         [p for p in syn.apart if {syn.key(p[0]), syn.key(p[1])} != pair])
+
+
+def mark_apart(profile, a, b):
+    """«Это разные компании»: пара больше не считается похожей."""
+    syn = synonyms(profile)
+    if syn.key(a) == syn.key(b):
+        raise AssistantError("Эти названия отмечены одной компанией — сначала разъедините их в «Синонимах компаний».")
+    return save_synonyms(profile, syn.groups, syn.apart + [[a, b]])
 
 
 def words(name):
@@ -83,25 +169,28 @@ def save(profile, items):
     write_json(profile.dir / FILE, items)
 
 
-def public(items, rows=None):
+def public(items, rows=None, syn=None):
     """Контакты для окна; rows — вакансии: у каждого контакта — номера вакансий в его компании."""
     out = []
     for c in sorted(items, key=lambda c: (c.get("company", "").lower(), c.get("name", "").lower())):
         item = {k: c.get(k, "") for k in ("id", "source", "added", "status_date", *FIELDS)}
         if rows is not None:
-            levels = [(r["n"], match_level(r.get("company", ""), c.get("company", ""))) for r in rows]
+            levels = [(r["n"], match_level(r.get("company", ""), c.get("company", ""), syn)) for r in rows]
             item["vacancies"] = [{"n": n, "exact": lvl == 2} for n, lvl in levels if lvl]
         out.append(item)
     return out
 
 
-def match_level(vacancy_company, contact_company):
-    """2 — та же компания, 1 — похожее название (одно слово общее), 0 — нет."""
-    a, b = company_key(vacancy_company), company_key(contact_company)
-    if not a or not b or re.search(r"anonim|neukazan", a):
+def match_level(vacancy_company, contact_company, syn=None):
+    """2 — та же компания, 1 — похожее название (одно слово общее), 0 — нет. syn — синонимы профиля."""
+    key = syn.key if syn else company_key
+    a, b = key(vacancy_company), key(contact_company)
+    if not a or not b or re.search(r"anonim|neukazan", a) or company_key(vacancy_company) in JUNK or company_key(contact_company) in JUNK:
         return 0
     if a == b:
         return 2
+    if syn and frozenset((a, b)) in syn.apart_keys:                      # человек отметил: разные компании
+        return 0
     # одно слово — начало другого: «Сбер. IT» ~ «Sberbank», «МТС Банк» ~ «MTS», «ВТБ Факторинг» ~ «ВТБ»
     near = any(x.startswith(y) or y.startswith(x) for x in words(vacancy_company) for y in words(contact_company))
     return 1 if near and (a.startswith(b) or b.startswith(a) or a[:4] == b[:4]) else 0
@@ -109,7 +198,8 @@ def match_level(vacancy_company, contact_company):
 
 def candidates(profile, company, limit=8):
     """Кандидаты в референсеры для компании вакансии: сначала точные совпадения, потом похожие."""
-    found = [(match_level(company, c.get("company", "")), c) for c in load(profile)]
+    syn = synonyms(profile)
+    found = [(match_level(company, c.get("company", ""), syn), c) for c in load(profile)]
     found = [(lvl, c) for lvl, c in found if lvl]
     found.sort(key=lambda x: (-x[0], x[1].get("status", "") == "", x[1].get("name", "")))
     return [{**{k: c.get(k, "") for k in ("id", "name", "company", "position", "url", "status")}, "exact": lvl == 2}

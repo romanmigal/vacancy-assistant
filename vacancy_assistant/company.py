@@ -185,11 +185,11 @@ def about(profile, n, data=None):
     emp = employer_id(info)
     is_agency, why, what = agency(data, company, text, emp)
     hh = data["hh"].get(emp) if emp else None
-    past = []
+    past, syn = [], contacts.synonyms(profile)
     for m, path in sorted(files.items()):
         if m == n:
             continue
-        level = contacts.match_level(company, read_vacancy(path)[1].get("company", ""))
+        level = contacts.match_level(company, read_vacancy(path)[1].get("company", ""), syn)
         if level:
             past.append({"n": m, "exact": level == 2})
     key = contacts.company_key(company)

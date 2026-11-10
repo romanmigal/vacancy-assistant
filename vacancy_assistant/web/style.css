@@ -910,3 +910,9 @@ h3.sec .fixbtn:hover { background: var(--accent); color: var(--accent-text); }
 .gpmeta { font-size: 13px; color: var(--muted); }
 .gpresult { border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; margin-bottom: 10px; }
 @media (max-width: 640px) { .gpscores, .gpwhy, .gpfail { margin-left: 0; } }
+
+/* Синонимы компаний */
+.synlist { display: flex; flex-direction: column; gap: 4px; }
+.synrow { display: flex; align-items: center; gap: 10px; justify-content: space-between; padding: 4px 8px; border: 1px solid var(--line); border-radius: 6px; }
+.synadd { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.synadd input { flex: 1 1 160px; min-width: 0; }

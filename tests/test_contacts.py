@@ -39,6 +39,37 @@ class Contacts(unittest.TestCase):
         self.assertEqual(m("ООО Пример", "Example"), 0)
         self.assertEqual(m("Анонимный работодатель", "Anon"), 0)
 
+    def test_kh_and_junk(self):
+        """«х» и «ch» после c→k пишутся одинаково; «Self-employed» и подобное — не компания."""
+        self.assertEqual(contacts.latin("Технологии")[:7], contacts.latin("Technology")[:7])
+        for junk in ("Self-employed", "Freelance", "Фриланс", "Индивидуальный предприниматель", "Stealth Startup"):
+            self.assertEqual(contacts.match_level(junk, junk), 0, junk)
+            self.assertEqual(contacts.match_level("Сбер", junk), 0, junk)
+
+    def test_profile_synonyms(self):
+        """Синоним профиля — точное совпадение, «разные» убирают похожее; у другого профиля синонимов нет."""
+        with TempProfile() as t, TempProfile() as other:
+            p = t.profile
+            contacts.save(p, [{"id": "c1", "name": "Иван Петров", "company": "MTS"},
+                              {"id": "c2", "name": "Ольга", "company": "Garant Tech"}])
+            self.assertEqual(contacts.match_level("Гарант-Софт", "Garant Tech"), 1)
+            self.assertEqual([c["exact"] for c in contacts.candidates(p, "МТС Банк")], [False])
+            contacts.mark_same(p, "МТС Банк", "MTS")
+            self.assertEqual([c["exact"] for c in contacts.candidates(p, "МТС Банк")], [True])
+            self.assertEqual(contacts.match_level("МТС Банк", "MTS", contacts.synonyms(other.profile)), 1)   # другой профиль
+            contacts.mark_apart(p, "Гарант-Софт", "Garant Tech")
+            self.assertEqual(contacts.candidates(p, "Гарант-Софт"), [])
+            with self.assertRaises(AssistantError):                     # одна компания — сначала разъединить
+                contacts.mark_apart(p, "МТС Банк", "MTS")
+            contacts.mark_same(p, "MTS", "MTS Digital")            # группы с общим названием сливаются
+            syn = contacts.synonyms(p)
+            self.assertEqual(syn.groups, [["МТС Банк", "MTS", "MTS Digital"]])
+            contacts.mark_same(p, "Гарант-Софт", "Garant Tech")           # передумали: одна компания — пара «разные» уходит
+            syn = contacts.synonyms(p)
+            self.assertEqual((syn.apart, contacts.match_level("Гарант-Софт", "Garant Tech", syn)), ([], 2))
+            contacts.save_synonyms(p, [], [])
+            self.assertEqual(contacts.match_level("МТС Банк", "MTS", contacts.synonyms(p)), 1)
+
     def test_linkedin_import_and_candidates(self):
         with TempProfile() as t:
             p = t.profile
