@@ -183,6 +183,23 @@ class Profile:
         c = self.config
         self.vault_prefix = c.get("путь_в_obsidian", "").strip("/")   # путь от корня хранилища Obsidian
         self.resume = (self.dir / c["резюме"]).resolve()
+        self._paths()
+        self.letter_min_score = c["письмо"]["минимальная_оценка"]
+        # Две ступени: быстрая оценка всех, полный разбор — только «да» и «возможно». False — сразу полный разбор
+        self.two_stage_setting = c["разбор"].get("две_ступени", True)
+        # Согласие человека: модель разбирает страницы вакансий с других сайтов (вырезает вакансию, ищет поля)
+        self.llm_pages = bool(c["разбор"].get("модель_для_страниц", False)) and not self.no_model
+        # Поиск и скачивание с hh.ru программой — только с согласия: соглашение hh запрещает скрипты.
+        # "on" — включено с согласием, "off" — выключено, "ask" — профиль прежней версии: пока человек
+        # не выбрал, на hh.ru не ходим
+        hh = c.get("hh_авто")
+        self.hh_state = ("on" if hh.get("включено") and hh.get("согласие") else "off") if isinstance(hh, dict) else "ask"
+        self.hh_auto = self.hh_state == "on"
+        self._window(c)
+        self._search(c["поиск"])
+
+    def _paths(self):
+        """Папки и файлы профиля."""
         self.facts_file = self.dir / FACTS_FILE         # «Дополнительно о себе» — факты вне резюме
         self.vacancies = self.dir / "vacancies"        # сюда кладём вакансии (.md)
         self.results = self.dir / "разборы"            # сюда пишутся разборы
@@ -197,17 +214,9 @@ class Profile:
         self.ratings = self.dir / "мои-оценки.md"
         self.criteria_file = self.dir / "критерии.txt"
         self.letter_example = self.dir / "образец письма.txt"
-        self.letter_min_score = c["письмо"]["минимальная_оценка"]
-        # Две ступени: быстрая оценка всех, полный разбор — только «да» и «возможно». False — сразу полный разбор
-        self.two_stage_setting = c["разбор"].get("две_ступени", True)
-        # Согласие человека: модель разбирает страницы вакансий с других сайтов (вырезает вакансию, ищет поля)
-        self.llm_pages = bool(c["разбор"].get("модель_для_страниц", False)) and not self.no_model
-        # Поиск и скачивание с hh.ru программой — только с согласия: соглашение hh запрещает скрипты.
-        # "on" — включено с согласием, "off" — выключено, "ask" — профиль прежней версии: пока человек
-        # не выбрал, на hh.ru не ходим
-        hh = c.get("hh_авто")
-        self.hh_state = ("on" if hh.get("включено") and hh.get("согласие") else "off") if isinstance(hh, dict) else "ask"
-        self.hh_auto = self.hh_state == "on"
+
+    def _window(self, c):
+        """Настройки окна: колонки, сохранённые фильтры, свои статусы."""
         # Колонки таблицы в окне: порядок и скрытые (ключи колонок окна; пусто — как по умолчанию)
         cols = c.get("колонки") if isinstance(c.get("колонки"), dict) else {}
         self.columns = {"order": clean_columns(cols.get("порядок")), "hidden": clean_columns(cols.get("скрыты"))}
@@ -216,7 +225,9 @@ class Profile:
         # Свои статусы (до пяти) — вкладки перед «Архивом»: [("c1", "Отложено"), …]; ключ не меняется при переименовании.
         # status_colors — цвет значка каждого: {"c1": "blue"}
         self.custom_statuses, self.status_colors = clean_statuses(c.get("статусы"))
-        search = c["поиск"]
+
+    def _search(self, search):
+        """Настройки поиска: где, сколько, фильтр по зарплате и отсев по названию до модели."""
         self.search_where = [tuple(w) for w in search["где"]]
         self.search_days = search["дней"]
         # Сколько новых подходящих вакансий скачивать за поиск (остальные — в следующий раз); None — все

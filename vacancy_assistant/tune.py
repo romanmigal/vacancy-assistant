@@ -174,6 +174,20 @@ def tune(profile, rounds=3, log=None, ask=None, only=None):
     table = [("v0", "текущие критерии", best["metrics"], "исходная")]
     log(f"Показатели v0: {best['metrics']}")
 
+    best = _rounds(profile, ref, tune_dir, best, rounds, table, log, ask)
+
+    write_text(tune_dir / "критерии — лучшие.txt", best["criteria"] + "\n")
+    rest = [r for r in best["rows"] if r["model_yes"] != r["yes"]]
+    write_text(tune_dir / "отчёт.md", "\n".join(report + _report(profile, criteria, best, table, rest)) + "\n")
+    write_json(tune_dir / "итог.json", _summary(ref, criteria, first, best, table, rest))   # итог для окна
+    criteria_history.import_tune(profile, tune_dir)          # все проверенные версии — в историю критериев
+    log(f"\nГотово. Лучшая версия: v{best['version']} {best['metrics']}\nОтчёт: {tune_dir / 'отчёт.md'}")
+    return best
+
+
+def _rounds(profile, ref, tune_dir, best, rounds, table, log, ask):
+    """Раунды правки: модель предлагает новые критерии, кандидат прогоняется на эталоне и принимается, если лучше.
+    Каждая версия — строкой в table. Возвращает лучшую версию."""
     history = []
     for k in range(1, rounds + 1):
         if best["metrics"]["решение совпало"] == best["metrics"]["всего"]:
@@ -203,10 +217,13 @@ def tune(profile, rounds=3, log=None, ask=None, only=None):
         else:
             history.append(what)
             table.append((f"v{k}", what, m_k, "отброшена: не лучше"))
+    return best
 
-    write_text(tune_dir / "критерии — лучшие.txt", best["criteria"] + "\n")
-    report += ["| Версия | Что изменено | Решение совпало | Пропущено подходящих | Лишних «да» | Оценка ±2 | Ср. расхождение | Итог |",
-               "| --- | --- | --- | --- | --- | --- | --- | --- |"]
+
+def _report(profile, criteria, best, table, rest):
+    """Строки отчёта после шапки: таблица версий, что изменится и как применить, оставшиеся расхождения."""
+    report = ["| Версия | Что изменено | Решение совпало | Пропущено подходящих | Лишних «да» | Оценка ±2 | Ср. расхождение | Итог |",
+              "| --- | --- | --- | --- | --- | --- | --- | --- |"]
     for v, what, m, verdict in table:
         if m:
             report.append(f"| {v} | {what} | {m['решение совпало']} из {m['всего']} | {m['пропущено подходящих']} | "
@@ -225,27 +242,25 @@ def tune(profile, rounds=3, log=None, ask=None, only=None):
     else:
         report += ["Улучшить не удалось — текущие критерии остаются. Если ошибки остались, их причины, "
                    "вероятно, не записаны в колонке «Почему» — допишите их и запустите настройку снова."]
-    rest = [r for r in best["rows"] if r["model_yes"] != r["yes"]]
     if rest:
         report += ["", "## Оставшиеся расхождения", ""] + [
             f"- {r['n']:02d}. {r['title']}: я — {'да' if r['yes'] else 'нет'}, модель — {'да' if r['model_yes'] else 'нет'}"
             for r in rest]
-    write_text(tune_dir / "отчёт.md", "\n".join(report) + "\n")
-    # Итог для окна программы: версии с показателями и что изменится
-    summary = {"date": date.today().isoformat(), "best": best["version"], "reference": len(ref),
-               "versions": [{"version": v, "what": what, "metrics": m, "verdict": verdict.strip("*")}
-                            for v, what, m, verdict in table],
-               "diff": list(difflib.unified_diff(criteria.splitlines(), best["criteria"].splitlines(), lineterm="", n=1))[2:],
-               "rest": [{"n": r["n"], "title": r["title"], "yes": r["yes"], "model_yes": r["model_yes"]} for r in rest],
-               # По каждой вакансии: ваша оценка, оценка модели с текущими критериями (было) и с лучшими (стало)
-               "rows": [{"n": a["n"], "title": a["title"], "company": a["company"], "score": a["score"], "yes": a["yes"],
-                         "before": {"score": a["model_score"], "yes": a["model_yes"]},
-                         "after": {"score": b["model_score"], "yes": b["model_yes"]}}
-                        for a, b in zip(first, best["rows"])]}
-    write_json(tune_dir / "итог.json", summary)
-    criteria_history.import_tune(profile, tune_dir)          # все проверенные версии — в историю критериев
-    log(f"\nГотово. Лучшая версия: v{best['version']} {best['metrics']}\nОтчёт: {tune_dir / 'отчёт.md'}")
-    return best
+    return report
+
+
+def _summary(ref, criteria, first, best, table, rest):
+    """Итог для окна программы: версии с показателями и что изменится."""
+    return {"date": date.today().isoformat(), "best": best["version"], "reference": len(ref),
+            "versions": [{"version": v, "what": what, "metrics": m, "verdict": verdict.strip("*")}
+                         for v, what, m, verdict in table],
+            "diff": list(difflib.unified_diff(criteria.splitlines(), best["criteria"].splitlines(), lineterm="", n=1))[2:],
+            "rest": [{"n": r["n"], "title": r["title"], "yes": r["yes"], "model_yes": r["model_yes"]} for r in rest],
+            # По каждой вакансии: ваша оценка, оценка модели с текущими критериями (было) и с лучшими (стало)
+            "rows": [{"n": a["n"], "title": a["title"], "company": a["company"], "score": a["score"], "yes": a["yes"],
+                      "before": {"score": a["model_score"], "yes": a["model_yes"]},
+                      "after": {"score": b["model_score"], "yes": b["model_yes"]}}
+                     for a, b in zip(first, best["rows"])]}
 
 
 def tune_apply(profile, log=None):

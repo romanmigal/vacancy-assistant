@@ -496,9 +496,34 @@ def update_profile(p, answers, log=None):
     old = answers_from_profile(p)
     a = {**old, **answers}
     changed = lambda *keys: any(str(a.get(k) or "").strip() != str(old.get(k) or "").strip() for k in keys)
-    c = p.config
-    done = []
+    done = _update_config(p.config, a, changed)
+    p.save_config()
+    done += _update_files(p, a, old, changed)
+    if changed("model_pick") and a.get("model_pick") in ("local", "cloud", "none"):   # шаг «Модель» в мастере
+        from . import cloud
+        if a["model_pick"] == "cloud" and not cloud.load(p.dir.parent).get("auth_key"):
+            raise AssistantError("Сначала подключите GigaChat: вставьте ключ и отметьте согласие на шаге «Модель».")
+        p.set_model(a["model_pick"] == "cloud", off=a["model_pick"] == "none")
+        done.append("модель")
+    if changed("hide_firms"):
+        mask.set_hide_companies(p, a.get("hide_firms"))
+        done.append("скрытие прошлых работодателей")
 
+    keep = {k: a.get(k) for k in ("office", "hybrid", "salary", "important", "not_ok", "field")}
+    write_json(p.dir / ANSWERS_FILE, keep)
+    name = p.name
+    if changed("profile_id"):
+        name = rename_profile(p, a["profile_id"])
+        done.append("имя профиля")
+    log(f"Профиль {name}: изменено — {', '.join(done) or 'ничего'}")
+    return {"changed": done, "profile": name}
+
+
+
+
+def _update_config(c, a, changed):
+    """Правки мастера, которые живут в настройках профиля (config): имя, письмо, сфера, поиск. Возвращает, что изменено."""
+    done = []
     if changed("name"):
         if c["письмо"].get("подпись") == c.get("имя"):
             c["письмо"]["подпись"] = a["name"].strip()
@@ -537,8 +562,13 @@ def update_profile(p, answers, log=None):
     if changed("search_full_text"):
         c["поиск"]["весь_текст"] = bool(a.get("search_full_text"))
         done.append("где искать слова запроса")
-    p.save_config()
+    return done
 
+
+def _update_files(p, a, old, changed):
+    """Правки мастера в файлах профиля: запросы, критерии, образец письма, резюме, «о себе». Возвращает, что изменено."""
+    c = p.config
+    done = []
     if changed("titles"):
         head = [l for l in read_text(p.searches).splitlines() if l.startswith("#")] if p.searches.exists() else []
         write_text(p.searches, "\n".join(head + [""] + lines(a.get("titles"))).lstrip("\n") + "\n")
@@ -577,24 +607,7 @@ def update_profile(p, answers, log=None):
     if changed("facts"):
         p.write_facts(a.get("facts"))
         done.append("дополнительно о себе")
-    if changed("model_pick") and a.get("model_pick") in ("local", "cloud", "none"):   # шаг «Модель» в мастере
-        from . import cloud
-        if a["model_pick"] == "cloud" and not cloud.load(p.dir.parent).get("auth_key"):
-            raise AssistantError("Сначала подключите GigaChat: вставьте ключ и отметьте согласие на шаге «Модель».")
-        p.set_model(a["model_pick"] == "cloud", off=a["model_pick"] == "none")
-        done.append("модель")
-    if changed("hide_firms"):
-        mask.set_hide_companies(p, a.get("hide_firms"))
-        done.append("скрытие прошлых работодателей")
-
-    keep = {k: a.get(k) for k in ("office", "hybrid", "salary", "important", "not_ok", "field")}
-    write_json(p.dir / ANSWERS_FILE, keep)
-    name = p.name
-    if changed("profile_id"):
-        name = rename_profile(p, a["profile_id"])
-        done.append("имя профиля")
-    log(f"Профиль {name}: изменено — {', '.join(done) or 'ничего'}")
-    return {"changed": done, "profile": name}
+    return done
 
 
 def rename_profile(p, new):

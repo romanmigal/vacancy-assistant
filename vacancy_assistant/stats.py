@@ -181,6 +181,100 @@ def _days(x, y):
     return (date.fromisoformat(y) - date.fromisoformat(x)).days
 
 
+def _funnel(cohort):
+    """Воронка по вакансиям, добавленным в диапазоне: докуда каждая дошла (в любое время). Каждый шаг — и по
+    частям KINDS, как столбики по периодам."""
+    steps = [("Добавлено", lambda r, e: True),
+             ("Разобрано ИИ", lambda r, e: e["analyzed"]),
+             (f"Оценка {GOOD}+", lambda r, e: (r.get("score") or 0) >= GOOD),
+             ("Откликнулся", lambda r, e: e["applied"]),
+             ("Ответили", lambda r, e: e["answered"]),
+             ("Интервью", lambda r, e: e["interview"]),
+             ("Оффер", lambda r, e: e["offer"])]
+    out = []
+    for label, ok in steps:
+        parts = dict.fromkeys(KINDS, 0)
+        for r, e in cohort:
+            if ok(r, e):
+                parts[kind(r)] += 1
+        out.append({"label": label, "count": sum(parts.values()), "by_kind": parts})
+    return out
+
+
+def _speed(evs, inrange):
+    """Скорость — по откликам диапазона (отметка «Откликнулся» в нём); ответ и интервью — когда бы ни пришли."""
+    def avg_days(pairs):
+        days = [_days(x, y) for x, y in pairs if x and y and y >= x]
+        return {"days": round(mean(days), 1) if days else None, "count": len(days)}
+    marked = [e for _, e in evs if inrange(e["applied_mark"])]
+    return {"to_apply": avg_days((e["added"], e["applied_mark"]) for e in marked),
+            "to_answer": avg_days((e["applied_mark"], e["answered"]) for e in marked),
+            "to_interview": avg_days((e["applied_mark"], e["interview"]) for e in marked)}
+
+
+def _waiting(evs, today):
+    """Отклики без ответа дольше WAIT_DAYS — кроме отказов и «Молчат»; дольше ждущие первыми."""
+    return sorted(({"n": r["n"], "title": r["title"], "company": r["company"], "applied": e["applied"],
+                    "days": _days(e["applied"], today.isoformat())}
+                   for r, e in evs if e["applied"] and not e["answered"] and r.get("status") != "no"
+                   and (r.get("funnel") or {}).get("stage") != "silent"
+                   and _days(e["applied"], today.isoformat()) >= WAIT_DAYS), key=lambda w: -w["days"])
+
+
+def _sources(cohort):
+    """Источники вакансий диапазона: сколько добавлено, откликов, ответов и интервью."""
+    out = {}
+    for r, e in cohort:
+        s = out.setdefault(r.get("source") or "Вручную", {"source": r.get("source") or "Вручную",
+                                                         "added": 0, "applied": 0, "answered": 0, "interview": 0})
+        s["added"] += 1
+        for k in ("applied", "answered", "interview"):
+            s[k] += bool(e[k])
+    return sorted(out.values(), key=lambda s: (-s["added"], s["source"]))
+
+
+def _letters(evs, a, b):
+    """Отклики диапазона с сопроводительным письмом и без: письмо — по отметке «Отправлено» (копия в «Артефактах»)."""
+    sent = [(r, e) for r, e in evs if e["applied"] and a.isoformat() <= e["applied"] <= b.isoformat()]
+    return [{"letter": flag, "applied": len(group), **{k: sum(1 for _, e in group if e[k])
+                                                        for k in ("answered", "rejected", "interview")}}
+            for flag, group in ((True, [x for x in sent if x[0].get("cover_sent")]),
+                                (False, [x for x in sent if not x[0].get("cover_sent")]))]
+
+
+def _scores(scoped):
+    """Оценки: сколько вакансий получили 1…10 у модели и у вас; где обе — насколько модель расходится с вами."""
+    def bins(vals):
+        out = [0] * 10
+        for v in vals:
+            out[min(max(round(v), 1), 10) - 1] += 1
+        return out
+    model = [r["score"] for r in scoped if r.get("score") is not None]
+    mine = [r["my_score"] for r in scoped if r.get("my_score") is not None]
+    both = [(r["score"], r["my_score"]) for r in scoped if r.get("score") is not None and r.get("my_score") is not None]
+    return {"model": bins(model), "mine": bins(mine),
+            "model_avg": round(mean(model), 1) if model else None, "mine_avg": round(mean(mine), 1) if mine else None,
+            "both": len(both), "diff_avg": round(mean(abs(m - y) for m, y in both), 1) if both else None,
+            "higher": sum(1 for m, y in both if round(m) > round(y)),
+            "lower": sum(1 for m, y in both if round(m) < round(y)),
+            # разница «модель − вы» от −9 до +9: сколько вакансий с каждой
+            "diffs": [sum(1 for m, y in both if round(m) - round(y) == d) for d in range(-9, 10)],
+            # ответы «откликаться»: да / возможно / нет у модели и у вас; где оба — кто что ответил (строка — модель)
+            **answers(scoped)}
+
+
+def _statuses(rows, status_names):
+    """Статусы сейчас: всего, закрытых на сайте, с флагом — все статусы, и пустые."""
+    now = {}
+    for r in rows:
+        c = now.setdefault(r.get("status", "new"), {"count": 0, "closed": 0, "flagged": 0})
+        c["count"] += 1
+        c["closed"] += bool((r.get("actual") or {}).get("closed"))
+        c["flagged"] += bool(r.get("flag"))
+    names = dict(status_names or [])
+    return [{"key": k, "label": names.get(k, k), **now.get(k, {"count": 0, "closed": 0, "flagged": 0})} for k in names]
+
+
 def compute(rows, step="week", today=None, status_names=None, criteria_edits=()):
     """Всё для раздела «Статистика»: ряды по периодам, итоги и средние, воронка, скорость, ждущие ответа,
     источники, статусы сейчас."""
@@ -203,96 +297,27 @@ def compute(rows, step="week", today=None, status_names=None, criteria_edits=())
     totals = {k: {"total": sum(s[k] for s in series), "avg": round(sum(s[k] for s in series) / full, 1),
                   "prev": _count(only, k, prev[0][0], prev[-1][1]) if prev else None} for k, _ in METRICS}
 
-    # Воронка — по вакансиям, добавленным в диапазоне: докуда каждая дошла (в любое время)
     cohort = [(r, e) for r, e in evs if e["added"] and a.isoformat() <= e["added"] <= b.isoformat()]
-    steps = [("Добавлено", lambda r, e: True),
-             ("Разобрано ИИ", lambda r, e: e["analyzed"]),
-             (f"Оценка {GOOD}+", lambda r, e: (r.get("score") or 0) >= GOOD),
-             ("Откликнулся", lambda r, e: e["applied"]),
-             ("Ответили", lambda r, e: e["answered"]),
-             ("Интервью", lambda r, e: e["interview"]),
-             ("Оффер", lambda r, e: e["offer"])]
-    funnel = []
-    for label, ok in steps:                         # каждый шаг — и по частям KINDS, как столбики по периодам
-        parts = dict.fromkeys(KINDS, 0)
-        for r, e in cohort:
-            if ok(r, e):
-                parts[kind(r)] += 1
-        funnel.append({"label": label, "count": sum(parts.values()), "by_kind": parts})
     scores = [r["score"] for r, _ in cohort if r.get("score") is not None]
-
-    # Скорость — по откликам диапазона (отметка «Откликнулся» в нём); ответ и интервью — когда бы ни пришли
     inrange = lambda d: bool(d) and a.isoformat() <= d[:10] <= b.isoformat()
-    def avg_days(pairs):
-        days = [_days(x, y) for x, y in pairs if x and y and y >= x]
-        return {"days": round(mean(days), 1) if days else None, "count": len(days)}
-    marked = [e for _, e in evs if inrange(e["applied_mark"])]
-    speed = {"to_apply": avg_days((e["added"], e["applied_mark"]) for e in marked),
-             "to_answer": avg_days((e["applied_mark"], e["answered"]) for e in marked),
-             "to_interview": avg_days((e["applied_mark"], e["interview"]) for e in marked)}
-    waiting = sorted(({"n": r["n"], "title": r["title"], "company": r["company"], "applied": e["applied"],
-                       "days": _days(e["applied"], today.isoformat())}
-                      for r, e in evs if e["applied"] and not e["answered"] and r.get("status") != "no"
-                      and (r.get("funnel") or {}).get("stage") != "silent"
-                      and _days(e["applied"], today.isoformat()) >= WAIT_DAYS), key=lambda w: -w["days"])
-
-    sources = {}
-    for r, e in cohort:
-        s = sources.setdefault(r.get("source") or "Вручную", {"source": r.get("source") or "Вручную",
-                                                             "added": 0, "applied": 0, "answered": 0, "interview": 0})
-        s["added"] += 1
-        for k in ("applied", "answered", "interview"):
-            s[k] += bool(e[k])
-    # Отклики с сопроводительным письмом и без: письмо — по отметке «Отправлено» (копия в «Артефактах»)
-    sent = [(r, e) for r, e in evs if e["applied"] and a.isoformat() <= e["applied"] <= b.isoformat()]
-    letters = [{"letter": flag, "applied": len(group), **{k: sum(1 for _, e in group if e[k])
-                                                           for k in ("answered", "rejected", "interview")}}
-               for flag, group in ((True, [x for x in sent if x[0].get("cover_sent")]),
-                                   (False, [x for x in sent if not x[0].get("cover_sent")]))]
     # Оценки и модели — по вакансиям диапазона: разобранным моделью в нём (последний разбор), а неразобранным —
     # добавленным в нём. «Всё время» — все вакансии профиля
     scoped = [r for r, e in evs if inrange(r.get("scored_on") if r.get("analyzed") and r.get("scored_on") else e["added"])]
-    # Оценки: сколько вакансий получили 1…10 у модели и у вас; где обе — насколько модель расходится с вами
-    def bins(vals):
-        out = [0] * 10
-        for v in vals:
-            out[min(max(round(v), 1), 10) - 1] += 1
-        return out
-    model = [r["score"] for r in scoped if r.get("score") is not None]
-    mine = [r["my_score"] for r in scoped if r.get("my_score") is not None]
-    both = [(r["score"], r["my_score"]) for r in scoped if r.get("score") is not None and r.get("my_score") is not None]
-    scores_all = {"model": bins(model), "mine": bins(mine),
-                  "model_avg": round(mean(model), 1) if model else None, "mine_avg": round(mean(mine), 1) if mine else None,
-                  "both": len(both), "diff_avg": round(mean(abs(m - y) for m, y in both), 1) if both else None,
-                  "higher": sum(1 for m, y in both if round(m) > round(y)),
-                  "lower": sum(1 for m, y in both if round(m) < round(y)),
-                  # разница «модель − вы» от −9 до +9: сколько вакансий с каждой
-                  "diffs": [sum(1 for m, y in both if round(m) - round(y) == d) for d in range(-9, 10)],
-                  # ответы «откликаться»: да / возможно / нет у модели и у вас; где оба — кто что ответил (строка — модель)
-                  **answers(scoped)}
-    names = dict(status_names or [])
-    now = {}                                         # по статусам: всего, закрытых на сайте, с флагом
-    for r in rows:
-        c = now.setdefault(r.get("status", "new"), {"count": 0, "closed": 0, "flagged": 0})
-        c["count"] += 1
-        c["closed"] += bool((r.get("actual") or {}).get("closed"))
-        c["flagged"] += bool(r.get("flag"))
     return {
         "step": step, "today": today.isoformat(), "start": a.isoformat(), "end": b.isoformat(),
         "metrics": [{"key": k, "label": l} for k, l in METRICS],
         "series": series, "totals": totals, "periods_full": round(full, 2),
-        "funnel": funnel,
+        "funnel": _funnel(cohort),
         "score": {"avg": round(mean(scores), 1) if scores else None, "good": sum(1 for s in scores if s >= GOOD),
                   "count": len(scores)},
-        "speed": speed, "waiting": waiting, "wait_days": WAIT_DAYS,
-        "letters": letters,
-        "scores": scores_all,
+        "speed": _speed(evs, inrange), "waiting": _waiting(evs, today), "wait_days": WAIT_DAYS,
+        "letters": _letters(evs, a, b),
+        "scores": _scores(scoped),
         "engines": engines(scoped),
         "outcomes": outcomes([(r, e) for r, e in evs if inrange(e["applied"])]),   # отклики диапазона
         "agreement": agreement(rows, today, criteria_edits),
-        "sources": sorted(sources.values(), key=lambda s: (-s["added"], s["source"])),
-        "statuses": [{"key": k, "label": names.get(k, k), **now.get(k, {"count": 0, "closed": 0, "flagged": 0})}
-                     for k in names],                # все статусы, и пустые
+        "sources": _sources(cohort),
+        "statuses": _statuses(rows, status_names),
         "flags": sum(1 for r in rows if r.get("flag")),
         "total_vacancies": len(rows), "scoped_vacancies": len(scoped),
     }
