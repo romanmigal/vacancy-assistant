@@ -289,3 +289,17 @@ function saveFilterDialog() {
   $("sfName").focus();
   $("sfName").onkeydown = e => { if (e.key === "Enter") document.querySelector("#wfoot .primary").click(); };
 }
+
+// Компания в карточке вакансии: вкладка «Фильтр» с вакансиями всех компаний, где в названии есть это имя
+// (как поиск в фильтре колонки «Компания» и «Только найденные»). Фильтр только открывается: его можно поменять и сохранить
+const companyTerm = name => name.replace(/^(?:ООО|ПАО|ОАО|АО|ЗАО|НАО|АНО|ИП|ГК)\s+/i, "").replace(/[«»"]/g, "").trim();
+function openCompanyFilter(name) {
+  const term = companyTerm(name).toLowerCase() || name.toLowerCase();
+  const only = [...new Set(state.rows.map(r => filterValue("company", r)))].filter(v => v.toLowerCase().includes(term));
+  tab = FILTER_TAB;
+  restoreFilters();                                  // набор условий вкладки «Фильтр» — его и заменяем
+  filters = {company: {only}}; hideClosed = false;
+  saveFilters(); $("fmenu").hidden = true; render();
+  const n = filterRows(state.rows, filters, false, new Date()).length;
+  toast(`Вакансии компаний с «${companyTerm(name) || name}» в названии: ${n}. Фильтр можно поменять и сохранить`);
+}

@@ -354,7 +354,7 @@ async function openVacancy(n) {
     <button type="button" class="backlist" id="backToList">← К списку</button>
     <div class="dhead">
       <div class="dtitle"><h2>${esc(r.title)}</h2>
-        <div class="t-meta">${esc(r.company)} · ${r.salary_value == null ? "зарплата не указана" : esc(r.salary)}${/^https?:\/\//.test(r.link || "") ? ` · <a href="${esc(r.link)}" target="_blank" rel="noopener">открыть на ${esc(new URL(r.link).hostname.replace(/^www\./, ""))}</a>` : ""}${
+        <div class="t-meta">${r.company ? `<button type="button" class="linkbtn cofilter" id="coFilter" title="Все вакансии этой компании — во вкладке «Фильтр»">${esc(r.company)}</button>` : ""} · ${r.salary_value == null ? "зарплата не указана" : esc(r.salary)}${/^https?:\/\//.test(r.link || "") ? ` · <a href="${esc(r.link)}" target="_blank" rel="noopener">открыть на ${esc(new URL(r.link).hostname.replace(/^www\./, ""))}</a>` : ""}${
           r.posted ? ` · <span title="Дата публикации на сайте: ${esc(r.posted)}. Давно висящая вакансия — повод спросить, актуальна ли она">опубликована ${r.posted.endsWith(String(new Date().getFullYear())) ? r.posted.slice(0, 5) : esc(r.posted)}</span>` : ""}${
           (r.more_links || []).length ? ` · ещё на ${r.more_links.map(l => `<a href="${esc(l.url)}" target="_blank" rel="noopener">${esc(new URL(l.url).hostname.replace(/^www\./, ""))}</a>`).join(", ")}` : ""}</div></div>
       <div class="dactions">
@@ -473,6 +473,7 @@ async function openVacancy(n) {
     const like = state.rows.find(x => x.n === +b.dataset.like);
     if (like) { tab = like.status; render(); openVacancy(like.n); }
   });
+  if ($("coFilter")) $("coFilter").onclick = () => openCompanyFilter(r.company);
   updateCardButtons();                          // уже в очереди — «в очереди (2-я)» вместо кнопки
 }
 
