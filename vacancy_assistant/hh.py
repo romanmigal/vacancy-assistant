@@ -344,6 +344,13 @@ def salary_filter(profile):
             + ("&only_with_salary=true" if profile.search_salary_only else ""))
 
 
+def field_filter(profile):
+    """Где искать слова запроса — как «Искать только → в названии вакансии» на сайте. По умолчанию в названии:
+    по всему тексту «CTO» находит любую вакансию, где CTO упомянут в описании, — в 3–4 раза больше выдачи,
+    и почти всё потом отсеивается по названию."""
+    return "" if profile.search_full_text else "&search_field=name"
+
+
 def read_queries(profile):
     return [l.strip() for l in read_text(profile.searches).splitlines() if l.strip() and not l.startswith("#")]
 
@@ -386,8 +393,9 @@ def search(profile, log=None, fetch_page=fetch, sleep=time.sleep, limit=None):
     phase(log, f"Ищу на hh.ru: {plural(len(queries), 'запрос', 'запроса', 'запросов')} × "
                f"{len(profile.search_where)} (где искать), вакансии за {profile.search_days} дн."
                + (f", зарплата от {profile.search_salary:,} ₽".replace(",", " ") if profile.search_salary else "")
-               + (", только с указанной зарплатой" if profile.search_salary_only else ""))
-    salary = salary_filter(profile)
+               + (", только с указанной зарплатой" if profile.search_salary_only else "")
+               + (", слова запроса — во всём тексте вакансии" if profile.search_full_text else ", слова запроса — в названии вакансии"))
+    salary = salary_filter(profile) + field_filter(profile)
     found, failed = {}, 0
     for query in queries:
         for label, where in profile.search_where:

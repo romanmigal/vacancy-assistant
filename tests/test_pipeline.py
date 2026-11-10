@@ -79,6 +79,23 @@ class Pipeline(unittest.TestCase):
             setup.update_profile(p, {"search_salary": "", "search_salary_only": False}, log=lambda *_: None)
             self.assertEqual(hh.salary_filter(Profile("example", t.profiles)), "")
 
+    def test_search_in_title_by_default(self):
+        """Слова запроса — только в названии вакансии (как на сайте «в названии вакансии»); галочка — по всему тексту."""
+        from vacancy_assistant import setup
+        from vacancy_assistant.profile import Profile
+        with TempProfile() as t:
+            write_text(t.profile.searches, "CTO\n")
+            urls, logs = [], []
+            fetch = lambda url: (urls.append(url), "")[1]
+            hh.search(t.profile, log=logs.append, fetch_page=fetch, sleep=lambda s: None)
+            self.assertTrue(urls and all("&search_field=name" in u for u in urls))
+            self.assertIn("слова запроса — в названии вакансии", " ".join(logs))
+            self.assertIn("где искать слова запроса", setup.update_profile(t.profile, {"search_full_text": True}, log=lambda *_: None)["changed"])
+            p, urls[:] = Profile("example", t.profiles), []
+            self.assertTrue(setup.answers_from_profile(p)["search_full_text"])
+            hh.search(p, log=lambda *_: None, fetch_page=fetch, sleep=lambda s: None)
+            self.assertTrue(urls and not any("search_field" in u for u in urls))
+
     def test_search_salary_from_answers(self):
         """Фильтр на шаге «Отбор при поиске» не задавали — поиск берёт «Зарплата от» из опросника; сохранили пустым — без фильтра."""
         from vacancy_assistant import setup

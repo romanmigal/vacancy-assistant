@@ -230,6 +230,8 @@ class Profile:
             asked = read_json(self.dir / ANSWERS_FILE, {}) if (self.dir / ANSWERS_FILE).exists() else {}
             self.search_salary = int(re.sub(r"\D", "", str(asked.get("salary") or "")) or 0) or None
         self.search_salary_only = bool(search.get("только_с_зарплатой"))
+        # Слова запроса на hh.ru — по всему тексту вакансии, а не только в названии (по умолчанию — в названии)
+        self.search_full_text = bool(search.get("весь_текст"))
         # Отсев по названию до модели — бесплатно: нужно и «про сферу», и «уровень», и ни одного стоп-слова
         # пустой список слов — проверка не нужна (так создаёт профиль мастер: уровень оценивает модель)
         self.title_it = words_regex(search["название_про_сферу"]) if any(search["название_про_сферу"].values()) else ""
