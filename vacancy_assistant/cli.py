@@ -16,6 +16,11 @@
     prompt [НОМЕР]       показать промпт разбора целиком (для вакансии с номером или с заглушками)
     check-analyses [--all]  проверить разборы: все ли оценки, разделы и решение на месте (--all — все профили)
 
+Для разработки:
+    letter-bench [ПРОМПТ…] [--models local,cloud] [--only НОМЕРА] [--out ФАЙЛ]
+                         сравнить версии промпта письма на своих и поправленных письмах профиля (без ПРОМПТ —
+                         две последние версии); отчёт — в настройка/Эталон писем.md, письма профиля не меняются
+
 Что нужно: запущенный Ollama (ollama serve) и модель gemma4:12b.
 """
 import sys
@@ -94,6 +99,10 @@ def run(args):
         if len(args) < 2:
             raise AssistantError("Укажите файл: python3 razbor.py resume путь/к/резюме.txt")
         resume_pdf.resume_from_file(profile, args[1])
+    elif command == "letter-bench":
+        from . import letter_bench
+        names, wanted, only, out = letter_bench.parse_args(args[1:])
+        letter_bench.run(profile, names, wanted, only, out)
     elif command == "prompt":
         vacancy = "<ВАКАНСИЯ>"
         if len(args) > 1:

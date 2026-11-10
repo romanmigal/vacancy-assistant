@@ -419,12 +419,13 @@ class Profile:
             t = t.replace(k, v)
         return t.replace("{resume}", resume).replace("{vac}", vacancy).replace("{strengths}", strengths_text)
 
-    def letter_prompt(self, resume, vacancy, strengths_text, example=None):
+    def letter_prompt(self, resume, vacancy, strengths_text, example=None, template=None):
         """Промпт письма: общий шаблон + образец, подпись и фразы из профиля. example — свой образец
-        для этого письма (поправили перед тем, как писать), иначе — образец профиля."""
+        для этого письма (поправили перед тем, как писать), иначе — образец профиля. template — файл
+        промпта вместо текущего (сравнение версий промпта на эталоне, letter_bench)."""
         l = self.config["письмо"]
         example = (example or read_text(self.letter_example)).strip()
-        t = read_text(settings.LETTER_TEMPLATE)
+        t = read_text(template or settings.LETTER_TEMPLATE)
         for k, v in (("{who}", l["кому_помогаем"]), ("{example}", example), ("{availability}", l["готовность"]),
                      ("{closing}", l["завершение"]), ("{signature}", l["подпись"])):
             t = t.replace(k, v)
