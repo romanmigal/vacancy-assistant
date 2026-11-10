@@ -19,7 +19,7 @@ function renderColumns() {
   m.innerHTML = `<div class="mhead">Колонки таблицы</div>` + list.map(({col: [key, name], hidden}, i) => `
     <div class="crow ${hidden ? "off" : ""}" draggable="true" data-col="${key}">
       <span class="grip" title="Перетащите, чтобы поменять порядок" aria-hidden="true">⠿</span>
-      <label title="${key === LOCKED_COLUMN ? "«Вакансию» не скрыть: без неё строку не узнать" : ""}"><input type="checkbox" data-show="${key}" ${hidden ? "" : "checked"} ${key === LOCKED_COLUMN ? "disabled" : ""}>${esc(COLUMN_NAMES[key] || name)}</label>
+      <label title="${key === LOCKED_COLUMN ? "«Вакансию» не скрыть: без неё строку не узнать" : ""}"><input type="checkbox" data-show="${key}" ${hidden ? "" : "checked"} ${key === LOCKED_COLUMN ? "disabled" : ""}>${esc(COLUMN_NAMES[key] || name)}${columnHere(key) ? "" : ' <span class="muted" title="Колонка видна только во вкладке «Фильтр»: в остальных вкладках у всех вакансий один статус. Место в таблице и флажок можно менять отсюда">(во вкладке «Фильтр»)</span>'}</label>
       <button type="button" class="mv" data-up="${i}" ${i ? "" : "disabled"} title="Выше — левее в таблице" aria-label="Выше">↑</button>
       <button type="button" class="mv" data-down="${i}" ${i < last ? "" : "disabled"} title="Ниже — правее в таблице" aria-label="Ниже">↓</button>
     </div>`).join("") + `

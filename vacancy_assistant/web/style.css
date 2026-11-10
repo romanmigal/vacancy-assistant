@@ -80,6 +80,16 @@ body.resizing { cursor: col-resize; user-select: none; }
 .stpalette button.on { border-color: var(--accent); background: var(--sel); }
 .tab.addtab { font-weight: 600; padding: 6px 10px; }
 .tab.addtab:hover { color: var(--accent); }
+/* Вкладка «Фильтр» — не статус: справа, за чертой, в рамке и со своим значком */
+.tab.ftab { margin-left: auto; display: inline-flex; align-items: center; gap: 5px; border: 1px dashed var(--line); border-bottom: 2px solid transparent;
+  margin-bottom: 2px; padding: 4px 11px; border-radius: 6px; color: var(--accent); }
+.tab.ftab:hover { background: var(--hover); }
+.tab.ftab.on { background: var(--sel); border-style: solid; border-color: var(--accent); color: var(--text); }
+.tab.ftab svg { width: 13px; height: 13px; }
+.stcell .sticon { margin-right: 4px; }
+.sbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 7px 16px; font-size: 12.5px; background: var(--sel); border-bottom: 1px solid var(--line); }
+.sbar .slabel { display: inline-flex; align-items: center; gap: 5px; font-weight: 600; color: var(--accent); }
+.sbar select { max-width: 280px; }
 .stlist { display: flex; flex-direction: column; gap: 6px; }
 .strow { display: flex; align-items: center; gap: 8px; }
 .strow input[type="text"] { width: 220px; }

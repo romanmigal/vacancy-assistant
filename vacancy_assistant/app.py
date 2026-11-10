@@ -731,7 +731,7 @@ class App:
                 "search_days": p.search_days, "search_limit": p.search_limit,
                 "calibration_need": calibration.NEED, "calibrated": "last" in calibration.read(p),
                 "statuses": summary.statuses(p), "custom_statuses": [k for k, _ in p.custom_statuses], "status_colors": p.status_colors, "rows": rows, "tasks": self.queues.snapshot(p.name),
-                "stages": funnel.STAGES, "columns": p.columns, "hh": hh_info(p),
+                "stages": funnel.STAGES, "columns": p.columns, "saved_filters": p.saved_filters, "hh": hh_info(p),
                 "want_similar": similar.enabled(p)}
 
     @route("/api/jobs", profile=False)
@@ -1121,6 +1121,8 @@ class App:
             mask.set_hide_companies(p, a["hide_companies"])
         if "columns" in a:                              # колонки таблицы: {order, hidden}
             setup.set_columns(p, (a["columns"] or {}).get("order"), (a["columns"] or {}).get("hidden"))
+        if "saved_filters" in a:                        # сохранённые фильтры вкладки «Фильтр»
+            setup.set_saved_filters(p, a["saved_filters"])
         return {"ok": True}
 
     # --- резервные копии профилей (только на этом компьютере: архивы лежат здесь)

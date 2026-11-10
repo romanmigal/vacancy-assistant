@@ -65,23 +65,32 @@ function askHh() {
   ]);
 }
 
+// Вакансии открытой вкладки: статуса или, во вкладке «Фильтр», все
+const currentTabRows = () => tab === FILTER_TAB ? state.rows : state.rows.filter(r => r.status === tab);
+
 function render() {
   restoreFilters();
   const cols = shownColumns();
   dropHiddenFilters(cols);
   const today = new Date(), on = filtering();
+  // счётчики вкладок-статусов — по их общему фильтру, даже когда открыта вкладка «Фильтр»
+  const statusSet = tab === FILTER_TAB ? loadFilters("status") : {f: filters, closed: hideClosed};
+  const statusOn = Object.keys(statusSet.f).some(k => filterOn(k, statusSet.f[k])) || statusSet.closed;
   const counts = Object.fromEntries(state.statuses.map(([v]) => {   // с фильтром — «12 из 83»
     const all = state.rows.filter(r => r.status === v);
-    return [v, on ? `${filterRows(all, filters, hideClosed, today).length} из ${all.length}` : all.length];
+    return [v, statusOn ? `${filterRows(all, statusSet.f, statusSet.closed, today).length} из ${all.length}` : all.length];
   }));
-  if (!state.statuses.some(([v]) => v === tab)) tab = "new";         // свой статус удалили
+  if (tab !== FILTER_TAB && !state.statuses.some(([v]) => v === tab)) tab = "new";         // свой статус удалили
+  const filterSet = tab === FILTER_TAB ? {f: filters, closed: hideClosed} : loadFilters("filter");
   $("tabs").innerHTML = state.statuses.map(([v, name]) =>
     `<button class="tab ${v === tab ? "on" : ""}" data-tab="${v}" ${state.custom_statuses?.includes(v) ? 'title="Свой статус"' : ""}>${statusIcon(v)}${esc(name)} <span class="count">${counts[v]}</span></button>`).join("")
-    + (state.profiles.length ? `<button class="tab addtab" id="addStatus" title="Свои статусы: добавить, переименовать, удалить">+</button>` : "");
+    + (state.profiles.length ? `<button class="tab addtab" id="addStatus" title="Свои статусы: добавить, переименовать, удалить">+</button>` : "")
+    + (state.profiles.length ? `<button class="tab ftab ${tab === FILTER_TAB ? "on" : ""}" data-tab="${FILTER_TAB}" title="Не статус: вакансии всех статусов по фильтру — например, одной компании за последний месяц. Фильтры можно сохранять">${FUNNEL}Фильтр <span class="count">${filterRows(state.rows, filterSet.f, filterSet.closed, today).length}</span></button>` : "");
   const activeTab = PHONE.matches && $("tabs").querySelector(".tab.on");   // телефон: вкладки в строку — выбранную видно
   if (activeTab) $("tabs").scrollLeft = Math.max(0, activeTab.offsetLeft - $("tabs").offsetLeft - 40);
-  const tabRows = state.rows.filter(r => r.status === tab);
+  const tabRows = currentTabRows();
   const rows = sorted(filterRows(tabRows, filters, hideClosed, today));
+  renderSavedBar();
   renderFilterBar(tabRows);
   $("heads").innerHTML = cols.map(([key, name, , cls]) =>
     `<th class="${cls} ${key === sort.key ? "on" : ""} ${columnFiltered(key) ? "filtered" : ""}" data-sort="${key}" title="${{flag: "Флаг"}[key] || ""}">${name}${key === sort.key ? `<span class="arr">${sort.dir > 0 ? "▲" : "▼"}</span>` : ""}${filterButton(key)}</th>`).join("");
@@ -109,7 +118,8 @@ function render() {
     ? (hhOn() ? "Вакансий пока нет. Нажмите «Найти новые вакансии» — программа найдёт их на hh.ru по запросам профиля, — или добавьте по ссылке."
               : `Вакансий пока нет. Нажмите «Добавить вакансию» — по ссылке, сохранённой страницей или текстом. ${HH_MANUAL}`)
     : waiting && !busyMine() ? `Ждут разбора: ${waiting}.`
-    : rows.length ? "" : tabRows.length ? "Под фильтр в этой вкладке ничего не подходит — измените или сбросьте его." : "В этом списке пусто.";
+    : rows.length ? "" : tabRows.length ? (tab === FILTER_TAB ? "Под фильтр ничего не подходит — измените условия в заголовках колонок или выберите другой фильтр."
+      : "Под фильтр в этой вкладке ничего не подходит — измените или сбросьте его.") : "В этом списке пусто.";
   $("empty").hidden = !hint;
   $("empty").textContent = hint;
   if (hint && waiting && state.rows.length && !busyMine()) {   // разобрать ждущих — без нового поиска (например, Ollama была не запущена)
@@ -129,6 +139,7 @@ const CELLS = {
   decision: r => `<td class="nowrap" title="${esc(r.decision)}${(r.violations || []).map(v => `\nНарушен К${v.n}: ${esc(v.text)}`).join("")}">${r.stage === "none" ? '<span class="muted">без разбора</span>' : r.analyzed ? decisionHtml(r.decision) : '<span class="muted">ждёт разбора</span>'}</td>`,
   mine: r => r.my_decision ? `<td class="nowrap" title="${esc(myTip(r))}"><div class="mine"><span class="big ${scoreClass(r.my_score)}">${r.my_score ?? "?"}<small>${r.my_can ?? "?"}/${r.my_want ?? "?"}</small></span>`
     + `<span class="mydec"><span class="${MY_TONE[r.my_decision]}">${r.my_decision}</span>${r.my_date ? `<small class="muted">${ddmm(r.my_date)}</small>` : ""}</span></div></td>` : "<td></td>",
+  status: r => `<td class="nowrap stcell">${statusIcon(r.status)}${esc((state.statuses.find(([v]) => v === r.status) || [, r.status])[1])}</td>`,
   title: r => `<td class="t-title">${r.actual?.closed ? `<span class="closedtitle">${esc(r.title)}</span> <span class="closedtag" title="Вакансия закрыта">закрыта</span>`
     : esc(r.title)}</td>`,
   company: r => `<td class="co">${esc(r.company)}${agencyChip(r)}${r.contacts ? ` <span class="people-mark" title="В контактах — ${r.contacts} ${plural(r.contacts, "человек", "человека", "человек")} из этой компании">👥${r.contacts > 1 ? r.contacts : ""}</span>` : ""}</td>`,

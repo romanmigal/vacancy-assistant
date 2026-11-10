@@ -648,6 +648,17 @@ def set_columns(p, order, hidden):
     p.columns = {"order": clean_columns(order), "hidden": clean_columns(hidden)}
 
 
+def set_saved_filters(p, items):
+    """Сохранённые фильтры вкладки «Фильтр» — список целиком."""
+    from .profile import clean_saved_filters
+    p.saved_filters = clean_saved_filters(items)
+    if p.saved_filters:
+        p.config["фильтры"] = p.saved_filters
+    else:
+        p.config.pop("фильтры", None)
+    p.save_config()
+
+
 def set_hh_auto(p, on, risk=False):
     """Поиск на hh.ru программой: включить (с согласием на риск) или выключить — в настройках или в разовом
     вопросе для профилей прежних версий."""

@@ -111,12 +111,12 @@ function bindFunnel(r, n) {
     if (!res) return;
     const moved = res.status && res.status !== r.status;
     await refreshRows();
-    if (moved) tab = res.status;
+    if (moved && tab !== FILTER_TAB) tab = res.status;           // во вкладке «Фильтр» остаёмся: она не статус
     if (selected === n) openVacancy(n);
     if (res.archive)                                    // отказ или тишина — предложить Архив, сами не переносим
       return toast("Этап сохранён. Перенести вакансию в Архив?", {label: "Перенести в Архив", onClick: async () => {
         await api("/api/status", {profile: state.profile, n, value: "no"}).catch(fail);
-        await refreshRows(); tab = "no"; openVacancy(n); toast("Вакансия в Архиве");
+        await refreshRows(); if (tab !== FILTER_TAB) tab = "no"; openVacancy(n); toast("Вакансия в Архиве");
       }});
     toast(moved ? `Этап сохранён — вакансия в разделе «${(state.statuses.find(s => s[0] === res.status) || [, ""])[1]}»` : "Этап сохранён");
   };

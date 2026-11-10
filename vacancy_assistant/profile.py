@@ -1,5 +1,6 @@
 """Профиль человека: папка профили/<имя>/ с настройками, резюме, критериями и данными."""
 import hashlib
+import json
 import re
 from datetime import date
 
@@ -104,6 +105,25 @@ def clean_columns(keys):
     return out[:40]
 
 
+MAX_SAVED_FILTERS = 20
+
+
+def clean_saved_filters(items):
+    """Сохранённые фильтры вкладки «Фильтр»: [{"name", "f", "closed"}]. Имя — до 40 знаков, без повторов;
+    f — фильтры колонок окна {ключ колонки: условия}; слишком большой фильтр не берём."""
+    out, names = [], set()
+    for it in items if isinstance(items, list) else []:
+        if not isinstance(it, dict) or not isinstance(it.get("f"), dict):
+            continue
+        name = re.sub(r"\s+", " ", str(it.get("name") or "")).strip()[:40]
+        f = {k: v for k, v in it["f"].items() if isinstance(k, str) and re.fullmatch(r"[a-z_]{1,20}", k) and isinstance(v, dict)}
+        if not name or name.lower() in names or len(json.dumps(f, ensure_ascii=False)) > 20000:
+            continue
+        names.add(name.lower())
+        out.append({"name": name, "f": f, "closed": bool(it.get("closed"))})
+    return out[:MAX_SAVED_FILTERS]
+
+
 def free_color(colors):
     """Цвет значка для нового своего статуса: первый из STATUS_COLORS, которого ещё нет; все заняты — по кругу."""
     used = list(colors)
@@ -191,6 +211,8 @@ class Profile:
         # Колонки таблицы в окне: порядок и скрытые (ключи колонок окна; пусто — как по умолчанию)
         cols = c.get("колонки") if isinstance(c.get("колонки"), dict) else {}
         self.columns = {"order": clean_columns(cols.get("порядок")), "hidden": clean_columns(cols.get("скрыты"))}
+        # Сохранённые фильтры вкладки «Фильтр» (например, «Плати по всему миру после 20.09»)
+        self.saved_filters = clean_saved_filters(c.get("фильтры"))
         # Свои статусы (до пяти) — вкладки перед «Архивом»: [("c1", "Отложено"), …]; ключ не меняется при переименовании.
         # status_colors — цвет значка каждого: {"c1": "blue"}
         self.custom_statuses, self.status_colors = clean_statuses(c.get("статусы"))

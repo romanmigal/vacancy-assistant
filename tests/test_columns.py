@@ -44,5 +44,35 @@ class Columns(unittest.TestCase):
         self.assertEqual(Profile("example", self.t.profiles).columns, {"order": [], "hidden": []})
 
 
+
+class SavedFilters(Columns):
+    """Сохранённые фильтры вкладки «Фильтр»: список целиком в профиле, мусор отбрасывается."""
+
+    def save(self, items):
+        return self.app.handle("POST", "/api/profile/settings", {}, {"profile": "example", "saved_filters": items})
+
+    def test_default_empty(self):
+        self.assertEqual(self.state()["saved_filters"], [])
+
+    def test_save_and_reload(self):
+        item = {"name": "Плати по всему миру после 20.09", "closed": False,
+                "f": {"company": {"only": ["Плати по всему миру"]}, "posted": {"from": "2026-09-20"}}}
+        self.save([item])
+        self.assertEqual(self.state()["saved_filters"], [item])
+        self.assertEqual(read_json(self.t.profile.dir / CONFIG_FILE)["фильтры"], [item])
+        self.assertEqual(Profile("example", self.t.profiles).saved_filters, [item])          # после перезапуска
+        self.save([])
+        self.assertNotIn("фильтры", read_json(self.t.profile.dir / CONFIG_FILE))
+
+    def test_garbage_dropped(self):
+        self.save([{"name": "  Один   фильтр ", "f": {"company": {"out": ["А"]}, "../x": {}, "note": "строка"}, "closed": 1},
+                   {"name": "один фильтр", "f": {}},                       # то же имя — второй не берём
+                   {"name": "", "f": {}}, {"name": "Без условий"}, "мусор",
+                   {"name": "Огромный", "f": {"title": {"text": "x" * 30000}}}])
+        self.assertEqual(self.state()["saved_filters"], [{"name": "Один фильтр", "f": {"company": {"out": ["А"]}}, "closed": True}])
+        self.save([{"name": f"Ф{i}", "f": {}} for i in range(30)])
+        self.assertEqual(len(self.state()["saved_filters"]), 20)
+
+
 if __name__ == "__main__":
     unittest.main()

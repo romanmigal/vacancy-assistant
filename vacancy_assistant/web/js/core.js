@@ -27,6 +27,7 @@ const COLUMNS = [
   ["decision", "Решение ИИ", r => DECISION_RANK(r.decision), ""],
   ["mine", "Моя оценка", r => myKey(r), ""],                                // своя оценка: дата → решение → оценка
   ["title", "Вакансия", r => r.title.toLowerCase(), ""],
+  ["status", "Статус", r => state.statuses.findIndex(([v]) => v === r.status), ""],   // только во вкладке «Фильтр»
   ["company", "Компания", r => r.company.toLowerCase(), ""],
   ["source", "Источник", r => (r.source || "").toLowerCase(), ""],
   ["posted", "Опубликовано", r => r.posted_key || null, ""],                 // дата публикации на сайте
@@ -42,6 +43,10 @@ const COLUMNS = [
 // всё по умолчанию: порядок COLUMNS, скрыты DEFAULT_HIDDEN. Окно сохраняет порядок целиком, поэтому своя
 // настройка — всегда с порядком. Новой колонки в ней нет — она встаёт за своей соседкой слева по COLUMNS
 // («Обновлено» — за «Сохранено»); «Вакансию» не скрыть: без неё строку не узнать
+// Вкладка «Фильтр» — не статус: в ней вакансии всех статусов по фильтру, и только в ней видна колонка «Статус».
+// В меню «Колонки» она есть всегда: место и флажок можно менять из любой вкладки
+const FILTER_TAB = "filter";
+const columnHere = k => k !== "status" || tab === FILTER_TAB;
 const LOCKED_COLUMN = "title";
 const DEFAULT_HIDDEN = ["posted", "mine", "referrer", "artifacts"];
 const customColumns = () => !!(state && state.columns && state.columns.order.length);
@@ -54,7 +59,7 @@ function tableColumns() {
   return order.map(k => ({col: COLUMNS.find(c => c[0] === k),
                           hidden: k !== LOCKED_COLUMN && (cfg.hidden.includes(k) || (isNew(k) && DEFAULT_HIDDEN.includes(k)))}));
 }
-const shownColumns = () => tableColumns().filter(x => !x.hidden).map(x => x.col);
+const shownColumns = () => tableColumns().filter(x => !x.hidden && columnHere(x.col[0])).map(x => x.col);
 let sort = {key: "score", dir: -1};
 let letterVersion = {n: null, i: 0, kind: "cover"};   // какая версия письма открыта в карточке
 let fitVersion = {n: null, i: 0};                      // какая версия «Резюме под вакансию» открыта
