@@ -13,6 +13,7 @@
 синонимы профиля (синонимы_компаний.json); «это разные» тоже запоминается, чтобы не показывать пару как похожую.
 """
 import csv
+import functools
 import io
 import re
 import uuid
@@ -62,6 +63,7 @@ def latin(s):
     return s
 
 
+@functools.lru_cache(maxsize=16384)        # таблица сравнивает каждую вакансию с каждым контактом: 76 тыс. пар
 def company_key(name):
     """Ключ для сравнения компаний: «ПАО "МТС"» → «mts», «Т-Банк» → «tbank», «Sberbank» → «sber»,
     «Банк ВТБ (ПАО)» → «vtb»."""
@@ -155,12 +157,13 @@ def mark_apart(profile, a, b):
     return save_synonyms(profile, syn.groups, syn.apart + [[a, b]])
 
 
+@functools.lru_cache(maxsize=16384)
 def words(name):
     """Значимые слова названия (латиницей) — для неточного совпадения: «МТС Банк» ~ «MTS».
     Общие слова («банк», «капитал», «технологии»…) не считаются."""
     s = re.split(r"\s*[(,;|]", (name or "").lower().replace("ё", "е"))[0]        # без пояснений: «МТС», Работа в IT
     s = latin(re.sub(LEGAL, " ", s))
-    return {w for w in re.findall(r"[a-z0-9]{3,}", s) if not w.startswith(GENERIC) and w not in ("and", "the")}
+    return frozenset(w for w in re.findall(r"[a-z0-9]{3,}", s) if not w.startswith(GENERIC) and w not in ("and", "the"))
 
 
 def load(profile):
@@ -183,11 +186,29 @@ def public(items, rows=None, syn=None):
     return out
 
 
+def _valid(name, key):
+    """Название можно сравнивать: есть ключ, не «аноним»/«не указан» и не «Self-employed»."""
+    return bool(key) and not re.search(r"anonim|neukazan", key) and company_key(name) not in JUNK
+
+
+def exact_counter(people, syn=None):
+    """Функция «название компании → сколько контактов из people в той же компании» — то же, что
+    sum(match_level(название, контакт) == 2), но по ключам: контакты группируются один раз."""
+    key = syn.key if syn else company_key
+    counts = {}
+    for c in people:
+        name = c.get("company", "")
+        k = key(name)
+        if _valid(name, k):
+            counts[k] = counts.get(k, 0) + 1
+    return lambda name: counts.get(key(name), 0) if _valid(name, key(name)) else 0
+
+
 def match_level(vacancy_company, contact_company, syn=None):
     """2 — та же компания, 1 — похожее название (одно слово общее), 0 — нет. syn — синонимы профиля."""
     key = syn.key if syn else company_key
     a, b = key(vacancy_company), key(contact_company)
-    if not a or not b or re.search(r"anonim|neukazan", a) or company_key(vacancy_company) in JUNK or company_key(contact_company) in JUNK:
+    if not _valid(vacancy_company, a) or not b or company_key(contact_company) in JUNK:
         return 0
     if a == b:
         return 2

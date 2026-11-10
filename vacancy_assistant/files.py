@@ -11,6 +11,24 @@ NOTE_PROP = "заметка"     # заметка к вакансии — сво
 REFERRER_PROP = "референсер"   # через кого в компании подать резюме — тоже свойство разбора
 REFERRER_ID_PROP = "референсер_контакт"   # какой это контакт из трекера (пусто — вписан вручную)
 
+# Текст файлов разбора — с запоминанием: таблица берёт из одного файла паспорт и пять-шесть свойств, и без
+# запоминания каждый файл читался ~10 раз. Ключ — путь, время изменения и размер: файл поменялся — читаем заново
+_TEXTS, _TEXTS_MAX, _TEXTS_LOCK = {}, 4096, threading.Lock()
+
+
+def cached_text(path):
+    st = Path(path).stat()
+    key = (str(path), st.st_mtime_ns, st.st_size)
+    with _TEXTS_LOCK:
+        if key in _TEXTS:
+            return _TEXTS[key]
+    text = read_text(path)
+    with _TEXTS_LOCK:
+        if len(_TEXTS) >= _TEXTS_MAX:
+            _TEXTS.clear()
+        _TEXTS[key] = text
+    return text
+
 
 def read_vacancy(path):
     """Возвращает текст вакансии и поля из её шапки (компания, зарплата, ссылка, дата сохранения)."""
@@ -65,7 +83,7 @@ def say_decision(text):
 
 def read_meta(path):
     """«Паспорт» разбора — JSON из строки <!-- … --> (после блока свойств, если он есть)."""
-    m = re.search(r"^<!-- (\{.*\}) -->$", read_text(path), re.M)
+    m = re.search(r"^<!-- (\{.*\}) -->$", cached_text(path), re.M)
     return json.loads(m.group(1)) if m else None
 
 
@@ -129,7 +147,7 @@ def frontmatter(path):
     """Блок свойств «---…---» в начале файла (с переводом строки) или пустая строка."""
     if not path.exists():
         return ""
-    m = re.match(r"---\n.*?\n---\n", read_text(path), re.S)
+    m = re.match(r"---\n.*?\n---\n", cached_text(path), re.S)
     return m.group(0) if m else ""
 
 

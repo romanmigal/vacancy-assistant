@@ -136,5 +136,19 @@ class Contacts(unittest.TestCase):
                 contacts.upsert(t.profile, {"company": "МТС"})                       # без имени
 
 
+class ExactCounter(unittest.TestCase):
+    def test_same_as_pairs(self):
+        """Счёт знакомых по ключам — тот же, что по всем парам match_level == 2: синонимы, «аноним», Self-employed."""
+        people = [{"company": c} for c in ("Sberbank", "ПАО Сбербанк", "Сбер", "MTS", "МТС Банк", "Self-employed",
+                                           "Анонимный работодатель", "", "Т-Банк", "Tinkoff")]
+        with TempProfile() as t:
+            contacts.mark_same(t.profile, "Т-Банк", "Тинькофф")
+            for syn in (None, contacts.synonyms(t.profile)):
+                exact = contacts.exact_counter(people, syn)
+                for name in ("Сбербанк", "МТС", "MTS Bank", "Self-employed", "Анонимный работодатель", "", "Тинькофф", "Ромашка"):
+                    pairs = sum(1 for c in people if contacts.match_level(name, c["company"], syn) == 2)
+                    self.assertEqual(exact(name), pairs, (name, syn is None))
+
+
 if __name__ == "__main__":
     unittest.main()

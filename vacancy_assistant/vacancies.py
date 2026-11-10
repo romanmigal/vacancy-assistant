@@ -136,8 +136,9 @@ def vacancy_rows(profile):
         r["want_bonus"], r["want_like"] = like.get(r["n"], {}).get("bonus", 0), like.get(r["n"], {}).get("like", [])
     people = contacts.load(profile)                    # сколько знакомых в компании вакансии — значок в таблице
     by_id, syn = {c["id"]: c for c in people}, contacts.synonyms(profile)
+    exact = contacts.exact_counter(people, syn)
     for r in rows:
-        r["contacts"] = sum(1 for c in people if contacts.match_level(r["company"], c.get("company", ""), syn) == 2)
+        r["contacts"] = exact(r["company"])
         linked = by_id.get(r.pop("referrer_id", ""))  # референсер из контактов — имя и должность, остальное в подсказке
         r["referrer_contact"] = contacts.brief(linked) if linked else None
     rows.sort(key=lambda r: (not r["analyzed"], -(r["score"] or 0), r["n"]))
