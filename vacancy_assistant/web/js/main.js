@@ -331,11 +331,11 @@ async function openVacancy(n) {
            <p class="lettertools"><button class="primary" id="copyInterview">Скопировать</button>
              <button id="newInterview" title="Подобрать истории заново — нынешние заменятся, вопросы работодателю останутся">Подготовить заново</button>
              <span class="hint">подготовлено ${esc(d.interview_when)} · проверьте факты и допишите то, что в [скобках]</span></p>
-           <div class="md interview">${storiesHtml(stories)}</div></section>
+           <div class="md interview">${markAsk(storiesHtml(stories))}</div></section>
          <section class="isec"><h3>Вопросы работодателю</h3>
            ${questions ? `<p class="lettertools"><button class="primary" id="copyQuestions" title="Только вопросы — чтобы взять с собой на интервью">Скопировать</button>
                <button id="newQuestions" title="Подобрать вопросы заново — нынешние заменятся, истории останутся">Новые вопросы</button></p>
-             <div class="md interview">${md(questions)}</div>`
+             <div class="md interview">${markAsk(md(questions))}</div>`
            : `<p class="hint">5–7 ваших вопросов к этой вакансии — про пробелы и неясности из разбора: кому подчиняется роль, почему она открыта, бюджет и команда, чего ждут через 3–6 месяцев. Истории останутся как есть.</p>
              <p class="lettertools"><button id="newQuestions">Подготовить вопросы</button></p>`}</section>`
       : `<div class="md"><p>Модель подберёт из резюме <b>4 истории по методу <span class="tip tipword" tabindex="0" data-tip="${STAR_TIP}">STAR</span></b> под главные требования этой вакансии — для вопросов вроде «Расскажите о случае, когда…»: ситуация, задача, ваши действия, результат с цифрами и вывод. А ещё подскажет, как честно отвечать на вопросы о пробелах из разбора, и предложит <b>5–7 ваших вопросов работодателю</b> — про то, что неясно именно в этой вакансии: кому подчиняется роль, почему она открыта, бюджет и команда, чего ждут через 3–6 месяцев.</p>
@@ -500,7 +500,7 @@ function resumeFitTab(r, d, n) {
       ${ibtn("sentBtn", "sent", shown.sent ? `Отправлено ${ddmm(shown.sent)} — поправить дату или снять отметку` : "Отметить «Отправлено» — текст попадёт в «Артефакты»",
              shown.sent ? "sent" : "", shown.sent ? ddmm(shown.sent) : "")}
       <span class="hint">${versionNote(shown)}${shown.source ? "" : "проверьте факты и допишите то, что в [скобках]; "}на hh переносите сами</span></p>
-    ${factsNote(shown)}<div class="md">${markFacts(md(shown.text), shown.unverified)}</div>`;
+    ${factsNote(shown)}<div class="md">${markAsk(markFacts(md(shown.text), shown.unverified))}</div>`;
 }
 function bindResumeFit(d, n) {
   if ($("fitVer")) $("fitVer").onchange = e => { fitVersion = {n, i: +e.target.value}; openVacancy(n); };
@@ -544,7 +544,7 @@ function lettersTab(r, d, n) {
       ${cover && d.templates > 1 && shown.template ? `<span class="hint">шаблон: ${esc(shown.template)}</span>` : ""}
       ${!cover && shown.to ? `<span class="hint">кому: ${esc(shown.to)}${channel ? " · " + esc(channel) : ""}</span>` : ""}</p>
     ${versionNote(shown) ? `<p class="hint">${versionNote(shown).replace(/ · $/, ".")}</p>` : ""}
-    ${factsNote(shown)}<div class="letter">${markFacts(esc(shown.text), shown.unverified)}</div>`;
+    ${factsNote(shown)}<div class="letter">${markAsk(markFacts(esc(shown.text), shown.unverified))}</div>`;
 }
 
 function bindLetters(r, d, n) {
@@ -608,6 +608,10 @@ const versionPicker = (versions, cur, id, many) => versions.length < 2 ? "" : `<
 // списком над текстом и подсветкой в тексте. Своя правка — проверка пересчитывается при открытии
 const factsNote = v => (v.unverified || []).length ? `<p class="cwarn facts">Проверьте: этого нет ни в резюме, ни в вакансии — ${
   v.unverified.map(x => `«${esc(x)}»`).join(", ")}. Если это неправда — поправьте текст; если правда, но не в резюме — добавьте в «Дополнительно о себе», и отметка пропадёт.</p>` : "";
+// Что дописать после проверки — в [квадратных скобках] («[уточните: размер команды]»): красным, чтобы не пропустить.
+// Только в тексте, не в разметке; ссылки Markdown md() уже превратил в <a>
+const markAsk = html => html.split(/(<[^>]*>)/).map(part => part.startsWith("<") ? part
+  : part.replace(/\[[^\[\]\n]{2,300}\]/g, '<span class="ask">$&</span>')).join("");
 function markFacts(html, words) {
   if (!words || !words.length) return html;
   const alt = words.map(w => esc(w).replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).sort((a, b) => b.length - a.length).join("|");

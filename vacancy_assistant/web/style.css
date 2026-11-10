@@ -278,6 +278,7 @@ button.info { width: 20px; height: 20px; padding: 0; border-radius: 50%; font: i
 .cmark { width: 20px; flex: none; text-align: center; }
 .ccont { margin: 2px 0 2px 28px; color: var(--muted); }
 .chead { font-weight: 600; margin: 10px 0 4px; color: var(--muted); }
+.ask { color: var(--bad); font-weight: 600; }                    /* [уточните: …] — дописать после проверки */
 mark.unver { background: none; color: inherit; text-decoration: underline wavy var(--mid); text-underline-offset: 3px; }
 .cwarn.facts { margin: 8px 0; }
 .cwarn { margin: 8px 14px 0; padding: 6px 10px; border-radius: 6px; background: var(--chip); color: var(--mid); font-size: 13px; }
