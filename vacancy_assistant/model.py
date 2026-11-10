@@ -22,6 +22,18 @@ def ask_model(prompt, model=settings.MODEL, options=settings.OPTIONS):
     return ask_local(prompt, model, options)
 
 
+def check_read(prompt, read, options):
+    """Прочитала ли Ollama весь промпт: read — сколько токенов она прочитала (prompt_eval_count). В токене не больше
+    CHARS_PER_TOKEN_MAX знаков — прочитано меньше, чем возможно для такого текста, и не больше окна, значит начало
+    промпта (инструкция, критерии) отрезано окном модели, и ответ был бы неверным. Старые версии Ollama режут молча;
+    новые (0.40) читают промпт целиком, даже если он длиннее num_ctx."""
+    if read and read <= options.get("num_ctx", read) and read * settings.CHARS_PER_TOKEN_MAX < len(prompt):
+        need = round(len(prompt) / settings.CHARS_PER_TOKEN)
+        raise AssistantError(f"Промпт не поместился в окно локальной модели: она прочитала {read} токенов из примерно "
+                             f"{need} — начало с инструкцией отрезано, ответ был бы неверным. Сократите резюме или "
+                             f"«Дополнительно о себе» (Профиль → О себе) или обновите Ollama.")
+
+
 def ask_local(prompt, model=settings.MODEL, options=settings.OPTIONS):
     """Запрос к локальной модели (Ollama) — даже если в профиле выбран GigaChat: когда облачная модель
     отказалась отвечать, вакансию разбирает локальная."""
@@ -34,10 +46,12 @@ def ask_local(prompt, model=settings.MODEL, options=settings.OPTIONS):
     def call():
         try:
             with urllib.request.urlopen(request, timeout=LOCAL_LIMIT) as response:
-                return json.load(response)["response"].strip()
+                answer = json.load(response)
         except urllib.error.URLError as e:
             if isinstance(e.reason, ConnectionRefusedError):
                 raise AssistantError("Ollama не запущена. Запустите её командой  ollama serve  и повторите.") from e
             raise
+        check_read(prompt, answer.get("prompt_eval_count"), options)
+        return answer["response"].strip()
     return waiting.run(call, "локальной модели", LOCAL_LIMIT,
                        AssistantError(f"Локальная модель не ответила за {LOCAL_LIMIT // 60} минут — пропускаю."))

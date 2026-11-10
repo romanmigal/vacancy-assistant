@@ -169,6 +169,23 @@ FACTS_HEAD = ("Дополнительно о себе — этого нет в �
 TEXT_FACTS_HEAD = ("Дополнительно о себе — этого нет в резюме выше, но это тоже правда о моём опыте. Считай эти факты частью "
                    "резюме и используй наравне с ним. Правило «бери факты только из резюме» относится и к этим фактам.")
 
+VACANCY_CUT = "\n[…конец текста вакансии обрезан: вместе с резюме он не помещался в окно модели]"
+MIN_VACANCY = 1500                       # вакансию короче не режем: без неё разбор бессмыслен
+
+
+def fill_vacancy(t, vacancy, options):
+    """Подставляет вакансию в промпт ({vac}); не помещается в окно модели — обрезает конец текста вакансии,
+    а не начало промпта (инструкцию и критерии): так сделала бы Ollama, если промпт длиннее окна."""
+    over = len(t) - len("{vac}") + len(vacancy) - settings.prompt_room(options)
+    if over > 0 and len(vacancy) > MIN_VACANCY:
+        vacancy = vacancy[:max(MIN_VACANCY, len(vacancy) - over - len(VACANCY_CUT))].rstrip() + VACANCY_CUT
+    return t.replace("{vac}", vacancy)
+
+
+def too_long(t, options):
+    return len(t) > settings.prompt_room(options)
+
+
 def letter_length(example):
     """Объём письма по образцу: ± 20% от длины образца, с шагом 10 знаков (образца нет — 560–840)."""
     n = len(example.strip()) or 700
@@ -375,7 +392,7 @@ class Profile:
                      ("{general_skill}", a["общий_навык"]), ("{criteria_format}", criteria_format),
                      ("{criteria}", criteria)):
             t = t.replace(k, v)
-        return t.replace("{resume}", self.with_facts(resume)).replace("{vac}", vacancy)
+        return fill_vacancy(t.replace("{resume}", self.with_facts(resume)), vacancy, settings.OPTIONS)
 
     def scoring_prompt(self, resume, vacancy, criteria=None):
         """Промпт короткого скоринга: те же критерии, ответ — отметки К, «Могу», «Хочу», оценка, решение."""
@@ -387,14 +404,14 @@ class Profile:
         for k, v in (("{audience}", a["для_кого"]), ("{intro}", a["вступление"]),
                      ("{criteria_marks}", marks), ("{criteria}", criteria)):
             t = t.replace(k, v)
-        return t.replace("{resume}", self.with_facts(resume)).replace("{vac}", vacancy)
+        return fill_vacancy(t.replace("{resume}", self.with_facts(resume)), vacancy, settings.SCORING_OPTIONS)
 
     def interview_prompt(self, resume, vacancy, analysis_text, template=None):
         """Промпт подготовки к собеседованию: истории STAR под требования вакансии, ответы о пробелах и вопросы
         работодателю. template — другой шаблон с теми же полями (только вопросы)."""
         t = read_text(template or settings.INTERVIEW_TEMPLATE).replace("{who}", self.config["письмо"]["кому_помогаем"])
-        return (t.replace("{resume}", self.with_facts(resume, TEXT_FACTS_HEAD)).replace("{vac}", vacancy)
-                .replace("{analysis}", analysis_text))
+        t = t.replace("{resume}", self.with_facts(resume, TEXT_FACTS_HEAD)).replace("{analysis}", analysis_text)
+        return fill_vacancy(t, vacancy, settings.INTERVIEW_OPTIONS)
 
     def referrer_prompt(self, resume, vacancy, strengths_text, title, to, about, channel, goal, extra=""):
         """Промпт сообщения референсеру: кому, что о нём известно, канал и цель — из окна «Письма»."""
@@ -406,8 +423,8 @@ class Profile:
                      ("{channel_rules}", c[1]), ("{title}", title), ("{signature}", self.config["письмо"]["подпись"]),
                      ("{extra}", f"- Ещё учти: {extra.strip()}" if (extra or "").strip() else "")):
             t = t.replace(k, v)
-        return (t.replace("{resume}", self.with_facts(resume, TEXT_FACTS_HEAD)).replace("{vac}", vacancy)
-                .replace("{strengths}", strengths_text))
+        t = t.replace("{resume}", self.with_facts(resume, TEXT_FACTS_HEAD)).replace("{strengths}", strengths_text)
+        return fill_vacancy(t, vacancy, settings.LETTER_OPTIONS)
 
     def resume_fit_prompt(self, resume, vacancy, strengths_text):
         """Промпт «Резюме под вакансию»: что включить (из резюме и «Дополнительно о себе»), что можно
@@ -423,7 +440,8 @@ class Profile:
                      ("{facts}", "\n=== ДОПОЛНИТЕЛЬНО О СЕБЕ (этого нет в резюме, но это правда о моём опыте) ===\n"
                       + "\n".join(f"- {f}" for f in facts) + "\n" if facts else "")):
             t = t.replace(k, v)
-        return t.replace("{resume}", resume).replace("{vac}", vacancy).replace("{strengths}", strengths_text)
+        return fill_vacancy(t.replace("{resume}", resume).replace("{strengths}", strengths_text), vacancy,
+                            settings.RESUME_FIT_OPTIONS)
 
     def letter_prompt(self, resume, vacancy, strengths_text, example=None, template=None, samples=None,
                       requirements="", earlier=""):
@@ -435,13 +453,28 @@ class Profile:
         from . import letter_samples                        # он берёт plain_title отсюда
         l = self.config["письмо"]
         example = (example or read_text(self.letter_example)).strip()
-        t = read_text(template or settings.LETTER_TEMPLATE)
         low, high = letter_length(example)
+        base = read_text(template or settings.LETTER_TEMPLATE)
         for k, v in (("{who}", l["кому_помогаем"]), ("{example}", example), ("{availability}", l["готовность"]),
                      ("{closing}", l["завершение"]), ("{signature}", l["подпись"]),
-                     ("{min_chars}", str(low)), ("{max_chars}", str(high)), ("{samples}", letter_samples.block(samples)),
-                     ("{requirements}", letter_samples.requirements_block(requirements)),
-                     ("{earlier}", letter_samples.earlier_block(earlier))):
-            t = t.replace(k, v)
-        return (t.replace("{resume}", self.with_facts(resume, TEXT_FACTS_HEAD)).replace("{vac}", vacancy)
-                .replace("{strengths}", strengths_text))
+                     ("{min_chars}", str(low)), ("{max_chars}", str(high)),
+                     ("{resume}", self.with_facts(resume, TEXT_FACTS_HEAD)), ("{strengths}", strengths_text)):
+            base = base.replace(k, v)
+        samples = list(samples or [])
+        # Не помещается в окно модели — сначала без дополнений (прежнее письмо в компанию, свои письма,
+        # требования), и только потом обрезаем конец вакансии
+        while True:
+            t = (base.replace("{samples}", letter_samples.block(samples))
+                 .replace("{requirements}", letter_samples.requirements_block(requirements))
+                 .replace("{earlier}", letter_samples.earlier_block(earlier)))
+            if not too_long(t.replace("{vac}", vacancy), settings.LETTER_OPTIONS):
+                break
+            if earlier:
+                earlier = ""
+            elif samples:
+                samples.pop()
+            elif requirements:
+                requirements = ""
+            else:
+                break
+        return fill_vacancy(t, vacancy, settings.LETTER_OPTIONS)

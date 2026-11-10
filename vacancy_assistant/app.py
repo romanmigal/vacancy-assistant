@@ -689,7 +689,8 @@ class App:
     def api_setup_check(self, p, a):
         return {**self.check(), "cloud_key": bool(cloud.load(self.config_dir).get("auth_key")),
                 "profiles": profile_names(self.profiles_dir),
-                "default": default_profile_name(self.profiles_dir), "areas": list(setup.AREAS)}
+                "default": default_profile_name(self.profiles_dir), "areas": list(setup.AREAS),
+                "resume_room": setup.resume_room()}            # мастер, шаг «Резюме»: предупреждение о длинном резюме
 
     @route("/api/setup/area", "ANY", profile=False)
     def api_setup_area(self, p, a):

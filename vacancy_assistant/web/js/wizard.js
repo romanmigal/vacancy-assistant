@@ -170,6 +170,7 @@ function wizRender() {
       ${field("Файл резюме с hh.ru", `<input type="file" id="wpdf" accept=".txt,.md,.html,.htm,.pdf,text/plain,text/markdown,text/html,application/pdf">`,
                "На hh.ru: резюме → «Скачать» → <b>TXT</b> — так программа точно разберёт все разделы. PDF тоже подойдёт, но хуже: колонки PDF путают порядок блоков. Или вставьте текст резюме в поле ниже. Телефон, почта и дата рождения не переносятся.")}
       ${field(`Текст резюме <button type="button" class="info" data-example="resume" title="Пример резюме" aria-label="Пример резюме">i</button>`, `<div class="expop" id="ex-resume"></div>` + area("resume", "…или вставьте текст резюме сюда", "tall", ro), ro ? "" : "Проверьте текст после загрузки файла: модель опирается только на то, что здесь написано.", true)}
+      <p class="cwarn" id="wLong" hidden></p>
       ${W.a.model_pick === "cloud" ? '<div class="field" id="wFirms"></div>' : ""}
       ${field("Дополнительно о себе", area("facts", "- Использую ИИ в своих проектах: локальная LLM, свой помощник по вакансиям на Python\n- Английский — B2, переговоры с зарубежными вендорами", "facts"),
         "Опыт и факты, которых нет в резюме: пет-проекты, обучение, волонтёрство, отраслевые знания, языки. Каждый факт — с «- »: Enter начнёт следующий, длинный факт перенесётся и останется одним пунктом. Модель учитывает их наравне с резюме при разборе и оценке — пишите только правду. Хранится в файле «о себе.md» в папке профиля. Необязательно.")}`;
@@ -299,6 +300,10 @@ function wizRender() {
     if (!idEl.value) fill();
   }
   bulletArea(document.querySelector("#wbody [data-a=facts]"));
+  if ($("wLong")) {
+    document.querySelectorAll("#wbody [data-a=resume], #wbody [data-a=facts]").forEach(el => el.addEventListener("input", wizLong));
+    wizLong();
+  }
   document.querySelectorAll("#wbody [data-example]").forEach(b => b.onclick = e => { e.stopPropagation(); showExample(b.dataset.example); });
   if ($("whist")) $("whist").onclick = e => { e.stopPropagation(); showCriteriaHistory(); };
   if ($("whistLetter")) $("whistLetter").onclick = e => { e.stopPropagation(); showCriteriaHistory("letter"); };
@@ -439,6 +444,20 @@ async function wizFirms() {
   $("wFirms").innerHTML = `<div class="checks"><label><input type="checkbox" data-a="hide_firms" ${W.a.hide_firms && r.past.length ? "checked" : ""} ${r.past.length ? "" : "disabled"}>
       Скрывать от GigaChat и прошлых работодателей${r.past.length ? ` — ${r.past.map(esc).join(", ")}` : " — в резюме их пока не нашлось"}</label></div>
     <div class="sub">Имя, телефон, почта и контакты скрываются всегда. Если скрыть и работодателей, модель не узнает отрасль и размер этих компаний — оценка опыта может стать менее точной. Поменять можно в «Параметры → Настройки → Что скрывается от GigaChat».</div>`;
+}
+
+// Длинное резюме: вместе с «Дополнительно о себе» и критериями не оставляет в окне локальной модели места
+// для обычной вакансии — у длинных вакансий программа обрежет конец текста. Предел считает сервер (setup.resume_room)
+const RESUME_ROOM_FALLBACK = 26000;
+function wizLong() {
+  const val = k => (document.querySelector(`#wbody [data-a=${k}]`) || {}).value ?? (W.a[k] || "");
+  const used = val("resume").length + val("facts").length + (W.a.criteria || "").length;
+  const room = (W.check && W.check.resume_room) || RESUME_ROOM_FALLBACK;
+  const box = $("wLong");
+  box.hidden = used <= room;
+  if (!box.hidden) box.textContent = `Резюме вместе с «Дополнительно о себе» и критериями — ${used.toLocaleString("ru-RU")} знаков, `
+    + `удобнее до ${room.toLocaleString("ru-RU")}. Локальная модель читает резюме и вакансию вместе, и у длинных вакансий `
+    + "конец текста придётся обрезать. Уберите из резюме то, что не важно для поиска: старые места работы, подробности давних проектов.";
 }
 
 async function wizPdf(e) {

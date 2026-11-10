@@ -48,6 +48,17 @@ QUESTIONS_OPTIONS = {**INTERVIEW_OPTIONS, "num_predict": 800}
 RESUME_FIT_OPTIONS = {"temperature": 0.3, "num_predict": 1500, "num_ctx": 16384}
 MARKET_OPTIONS = {"temperature": 0.3, "num_predict": 1500, "num_ctx": 16384}
 
+# Окно локальной модели: промпт и ответ вместе — не больше num_ctx токенов. Сколько знаков в токене (замер на
+# русских промптах — 3,4–3,7): по меньшему считаем, сколько знаков промпта влезет, по CHARS_PER_TOKEN_MAX —
+# что Ollama прочитала не весь промпт (старые версии молча отрезают начало — инструкцию и критерии).
+CHARS_PER_TOKEN = 3.4
+CHARS_PER_TOKEN_MAX = 4.5
+
+
+def prompt_room(options):
+    """Сколько знаков промпта помещается в окно модели с этими параметрами (за вычетом ответа)."""
+    return int((options["num_ctx"] - options["num_predict"]) * CHARS_PER_TOKEN)
+
 RELEASES_PAGE = "https://github.com/romanmigal/job-search-assistant-releases/releases"   # публичный репозиторий: только релизы
 UPDATES_URL = RELEASES_PAGE + "/latest/download/latest.json"                             # проверка обновлений
 CONTACT_EMAIL = "job_search_assistant@inbox.ru"           # «О программе» и README: ошибки, вопросы, идеи
