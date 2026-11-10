@@ -13,7 +13,12 @@ sys.path.insert(0, str(PROJECT))
 import os  # noqa: E402
 os.environ["VACANCY_ASSISTANT_CONFIG"] = tempfile.mkdtemp(prefix="va-config-")
 
+from vacancy_assistant import support  # noqa: E402
 from vacancy_assistant.profile import Profile  # noqa: E402
+
+# Журнал ошибок тестов — во временной папке, не в журнале программы на этом компьютере
+TEST_LOG = Path(tempfile.mkdtemp(prefix="va-log-")) / support.LOG_NAME
+support.log_path = lambda: TEST_LOG
 from vacancy_assistant.textio import write_text  # noqa: E402
 
 VACANCY_HTML = """<html><body>

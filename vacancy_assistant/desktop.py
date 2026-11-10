@@ -12,7 +12,7 @@ import urllib.request
 import webbrowser
 from pathlib import Path
 
-from . import datadir, settings
+from . import datadir, settings, support
 from .app import PORT
 
 APP_NAME = "Помощник по вакансиям"
@@ -84,7 +84,8 @@ def main():
     home = user_home()
     os.environ["VACANCY_ASSISTANT_HOME"] = str(home)
     prepare(home)
-    log = open(home / "журнал.txt", "a", encoding="utf-8", buffering=1)
+    support.trim(home / support.LOG_NAME)             # журнал не растёт без предела: последний мегабайт
+    log = open(home / support.LOG_NAME, "a", encoding="utf-8", buffering=1)
     sys.stdout = sys.stderr = log                       # у программы без консоли stdout нет
     if use_system_roots(datadir.config_dir()):
         print("Сертификаты: корневые сертификаты macOS")

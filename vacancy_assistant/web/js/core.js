@@ -106,7 +106,7 @@ async function api(path, body) {
   const r = await fetch(path, opts);
   if (r.status === 401 && REMOTE) { location.reload(); throw new Error("Войдите заново"); }   // сессия истекла — на вход
   const data = await r.json().catch(() => ({error: "Нет ответа от программы — она закрыта?"}));
-  if (!r.ok || data.error) throw new Error(data.error || r.statusText);
+  if (!r.ok || data.error) throw Object.assign(new Error(data.error || r.statusText), {fromServer: true});
   return data;
 }
 // Короткое сообщение внизу; action = {label, onClick} — с кнопкой (тогда висит дольше)
@@ -118,6 +118,20 @@ function toast(text, action) {
   t.classList.add("on"); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove("on"), action ? 6000 : 2200);
 }
 const fail = e => toast(e.message || String(e));
+// Ошибка в скрипте окна: человеку — сообщение, в журнал программы — что и где (не чаще 10 раз за открытие окна)
+let clientErrors = 0;
+function reportClientError(message, where, stack) {
+  toast("Ошибка в окне — обновите страницу. Если повторяется, напишите автору: «О программе → Скопировать сведения для поддержки».");
+  if (++clientErrors > 10) return;
+  api("/api/client-error", {message: String(message || "").slice(0, 1500), where: String(where || "").slice(0, 300),
+                            stack: String(stack || "").slice(0, 1500)}).catch(() => {});
+}
+window.addEventListener("error", e => reportClientError(e.message, `${e.filename || ""}:${e.lineno || ""}:${e.colno || ""}`, e.error && e.error.stack));
+window.addEventListener("unhandledrejection", e => {
+  const r = e.reason || {};
+  if (r.fromServer) return toast(r.message);                // ответ программы с понятным текстом — не ошибка окна
+  reportClientError(r.message || String(r), "promise", r.stack);
+});
 // Даты этапов и контактов: «2026-10-28» → «28.10»; сегодня в формате ISO — по местному времени
 const ddmm = iso => iso ? iso.slice(8, 10) + "." + iso.slice(5, 7) : "";
 const ddmmyyyy = iso => iso ? ddmm(iso) + "." + iso.slice(0, 4) : "";

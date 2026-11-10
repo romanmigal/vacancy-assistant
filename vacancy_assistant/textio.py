@@ -47,7 +47,14 @@ def append_text(path, text):
 
 def read_json(path, default=None):
     """JSON-файл программы; если файла нет — default."""
-    return json.loads(read_text(path)) if Path(path).exists() else default
+    if not Path(path).exists():
+        return default
+    try:
+        return json.loads(read_text(path))
+    except ValueError as e:                    # испорчен руками или оборвалась запись: имя файла, а не «Expecting value…»
+        from .errors import AssistantError
+        raise AssistantError(f"Файл «{Path(path).name}» испорчен и не читается ({Path(path).parent}). Исправьте его "
+                             f"или восстановите из резервной копии: «Параметры → Резервные копии».") from e
 
 
 def write_json(path, data):

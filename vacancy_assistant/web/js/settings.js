@@ -77,9 +77,15 @@ function openAbout() {
     <p class="hint">Свободная программа: лицензия <a href="https://www.gnu.org/licenses/gpl-3.0.html" target="_blank" rel="noopener">GNU GPL 3.0</a> —
       можно пользоваться, изменять и распространять, в том числе изменённой, но тоже открыто и под этой лицензией.
       ${state.source ? `<a href="${esc(state.source)}" target="_blank" rel="noopener">Исходный код</a>.` : ""}</p>
-    ${REMOTE ? "" : `<p class="aboutupd"><button type="button" id="aboutUpd" class="small">Проверить обновления</button> <span id="aboutUpdOut" class="hint"></span></p>`}`,
+    ${REMOTE ? "" : `<p class="aboutupd"><button type="button" id="aboutUpd" class="small">Проверить обновления</button> <span id="aboutUpdOut" class="hint"></span></p>
+      <p class="aboutupd"><button type="button" id="aboutSupport" class="small">Скопировать сведения для поддержки</button>
+        <span class="hint">версия, система, модель и последние строки журнала — без резюме, вакансий и ключей; вставьте в письмо автору</span></p>`}`,
     [{label: "Помощь", onClick: () => window.open("/help/", "_blank", "noopener")}, {label: "Закрыть", primary: true}]);
   if ($("aboutUpd")) $("aboutUpd").onclick = () => checkUpdatesNow($("aboutUpd"), $("aboutUpdOut"));
+  if ($("aboutSupport")) $("aboutSupport").onclick = async () => {
+    const r = await api("/api/support").catch(fail);
+    if (r) navigator.clipboard.writeText(r.text).then(() => toast("Сведения скопированы — вставьте их в письмо"), fail);
+  };
   if ($("aboutCopy")) $("aboutCopy").onclick = () => navigator.clipboard.writeText(state.contact).then(() => toast("Адрес скопирован"), fail);
 }
 

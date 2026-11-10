@@ -23,7 +23,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
-from . import __version__, analysis, artifacts, backup, calibration, cloud, company, contacts, criteria_history, datadir, dupes, fix, funnel, gaps, help, hh, letter_samples, letter_templates, links, mails, market, mask, network, ratings, rss, resume_pdf, salaries, settings, setup, similar, stats, summary, tasks, tune, updates, weekly
+from . import __version__, analysis, artifacts, backup, calibration, cloud, company, contacts, criteria_history, datadir, dupes, fix, funnel, gaps, help, hh, letter_samples, letter_templates, links, mails, market, mask, network, ratings, rss, resume_pdf, salaries, settings, setup, similar, stats, summary, support, tasks, tune, updates, weekly
 from .model import current_model
 from .errors import AssistantError
 from .files import REFERRER_ID_PROP, REFERRER_PROP, read_note, read_prop, read_vacancy, set_note, set_prop
@@ -683,6 +683,26 @@ class App:
         tune.tune_apply(p, log=lambda *_: None)
         return {"ok": True}
 
+    # --- ошибки окна и сведения для поддержки
+
+    @route("/api/client-error", "POST", profile=False)
+    def api_client_error(self, p, a):
+        """Ошибка скрипта окна (window.onerror, unhandledrejection) — в журнал, без личных данных."""
+        text = support.hide(" ".join(str(a.get(k, ""))[:1500] for k in ("message", "where", "stack")).strip())
+        support.log(f"Ошибка в окне: {text}")
+        return {"ok": True}
+
+    @route("/api/support", profile=False, local=True)
+    def api_support(self, p, a):
+        """«Скопировать сведения для поддержки»: версия, система, модель, последние строки журнала."""
+        try:
+            c = self.check()
+            machine = (f"память {c.get('memory_gb')} ГБ, свободно {c.get('disk_free_gb')} ГБ, Ollama "
+                       f"{'запущена' if c.get('ollama') else 'не запущена'}, модель {'есть' if c.get('model_ok') else 'нет'}")
+        except Exception:                            # noqa: BLE001 — сведения нужны и когда проверка не удалась
+            machine = "проверка компьютера не удалась"
+        return {"text": support.info(current_model(), machine, len(profile_names(self.profiles_dir)))}
+
     # --- мастер первого запуска: проверка, модель, резюме из PDF, предпросмотр и создание профиля
 
     @route("/api/setup/check", profile=False)
@@ -818,14 +838,21 @@ def handler_for(app, remote=False):
             data = {}
             if method == "POST":
                 length = int(self.headers.get("Content-Length") or 0)
-                data = json.loads(self.rfile.read(length).decode("utf-8") or "{}")
+                try:
+                    data = json.loads(self.rfile.read(length).decode("utf-8") or "{}")
+                except ValueError:
+                    return self._send(400, json.dumps({"error": "Неверный запрос — обновите окно."}, ensure_ascii=False))
             try:
                 result = app.handle(method, url.path, parse_qs(url.query), data, remote)
                 self._send(200, json.dumps(result, ensure_ascii=False))
             except Forbidden as e:
                 self._send(403, json.dumps({"error": str(e)}, ensure_ascii=False))
-            except (AssistantError, KeyError, ValueError) as e:
+            except AssistantError as e:
                 self._send(400, json.dumps({"error": str(e)}, ensure_ascii=False))
+            except Exception as e:                   # noqa: BLE001 — любая ошибка: понятный ответ, трассировка в журнал
+                code, text = error_answer(e)
+                support.log_error(f"{method} {url.path}")
+                self._send(code, json.dumps({"error": text}, ensure_ascii=False))
 
         def do_GET(self):
             self._serve("GET")
@@ -834,6 +861,17 @@ def handler_for(app, remote=False):
             self._serve("POST")
 
     return Handler
+
+
+def error_answer(e):
+    """Ошибка не из программы (не AssistantError) → (код ответа, текст для окна). Пропущенный или неверный
+    параметр запроса — 400 и просьба обновить окно; остальное — 500 «Внутренняя ошибка», подробности — в журнале."""
+    if isinstance(e, KeyError):
+        return 400, f"В запросе не хватает данных ({e.args[0] if e.args else '?'}) — обновите окно и повторите."
+    if isinstance(e, (ValueError, TypeError)) and not isinstance(e, json.JSONDecodeError):
+        return 400, "Неверное значение в запросе — обновите окно и повторите."
+    return 500, ("Внутренняя ошибка программы — подробности в журнале. Если повторяется, напишите автору: "
+                 "«Параметры → О программе → Скопировать сведения для поддержки».")
 
 
 class Server(ThreadingHTTPServer):
@@ -858,6 +896,7 @@ def backup_on_start(profiles_root):
 
 
 def serve(open_browser=True, port=PORT):
+    support.trim()                                    # журнал не растёт без предела: последний мегабайт
     app = App()
     server = make_server(app, port)
     app.server = server                               # для «Выйти из программы»
