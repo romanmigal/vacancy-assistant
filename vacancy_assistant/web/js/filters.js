@@ -296,10 +296,18 @@ const companyTerm = name => name.replace(/^(?:ООО|ПАО|ОАО|АО|ЗАО|�
 function openCompanyFilter(name) {
   const term = companyTerm(name).toLowerCase() || name.toLowerCase();
   const only = [...new Set(state.rows.map(r => filterValue("company", r)))].filter(v => v.toLowerCase().includes(term));
+  openTabFilter({company: {only}}, `Вакансии компаний с «${companyTerm(name) || name}» в названии`);
+}
+// Название вакансии в карточке: вкладка «Фильтр» с вакансиями, где в названии есть это название (как фильтр колонки «Вакансия»)
+function openTitleFilter(title) {
+  openTabFilter({title: {text: title.trim()}}, `Вакансии с «${title.trim()}» в названии`);
+}
+// Новый фильтр вкладки «Фильтр» вместо прежних несохранённых условий; карточка остаётся открытой
+function openTabFilter(next, what) {
   tab = FILTER_TAB;
   restoreFilters();                                  // набор условий вкладки «Фильтр» — его и заменяем
-  filters = {company: {only}}; hideClosed = false;
+  filters = next; hideClosed = false;
   saveFilters(); $("fmenu").hidden = true; render();
   const n = filterRows(state.rows, filters, false, new Date()).length;
-  toast(`Вакансии компаний с «${companyTerm(name) || name}» в названии: ${n}. Фильтр можно поменять и сохранить`);
+  toast(`${what}: ${n}. Фильтр можно поменять и сохранить`);
 }
