@@ -500,7 +500,7 @@ function resumeFitTab(r, d, n) {
       ${ibtn("sentBtn", "sent", shown.sent ? `Отправлено ${ddmm(shown.sent)} — поправить дату или снять отметку` : "Отметить «Отправлено» — текст попадёт в «Артефакты»",
              shown.sent ? "sent" : "", shown.sent ? ddmm(shown.sent) : "")}
       <span class="hint">${versionNote(shown)}${shown.source ? "" : "проверьте факты и допишите то, что в [скобках]; "}на hh переносите сами</span></p>
-    <div class="md">${md(shown.text)}</div>`;
+    ${factsNote(shown)}<div class="md">${markFacts(md(shown.text), shown.unverified)}</div>`;
 }
 function bindResumeFit(d, n) {
   if ($("fitVer")) $("fitVer").onchange = e => { fitVersion = {n, i: +e.target.value}; openVacancy(n); };
@@ -544,7 +544,7 @@ function lettersTab(r, d, n) {
       ${cover && d.templates > 1 && shown.template ? `<span class="hint">шаблон: ${esc(shown.template)}</span>` : ""}
       ${!cover && shown.to ? `<span class="hint">кому: ${esc(shown.to)}${channel ? " · " + esc(channel) : ""}</span>` : ""}</p>
     ${versionNote(shown) ? `<p class="hint">${versionNote(shown).replace(/ · $/, ".")}</p>` : ""}
-    <div class="letter">${esc(shown.text)}</div>`;
+    ${factsNote(shown)}<div class="letter">${markFacts(esc(shown.text), shown.unverified)}</div>`;
 }
 
 function bindLetters(r, d, n) {
@@ -604,6 +604,16 @@ const versionLabel = (v, many) => `${v.sent ? `✉ отправлено ${ddmm(v
 const versionPicker = (versions, cur, id, many) => versions.length < 2 ? "" : `<label class="versions">Версия
     <select id="${id}">${versions.map((v, i) => `<option value="${i}" ${i === cur ? "selected" : ""}>${versionLabel(v, many)}</option>`).join("")}</select>
     <span class="hint">всего ${versions.length}</span></label>`;
+// «Проверьте: этого нет в резюме» — числа и названия не из резюме, «о себе» и вакансии (сервер, fact_check):
+// списком над текстом и подсветкой в тексте. Своя правка — проверка пересчитывается при открытии
+const factsNote = v => (v.unverified || []).length ? `<p class="cwarn facts">Проверьте: этого нет ни в резюме, ни в вакансии — ${
+  v.unverified.map(x => `«${esc(x)}»`).join(", ")}. Если это неправда — поправьте текст; если правда, но не в резюме — добавьте в «Дополнительно о себе», и отметка пропадёт.</p>` : "";
+function markFacts(html, words) {
+  if (!words || !words.length) return html;
+  const alt = words.map(w => esc(w).replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).sort((a, b) => b.length - a.length).join("|");
+  const rx = new RegExp(`(?<![\\p{L}\\d])(${alt})(?![\\p{L}\\d])`, "gu");
+  return html.split(/(<[^>]*>)/).map(part => part.startsWith("<") ? part : part.replace(rx, '<mark class="unver">$1</mark>')).join("");
+}
 const versionNote = v => v.current && !v.source ? "" : `${v.current ? "" : "прежняя версия · "}${SOURCE_NAME[v.source] || "ИИ"} от ${esc(v.when)} · `;
 let draftCache = {};
 const draftKey = () => `drafts:${state.profile}`;

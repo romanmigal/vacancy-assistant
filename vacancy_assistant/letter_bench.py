@@ -21,7 +21,7 @@ from collections import Counter
 from datetime import datetime
 from pathlib import Path
 
-from . import cloud, letter_frame, letter_samples, letter_templates, settings
+from . import cloud, fact_check, letter_frame, letter_samples, letter_templates, settings
 from .analysis import HISTORY, SOURCES
 from .errors import AssistantError
 from .files import read_meta, read_vacancy, requirements, strengths, vacancy_number
@@ -147,38 +147,9 @@ def frame_score(letter, profile):
     return sum(x in letter for x in phrases), len(phrases)
 
 
-NUMBER = re.compile(r"\d+(?:[.,]\d+)?")
-NAME = re.compile(r"«[^»\n]{2,40}»|[A-Za-z][A-Za-z0-9&+.-]*|[А-ЯЁ][а-яёА-ЯЁ-]{2,}")
-
-
-def names(text):
-    """Названия в тексте: в кавычках «…», латиницей с заглавной (SAP, Kubernetes) и русские слова с заглавной
-    не в начале предложения или пункта."""
-    for m in NAME.finditer(text):
-        tok = m.group(0).rstrip(".-")
-        if tok.startswith("«"):
-            yield tok.strip("«»")
-        elif tok[0].isascii():
-            if any(c.isupper() for c in tok):
-                yield tok
-        else:
-            before = text[:m.start()].rstrip(" \t")
-            if before and before[-1] not in ".!?:—-•\n«(\"":
-                yield tok
-
-
 def unsupported(text, source):
-    """Числа (от 10) и названия из письма, которых нет в источнике (резюме, «о себе», вакансия): [строка]."""
-    numbers = {n.replace(",", ".") for n in NUMBER.findall(source)}
-    known, low, found = stems(source), source.lower(), []
-    for n in NUMBER.findall(text):
-        if float(n.replace(",", ".")) >= 10 and n.replace(",", ".") not in numbers:
-            found.append(n)
-    for name in names(text):
-        s = stems(name)
-        if not (s <= known if s else name.lower() in low):
-            found.append(name)
-    return list(dict.fromkeys(found))
+    """Числа и названия из письма, которых нет в источнике (резюме, «о себе», вакансия) — та же сверка, что в окне."""
+    return fact_check.Source(source).unverified(text)
 
 
 def shingles(text):

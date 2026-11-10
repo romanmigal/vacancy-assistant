@@ -7,7 +7,7 @@ import re
 import sys
 from datetime import datetime
 
-from . import actual, analysis, answer, artifacts, company, contacts, funnel, letter_templates, ratings, similar, sites, summary
+from . import actual, analysis, answer, artifacts, company, contacts, fact_check, funnel, letter_templates, ratings, similar, sites, summary
 from .errors import AssistantError
 from .files import (REFERRER_ID_PROP, REFERRER_PROP, analysis_body, numbered_files, read_meta, read_note, read_prop,
                     read_vacancy, strip_service)
@@ -227,6 +227,20 @@ def rating_history(profile, n, result):
              "decision": mine["my_decision"], "reason": mine["my_reason"]}]
 
 
+def check_facts(profile, path, *groups):
+    """«Проверьте: этого нет в резюме» у каждой версии письма, сообщения референсеру и резюме под вакансию:
+    числа и названия не из резюме, «о себе» и вакансии (fact_check). Пересчитывается при каждом открытии —
+    и после своей правки. Резюме нет — проверки нет."""
+    if not profile.resume.exists():
+        return
+    names = [v.get("to", "") for g in groups for v in g] + [read_prop(profile.results / path.name, REFERRER_PROP)
+                                                           if (profile.results / path.name).exists() else ""]
+    src = fact_check.source(profile, read_text(path), *names)
+    for g in groups:
+        for v in g:
+            v["unverified"] = src.unverified(v["text"])
+
+
 def vacancy_details(profile, n):
     path = vacancy_file(profile, n)
     result, letter = profile.results / path.name, profile.letters / path.name
@@ -248,6 +262,7 @@ def vacancy_details(profile, n):
     letters = versions(letter, analysis.letter_history(profile, path.name))
     ref_letters = versions(profile.referrer_letters / path.name, analysis.referrer_history(profile, path.name))
     resume_fits = versions(profile.resume_fits / path.name, analysis.resume_fit_history(profile, path.name))
+    check_facts(profile, path, letters, ref_letters, resume_fits)
     # правки и свои тексты — события «Истории»: время — у файла версии
     texts = [{"date": v["at"][:10], "time": v["at"][11:], "kind": kind, "source": v["source"]}
              for kind, vs in (("cover", letters), ("referrer", ref_letters), ("resume", resume_fits))
