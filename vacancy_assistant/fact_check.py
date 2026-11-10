@@ -10,6 +10,8 @@
   с заглавной не в начале предложения или пункта. Название есть в источнике, если каждое его слово совпадает
   со словом источника по началу: «Сбербанке» — «Сбер», «Банке Элемент» — «Банк Элемент».
 - Источник — резюме, «Дополнительно о себе», текст вакансии и имена (подпись, кому письмо).
+- Слово, в котором модель смешала латиницу и кириллицу одинакового вида («Tехнологическая» с латинской T),
+  исправляется по большинству букв (same_script) — и в ответе модели, и перед проверкой.
 """
 import re
 
@@ -17,7 +19,28 @@ NUMBER = re.compile(r"\d+(?:[.,]\d+)?")
 NAME = re.compile(r"«[^»\n]{2,40}»|[A-Za-z][A-Za-z0-9&+.-]*|[А-ЯЁ][а-яёА-ЯЁ-]{2,}")
 WORD = re.compile(r"[a-zа-яё0-9]+", re.I)
 MIN_NUMBER = 10
+LATIN, CYRILLIC = "ABCEHKMOPTXaceopxy", "АВСЕНКМОРТХасеорху"     # буквы одинакового вида
+TO_CYRILLIC, TO_LATIN = str.maketrans(LATIN, CYRILLIC), str.maketrans(CYRILLIC, LATIN)
+MIXED = re.compile(r"\w*(?:[A-Za-z]\w*[А-Яа-яЁё]|[А-Яа-яЁё]\w*[A-Za-z])\w*")
 URL = re.compile(r"(?:https?://|www\.)\S+|\b[\w.-]+\.(?:ru|com|io|org|net)(?:/\S*)?", re.I)   # ссылки не проверяем
+
+
+def _same_script(m):
+    """Слово из латиницы и кириллицы: буквы меньшинства одинакового вида — буквами большинства."""
+    w = m.group(0)
+    latin = sum("a" <= c.lower() <= "z" for c in w)
+    cyrillic = sum(c.isalpha() for c in w) - latin
+    if latin < cyrillic and all(c in LATIN for c in w if "a" <= c.lower() <= "z"):
+        return w.translate(TO_CYRILLIC)
+    if cyrillic < latin and all(c in CYRILLIC for c in w if c.isalpha() and not "a" <= c.lower() <= "z"):
+        return w.translate(TO_LATIN)
+    return w
+
+
+def same_script(text):
+    """«Tехнологическая» с латинской T → вся кириллицей; «Kubernetеs» с русской е → вся латиницей.
+    Слова, где разные алфавиты не случайны («IT-директор» — это два слова), не меняются."""
+    return MIXED.sub(_same_script, text) if text else text
 
 
 def _num(n):
@@ -66,7 +89,7 @@ class Source:
 
     def unverified(self, text):
         """Чего нет в источнике: [строка, как в тексте] без повторов, по порядку."""
-        found, text = [], URL.sub(" ", text or "")
+        found, text = [], URL.sub(" ", same_script(text or ""))
         for n in NUMBER.findall(text):
             if float(_num(n)) >= MIN_NUMBER and _num(n) not in self.numbers:
                 found.append(n)

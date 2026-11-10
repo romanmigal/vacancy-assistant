@@ -33,7 +33,7 @@ class ResumeFit(unittest.TestCase):
         text = read_text(target)
         self.assertIn("## Включить в резюме под вакансию", text)
         self.assertIn("## Можно не включать", text)
-        self.assertIn('"prompt": "резюме под вакансию v2.txt"', text)
+        self.assertIn('"prompt": "резюме под вакансию v3.txt"', text)
         self.assertNotIn("ДОПОЛНИТЕЛЬНО О СЕБЕ", prompts[0])               # без фактов — только по резюме
         self.assertIn("откуда: место в резюме", prompts[0])
         time.sleep(1.1)                                                       # версии различаются по секундам
@@ -50,6 +50,8 @@ class ResumeFit(unittest.TestCase):
         self.assertIn("=== ДОПОЛНИТЕЛЬНО О СЕБЕ", prompts[0])
         self.assertIn("- Запустил ЦОД на 200 стоек в Пример Банке", prompts[0])
         self.assertIn("добавьте в резюме", prompts[0])
+        self.assertIn("отдельным пунктом его не пиши", prompts[0])               # тот же проект — не дважды
+        self.assertIn("сюда не попадает ни целиком, ни частью", prompts[0])    # включить и «можно не включать» — без повторов
         self.assertIn("Бери только факты из резюме и «Дополнительно о себе»", prompts[0])
         self.assertNotIn("{", prompts[0].split("=== РЕЗЮМЕ ===")[0])           # все поля шаблона заполнены
 
@@ -67,6 +69,21 @@ class ResumeFit(unittest.TestCase):
         with self.assertRaises(A.AssistantError):                            # без разбора — понятный отказ
             W.make_work(self.t.profile, "resume_fit", {"n": 2}, ask=fake_model)
 
+
+    def test_without_repeats(self):
+        """«Можно не включать» не советует убрать то, что модель сама предложила включить; остальное — на месте."""
+        text = ("## Включить в резюме под вакансию\n1. Автор проекта «Помощник по вакансиям» — AI (резюме)\n"
+                "2. CIO Банк Элемент — ИТ с нуля (резюме)\n\n## Можно не включать\n"
+                "- Собственный проект «Помощник по вакансиям» — подробности можно сократить\n"
+                "- Работа в ACI Worldwide — давно\n\n## Обо мне\nТекст.\n")
+        out = analysis.without_repeats(text)
+        self.assertNotIn("подробности можно сократить", out)
+        self.assertIn("- Работа в ACI Worldwide — давно", out)
+        self.assertIn("1. Автор проекта «Помощник по вакансиям»", out)
+        self.assertIn("## Обо мне\nТекст.", out)
+        only = text.replace("- Работа в ACI Worldwide — давно\n", "")
+        self.assertIn(analysis.NOTHING_TO_DROP, analysis.without_repeats(only))   # всё убрано — «нет»
+        self.assertEqual(analysis.without_repeats("Ответ без разделов"), "Ответ без разделов")
 
 if __name__ == "__main__":
     unittest.main()

@@ -5,6 +5,7 @@ import urllib.error
 import urllib.request
 
 from . import cloud, settings, waiting
+from .fact_check import same_script
 from .errors import AssistantError
 
 LOCAL_LIMIT = 900              # секунд на ответ локальной модели: Gemma на слабом компьютере думает долго
@@ -17,8 +18,8 @@ def current_model():
 
 def ask_model(prompt, model=settings.MODEL, options=settings.OPTIONS):
     """Отправляет запрос модели и возвращает текст ответа. model — модель Ollama (для облака не нужна)."""
-    if cloud.active():
-        return cloud.ask(prompt, options)
+    if cloud.active():                               # слова с буквами двух алфавитов («Tехнологическая») — одним
+        return same_script(cloud.ask(prompt, options))
     return ask_local(prompt, model, options)
 
 
@@ -52,6 +53,6 @@ def ask_local(prompt, model=settings.MODEL, options=settings.OPTIONS):
                 raise AssistantError("Ollama не запущена. Запустите её командой  ollama serve  и повторите.") from e
             raise
         check_read(prompt, answer.get("prompt_eval_count"), options)
-        return answer["response"].strip()
+        return same_script(answer["response"].strip())
     return waiting.run(call, "локальной модели", LOCAL_LIMIT,
                        AssistantError(f"Локальная модель не ответила за {LOCAL_LIMIT // 60} минут — пропускаю."))

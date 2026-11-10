@@ -10,7 +10,7 @@ from . import settings
 from .hh import ARCHIVED_FIELD, phase
 from .files import decision_yes, say_decision, frontmatter, md_path, parse_answer, read_meta, read_vacancy, requirements, strengths
 from .errors import AssistantError
-from . import actual, artifacts, cloud, funnel, letter_frame, letter_samples, letter_templates
+from . import actual, artifacts, cloud, fact_check, funnel, letter_frame, letter_samples, letter_templates
 from .model import ask_local, ask_model, current_model
 from .summary import write_summary
 from .textio import log_print, read_text, write_text
@@ -232,6 +232,36 @@ def resume_fit_history(profile, name):
     return sorted(folder.glob("*.md"), reverse=True) if folder.exists() else []
 
 
+NOTHING_TO_DROP = "- нет — весь опыт в резюме работает на эту вакансию"
+
+
+def without_repeats(text):
+    """«Можно не включать» без того, что модель сама же советует включить: пункт, где названо то же
+    («Помощник по вакансиям», ACI Worldwide), что есть в «Включить», — противоречие, убираем. Модели
+    (особенно GigaChat) нарушают это правило промпта. Названо то же: любое название в кавычках «…» или все
+    названия пункта (латиницей, с заглавной) есть во «Включить» — по началу слова, как в сверке с резюме."""
+    parts = re.split(r"(?m)^(## .+)$", text)
+    heads = [h.strip().lower() for h in parts[1::2]]
+    if "## включить в резюме под вакансию" not in heads or "## можно не включать" not in heads:
+        return text
+    include = parts[2 + 2 * heads.index("## включить в резюме под вакансию")]
+    src, i = fact_check.Source(include), 2 + 2 * heads.index("## можно не включать")
+    kept, dropped = [], False
+    for line in parts[i].splitlines():
+        item = line.strip()
+        if item.startswith("- ") and " — " in item:
+            found = [n for _, n in fact_check.names(item[2:].split(" — ", 1)[0])]
+            quoted = [n for n in found if n.startswith("«")]
+            if any(src.has_name(n) for n in quoted) or (found and all(src.has_name(n) for n in found)):
+                dropped = True
+                continue
+        kept.append(line)
+    if dropped and not any(l.strip().startswith("- ") for l in kept):
+        kept.insert(1 if kept and not kept[0].strip() else 0, NOTHING_TO_DROP)
+    parts[i] = "\n".join(kept) + ("\n" if parts[i].endswith("\n") else "")
+    return "".join(parts)
+
+
 def write_resume_fit(profile, path, log=None, ask=None):
     """Как подогнать резюме под разобранную вакансию (path — файл разбора): что из резюме и «Дополнительно
     о себе» включить, что можно не включать, «Обо мне» языком вакансии, какие навыки выделить и каких слов вакансии в резюме нет. Только советы
@@ -241,7 +271,7 @@ def write_resume_fit(profile, path, log=None, ask=None):
     vacancy, _ = read_vacancy(profile.vacancies / path.name)
     prompt = profile.resume_fit_prompt(profile.read_resume(), vacancy, strengths(read_text(path)))
     start = time.time()
-    text = ask(prompt, settings.MODEL, settings.RESUME_FIT_OPTIONS).strip()
+    text = without_repeats(ask(prompt, settings.MODEL, settings.RESUME_FIT_OPTIONS).strip())
     seconds = round(time.time() - start)
     info = {"model": current_model(), "prompt": settings.RESUME_FIT_TEMPLATE.name,
             "date": date.today().isoformat(), "chars": len(text), "seconds": seconds}

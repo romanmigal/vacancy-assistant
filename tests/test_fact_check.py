@@ -35,6 +35,12 @@ class FactCheck(unittest.TestCase):
         self.assertEqual(src.unverified("В Сбербанке и в проекте на Python с LLM — бюджет 1.2 млн. "
                                         "Код: https://github.com/x/y12345\n## Включить\n**Выделить**: облако"), [])
 
+    def test_mixed_script(self):
+        """Модель смешала алфавиты в слове («Tехнологическая» с латинской T) — слово исправляется, отметки «T» нет."""
+        self.assertEqual(fact_check.same_script("Tехнологическая стратегия, Kubernetеs, IT-директор, Wi-Fi"),
+                         "Технологическая стратегия, Kubernetes, IT-директор, Wi-Fi")
+        self.assertEqual(self.src.unverified("Выделить: Tехнологическая стратегия"), [])
+
     def test_card_versions(self):
         """Каждая версия письма в карточке — со списком «проверьте»; своя правка проверяется так же."""
         result = analysis.analyze(self.p, ask=fake_model, summary=False, log=lambda *_: None)[0]

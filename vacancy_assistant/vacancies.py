@@ -263,6 +263,9 @@ def vacancy_details(profile, n):
     letters = versions(letter, analysis.letter_history(profile, path.name))
     ref_letters = versions(profile.referrer_letters / path.name, analysis.referrer_history(profile, path.name))
     resume_fits = versions(profile.resume_fits / path.name, analysis.resume_fit_history(profile, path.name))
+    for v in resume_fits:                          # и у версий, сохранённых раньше: без противоречий между разделами
+        if not v.get("source"):
+            v["text"] = analysis.without_repeats(v["text"])
     check_facts(profile, path, letters, ref_letters, resume_fits)
     # правки и свои тексты — события «Истории»: время — у файла версии
     texts = [{"date": v["at"][:10], "time": v["at"][11:], "kind": kind, "source": v["source"]}
