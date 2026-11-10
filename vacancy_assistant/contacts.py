@@ -157,8 +157,9 @@ def mark_apart(profile, a, b):
 def words(name):
     """Значимые слова названия (латиницей) — для неточного совпадения: «МТС Банк» ~ «MTS».
     Общие слова («банк», «капитал», «технологии»…) не считаются."""
-    s = latin(re.sub(LEGAL, " ", (name or "").lower().replace("ё", "е")))
-    return {w for w in re.findall(r"[a-z0-9]{3,}", s) if not w.startswith(GENERIC)}
+    s = re.split(r"\s*[(,;|]", (name or "").lower().replace("ё", "е"))[0]        # без пояснений: «МТС», Работа в IT
+    s = latin(re.sub(LEGAL, " ", s))
+    return {w for w in re.findall(r"[a-z0-9]{3,}", s) if not w.startswith(GENERIC) and w not in ("and", "the")}
 
 
 def load(profile):
@@ -191,8 +192,13 @@ def match_level(vacancy_company, contact_company, syn=None):
         return 2
     if syn and frozenset((a, b)) in syn.apart_keys:                      # человек отметил: разные компании
         return 0
-    # одно слово — начало другого: «Сбер. IT» ~ «Sberbank», «МТС Банк» ~ «MTS», «ВТБ Факторинг» ~ «ВТБ»
-    near = any(x.startswith(y) or y.startswith(x) for x in words(vacancy_company) for y in words(contact_company))
+    # всё название одной компании входит в другую (слово — начало слова): «Сбер. IT» ~ «Sberbank», «МТС Банк» ~ «MTS»,
+    # «ВТБ Факторинг» ~ «ВТБ» — или общих слов два и больше: «Филип Моррис Интернэшнл» ~ «Philip Morris Sales».
+    # Одного общего слова из нескольких мало: «Smart move» и «Смарт-Тел» — разные компании
+    wa, wb = words(vacancy_company), words(contact_company)
+    small, big = (wa, wb) if len(wa) <= len(wb) else (wb, wa)
+    common = sum(1 for x in small if any(x.startswith(y) or y.startswith(x) for y in big))
+    near = bool(small) and common >= min(len(small), 2)
     return 1 if near and (a.startswith(b) or b.startswith(a) or a[:4] == b[:4]) else 0
 
 

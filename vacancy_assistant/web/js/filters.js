@@ -292,11 +292,15 @@ function saveFilterDialog() {
 
 // Компания в карточке вакансии: вкладка «Фильтр» с вакансиями всех компаний, где в названии есть это имя
 // (как поиск в фильтре колонки «Компания» и «Только найденные»). Фильтр только открывается: его можно поменять и сохранить
-const companyTerm = name => name.replace(/^(?:ООО|ПАО|ОАО|АО|ЗАО|НАО|АНО|ИП|ГК)\s+/i, "").replace(/[«»"]/g, "").trim();
-function openCompanyFilter(name) {
-  const term = companyTerm(name).toLowerCase() || name.toLowerCase();
-  const only = [...new Set(state.rows.map(r => filterValue("company", r)))].filter(v => v.toLowerCase().includes(term));
-  openTabFilter({company: {only}}, `Вакансии компаний с «${companyTerm(name) || name}» в названии`);
+const companyTerm = name => name.replace(/^(?:ООО|ПАО|ОАО|АО|ЗАО|НАО|АНО|ИП|ГК)\s+/i, "").replace(/[«»"„“”]/g, "").trim();
+// names — одно название или несколько (в окне «Компании» у компании бывают разные написания в разных вакансиях)
+function openCompanyFilter(names) {
+  names = [].concat(names).filter(Boolean);
+  const norm = s => s.replace(/[«»"„“”]/g, "").replace(/\s+/g, " ").trim().toLowerCase();   // кавычки не мешают: «Филип Моррис» в России
+  const terms = names.map(n => norm(companyTerm(n) || n));
+  const only = [...new Set(state.rows.map(r => filterValue("company", r)))].filter(v => terms.some(t => norm(v).includes(t)));
+  const shortest = names.map(n => companyTerm(n) || n).sort((a, b) => a.length - b.length)[0];
+  openTabFilter({company: {only}}, `Вакансии компаний с «${shortest}» в названии`);
 }
 // Название вакансии в карточке: вкладка «Фильтр» с вакансиями, где в названии есть это название (как фильтр колонки «Вакансия»)
 function openTitleFilter(title) {

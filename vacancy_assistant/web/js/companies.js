@@ -41,7 +41,7 @@ function companyRow(c) {
       ${c.hh.rating != null ? `<b>★ ${num(c.hh.rating)}</b>${c.hh.reviews != null ? ` <span class="muted">${c.hh.reviews} ${plural(c.hh.reviews, "отзыв", "отзыва", "отзывов")}</span>` : ""}`
         : `<span class="muted">${c.hh.rating_date ? "отзывов нет" : "без рейтинга"}</span>`}` : `<span class="muted">—</span>`;
   return `<tr>
-    <td><b>${esc(c.name)}</b>${c.names.length > 1 ? `<div class="cnote" title="Так компания названа в других вакансиях">${c.names.slice(1).map(esc).join(", ")}</div>` : ""}</td>
+    <td><button type="button" class="linkbtn cofilter coname" data-cofilter="${esc(JSON.stringify(c.names.length ? c.names : [c.name]))}" title="Все вакансии этой компании — во вкладке «Фильтр»">${esc(c.name)}</button>${c.names.length > 1 ? `<div class="cnote" title="Так компания названа в других вакансиях">${c.names.slice(1).map(esc).join(", ")}</div>` : ""}</td>
     <td>${type}<div>${mark}</div></td>
     <td>${c.site ? `<a href="${esc(c.site)}" target="_blank" rel="noopener">${esc(host(c.site))}</a>` : `<span class="muted">—</span>`}</td>
     <td class="nowrap">${hh}</td>
@@ -94,6 +94,7 @@ function renderCompanies() {
         ${anon.length ? ` · со скрытым работодателем: ${anon.length} ${plural(anon.length, "вакансия", "вакансии", "вакансий")} — в конце списка` : ""}</p>
       ${list.length || anonShown ? `<div class="ctable"><table class="contacts companies"><thead><tr><th>Название</th><th>Тип</th><th>Сайт</th><th>Страница на hh</th><th title="Аккредитация Минцифры, как её указывает hh">ИТ-аккредитация</th><th>Отчётность</th><th>Вакансии</th></tr></thead>
         <tbody>${list.map(companyRow).join("")}${anonShown ? anonymousRow(anon) : ""}</tbody></table></div>` : `<p class="muted">Ничего не нашлось.</p>`}`;
+  document.querySelectorAll("#coList [data-cofilter]").forEach(b => b.onclick = () => { closeWizard(); openCompanyFilter(JSON.parse(b.dataset.cofilter)); });
   document.querySelectorAll("#coList [data-covac]").forEach(b => b.onclick = () => {
     const n = +b.dataset.covac, row = state.rows.find(r => r.n === n);
     closeWizard();

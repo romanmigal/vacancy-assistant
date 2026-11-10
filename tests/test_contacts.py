@@ -36,6 +36,11 @@ class Contacts(unittest.TestCase):
         self.assertEqual(m("VTB Capital", "Альфа Капитал"), 0)
         self.assertEqual(m("ВТБ Факторинг", "ВТБ"), 1)
         self.assertEqual(m("МТС Банк", "MTS"), 1)                    # похожая — показываем со знаком «?»
+        self.assertEqual(m('"МТС", Работа в IT', "MTS Web Services (MWS)"), 1)       # пояснение после запятой не мешает
+        self.assertEqual(m("«Филип Моррис Интернэшнл» в России, IT", "Philip Morris Sales And Marketing Ltd."), 1)   # два общих слова
+        for vacancy, contact in (("Smart move", "ООО Смарт-Тел"), ("ООО Московские Системы Безопасности", "Moscow Exchange"),
+                                 ("ООО Маналот Геймз", "Man AHL")):
+            self.assertEqual(m(vacancy, contact), 0, vacancy)       # одного общего слова из нескольких мало
         self.assertEqual(m("ООО Пример", "Example"), 0)
         self.assertEqual(m("Анонимный работодатель", "Anon"), 0)
 

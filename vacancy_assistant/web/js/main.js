@@ -272,7 +272,9 @@ function aboutBox(r, d) {
   const rating = hh.rating != null ? `★ ${num(hh.rating)}` + (hh.reviews != null ? ` · ${hh.reviews} ${plural(hh.reviews, "отзыв", "отзыва", "отзывов")}` : "")
     : hh.reviews != null ? `${hh.reviews} ${plural(hh.reviews, "отзыв", "отзыва", "отзывов")}` : "";
   const past = a.past.map(p => ({...p, r: state.rows.find(x => x.n === p.n)})).filter(p => p.r);
-  const facts = [rating, past.length ? `ещё ${past.length} ${plural(past.length, "вакансия", "вакансии", "вакансий")}` : ""].filter(Boolean);
+  // «ещё N вакансий» — ссылка: все вакансии компании (и с похожим названием) во вкладке «Фильтр»
+  const more = past.length ? `<button type="button" class="linkbtn morevac" id="aboutMore" title="Все вакансии этой компании — во вкладке «Фильтр»">ещё ${past.length} ${plural(past.length, "вакансия", "вакансии", "вакансий")}</button>` : "";
+  const facts = [rating, more].filter(Boolean);
   if (a.anonymous) return `<details class="coabout" id="about" ${aboutOpen ? "open" : ""}>
     <summary><b>О компании</b> <span class="chip">Работодатель скрыт</span></summary>
     <p class="muted">Компания не названа в вакансии — сайт, рейтинг, отчётность и другие вакансии найти не по чему.</p></details>`;
@@ -291,15 +293,10 @@ function aboutBox(r, d) {
         ${rating ? `· <b>${rating}</b> <span class="muted">на ${ddmm(hh.rating_date)}</span>`
           : hh.rating_date ? `<span class="muted">· отзывов на hh нет</span>` : `<span class="muted">· ${noRating}</span>`}`
     : r.source === "HH" ? `<span class="muted">нет сведений — ${hhOn() ? "появятся после «Разобрать заново»" : "сохраните страницу вакансии на hh в браузере (⌘S или Ctrl+S) и перетащите файл в окно"}</span>` : "";
-  const stage = p => p.r.funnel?.stage ? (state.stages.find(([k]) => k === p.r.funnel.stage) || [, ""])[1] : "";
-  const pastRow = p => `<li><button type="button" class="linkbtn" data-past="${p.n}">${esc(p.r.title)}</button>
-      ${p.exact ? "" : `<span class="chip" title="Похожее название компании: «${esc(p.r.company)}» — проверьте, та ли это компания">?</span>`}
-      <span class="muted">${[p.r.score != null ? `<span class="${scoreClass(p.r.score)}">оценка <b>${p.r.score}</b></span>` : "", stage(p), p.r.added ? `добавлена ${esc(p.r.added)}` : ""].filter(Boolean).join(" · ")}</span></li>`;
-  const groups = state.statuses.map(([k, name]) => [name, past.filter(p => p.r.status === k)]).filter(([, ps]) => ps.length);
   return `<details class="coabout" id="about" ${aboutOpen ? "open" : ""}>
     <summary><b>О компании</b> ${chip}${facts.length ? ` <span class="muted">· ${facts.join(" · ")}</span>` : ""}</summary>
     <dl>
-      <dt>Название</dt><dd>${esc(r.company)}</dd>
+      <dt>Название</dt><dd>${r.company ? `<button type="button" class="linkbtn cofilter" id="aboutCoFilter" title="Все вакансии этой компании — во вкладке «Фильтр»">${esc(r.company)}</button>` : ""}</dd>
       <dt>Тип</dt><dd>${who}</dd>
       <dt>Сайт</dt><dd>${site ? `<a href="${esc(site)}" target="_blank" rel="noopener">${esc(host(site))}</a>`
         : `<span class="muted">${r.source === "HH" && !a.hh ? "нет сведений" : "не указан"}</span>`}</dd>
@@ -309,8 +306,6 @@ function aboutBox(r, d) {
           ? "Поиск по ИНН из текста вакансии"
           : `Поиск по названию «${esc(r.people_query)}» — выберите компанию в списке по адресу; не нашлась — попробуйте юридическое название`}">в ФНС (ГИР БО)</a>
           <span class="muted">выручка, прибыль, долги${a.agency ? " — это отчётность агентства, а не работодателя" : ""}</span></dd>` : ""}
-      <dt>Другие вакансии</dt><dd>${groups.length ? groups.map(([name, ps]) => `<div class="pastgroup"><span class="pastname">${esc(name)} · ${ps.length}</span>
-          <ul class="pastlist">${ps.map(pastRow).join("")}</ul></div>`).join("") : `<span class="muted">других вакансий этой компании в списке нет</span>`}</dd>
     </dl></details>`;
 }
 
@@ -394,7 +389,11 @@ async function openVacancy(n) {
     toast(v === "1" ? "Отмечено: кадровое агентство — для всех вакансий компании" : "Отмечено: работодатель — для всех вакансий компании");
     await refreshRows(); if (selected === n) openVacancy(n);
   });
-  document.querySelectorAll("#about [data-past]").forEach(b => b.onclick = () => openVacancy(+b.dataset.past));
+  if ($("aboutMore")) $("aboutMore").onclick = e => {            // в заголовке «О компании»: не сворачивать блок
+    e.preventDefault(); e.stopPropagation();
+    openCompanyFilter([r.company, ...d.about.past.map(p => state.rows.find(x => x.n === p.n)?.company).filter(Boolean)]);
+  };
+  if ($("aboutCoFilter")) $("aboutCoFilter").onclick = () => openCompanyFilter(r.company);
   $("status").onchange = async e => {
     $("statusIcon").innerHTML = statusIcon(e.target.value);       // значок — сразу, как и на вкладке
     await api("/api/status", {profile: state.profile, n, value: e.target.value}).catch(fail);
