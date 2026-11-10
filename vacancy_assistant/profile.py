@@ -165,6 +165,9 @@ FACTS_HEAD = ("Дополнительно о себе — этого нет в �
               "резюме: требование вакансии, которое подтверждается фактом отсюда, считай подтверждённым (✅) — так же, "
               "как фактом из резюме, и ссылайся на этот факт. Учитывай их в «Могу», в сильных сторонах, в пробелах "
               "и в общей оценке. Правило «опирайся только на факты из резюме» относится и к этим фактам.")
+# То же для текстов по вакансии — письма, сообщения референсеру, подготовки к интервью: без слов об оценке
+TEXT_FACTS_HEAD = ("Дополнительно о себе — этого нет в резюме выше, но это тоже правда о моём опыте. Считай эти факты частью "
+                   "резюме и используй наравне с ним. Правило «бери факты только из резюме» относится и к этим фактам.")
 
 class Profile:
     """Пути к данным и личные настройки одного человека."""
@@ -269,10 +272,11 @@ class Profile:
     def write_facts(self, text):
         write_text(self.facts_file, "".join(f"- {f}\n" for f in parse_facts(text)))
 
-    def with_facts(self, resume):
-        """Резюме и следом — факты «о себе» отдельным блоком; фактов нет — резюме как есть."""
+    def with_facts(self, resume, head=FACTS_HEAD):
+        """Резюме и следом — факты «о себе» отдельным блоком; фактов нет — резюме как есть.
+        head — пояснение модели: для разбора (по умолчанию) или для текстов (TEXT_FACTS_HEAD)."""
         facts = self.read_facts()
-        return resume.rstrip("\n") + "\n\n" + FACTS_HEAD + "\n" + "\n".join(f"- {f}" for f in facts) if facts else resume
+        return resume.rstrip("\n") + "\n\n" + head + "\n" + "\n".join(f"- {f}" for f in facts) if facts else resume
 
     @property
     def use_cloud(self):
@@ -383,7 +387,8 @@ class Profile:
         """Промпт подготовки к собеседованию: истории STAR под требования вакансии, ответы о пробелах и вопросы
         работодателю. template — другой шаблон с теми же полями (только вопросы)."""
         t = read_text(template or settings.INTERVIEW_TEMPLATE).replace("{who}", self.config["письмо"]["кому_помогаем"])
-        return t.replace("{resume}", resume).replace("{vac}", vacancy).replace("{analysis}", analysis_text)
+        return (t.replace("{resume}", self.with_facts(resume, TEXT_FACTS_HEAD)).replace("{vac}", vacancy)
+                .replace("{analysis}", analysis_text))
 
     def referrer_prompt(self, resume, vacancy, strengths_text, title, to, about, channel, goal, extra=""):
         """Промпт сообщения референсеру: кому, что о нём известно, канал и цель — из окна «Письма»."""
@@ -395,7 +400,8 @@ class Profile:
                      ("{channel_rules}", c[1]), ("{title}", title), ("{signature}", self.config["письмо"]["подпись"]),
                      ("{extra}", f"- Ещё учти: {extra.strip()}" if (extra or "").strip() else "")):
             t = t.replace(k, v)
-        return t.replace("{resume}", resume).replace("{vac}", vacancy).replace("{strengths}", strengths_text)
+        return (t.replace("{resume}", self.with_facts(resume, TEXT_FACTS_HEAD)).replace("{vac}", vacancy)
+                .replace("{strengths}", strengths_text))
 
     def resume_fit_prompt(self, resume, vacancy, strengths_text):
         """Промпт «Резюме под вакансию»: что включить (из резюме и «Дополнительно о себе»), что можно
@@ -422,4 +428,5 @@ class Profile:
         for k, v in (("{who}", l["кому_помогаем"]), ("{example}", example), ("{availability}", l["готовность"]),
                      ("{closing}", l["завершение"]), ("{signature}", l["подпись"])):
             t = t.replace(k, v)
-        return t.replace("{resume}", resume).replace("{vac}", vacancy).replace("{strengths}", strengths_text)
+        return (t.replace("{resume}", self.with_facts(resume, TEXT_FACTS_HEAD)).replace("{vac}", vacancy)
+                .replace("{strengths}", strengths_text))

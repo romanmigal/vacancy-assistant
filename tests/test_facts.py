@@ -3,8 +3,8 @@ import unittest
 
 from helpers import TempProfile, fake_model
 
-from vacancy_assistant import analysis, app as A, setup
-from vacancy_assistant.profile import FACTS_HEAD, Profile, parse_facts
+from vacancy_assistant import analysis, app as A, settings, setup
+from vacancy_assistant.profile import FACTS_HEAD, TEXT_FACTS_HEAD, Profile, parse_facts
 from vacancy_assistant.textio import read_text, write_text
 
 ANSWERS = {"name": "Мария Иванова", "field": "финансы", "resume": "# Резюме\n\nГлавный бухгалтер.",
@@ -43,6 +43,27 @@ class Facts(unittest.TestCase):
             self.assertIn(block, prompt)
             self.assertLess(prompt.index(FACTS_HEAD), prompt.index("ТЕКСТ ВАКАНСИИ"))
         self.assertNotEqual(p.criteria_hash(), old)
+
+    def test_facts_in_texts(self):
+        """Письмо, сообщение референсеру, интервью и вопросы работодателю тоже видят факты «о себе»:
+        раньше их получал только разбор, и опыт, записанный там (ИИ в своих проектах), в письма не попадал."""
+        p = self.p()
+        plain = (p.letter_prompt("Моё резюме", "ТЕКСТ ВАКАНСИИ", "сильные стороны", "образец"),
+                 p.referrer_prompt("Моё резюме", "ТЕКСТ ВАКАНСИИ", "сильные стороны", "CTO", "Анна", "", "telegram", "pass"),
+                 p.interview_prompt("Моё резюме", "ТЕКСТ ВАКАНСИИ", "разбор"),
+                 p.interview_prompt("Моё резюме", "ТЕКСТ ВАКАНСИИ", "разбор", settings.QUESTIONS_TEMPLATE))
+        for prompt in plain:                                     # фактов нет — промпты прежние
+            self.assertNotIn(TEXT_FACTS_HEAD, prompt)
+        write_text(p.facts_file, "- Использую ИИ в своих проектах\n")
+        p = self.p()
+        block = f"Моё резюме\n\n{TEXT_FACTS_HEAD}\n- Использую ИИ в своих проектах"
+        for prompt in (p.letter_prompt("Моё резюме", "ТЕКСТ ВАКАНСИИ", "сильные стороны", "образец"),
+                       p.referrer_prompt("Моё резюме", "ТЕКСТ ВАКАНСИИ", "сильные стороны", "CTO", "Анна", "", "telegram", "pass"),
+                       p.interview_prompt("Моё резюме", "ТЕКСТ ВАКАНСИИ", "разбор"),
+                       p.interview_prompt("Моё резюме", "ТЕКСТ ВАКАНСИИ", "разбор", settings.QUESTIONS_TEMPLATE)):
+            self.assertIn(block, prompt)
+            self.assertLess(prompt.index(TEXT_FACTS_HEAD), prompt.index("ТЕКСТ ВАКАНСИИ"))
+            self.assertNotIn(FACTS_HEAD, prompt)                 # слова об оценке — только разбору
 
     def test_list_with_dashes(self):
         """С «-» факт — от маркера до маркера: перенос строки внутри факта не делит его на два."""
