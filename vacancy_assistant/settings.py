@@ -24,7 +24,7 @@ ANALYSIS_TEMPLATE = TEMPLATES / "разбор v7.txt"            # полный 
 # Короткий скоринг: только критерии, «Могу», «Хочу», оценка и решение — в 4 раза быстрее полного разбора
 # (опыт 22.10: 15 с против 63 с на вакансию, решения на эталоне те же). Его проходят все вакансии.
 SCORING_TEMPLATE = TEMPLATES / "скоринг v1.txt"
-LETTER_TEMPLATE = TEMPLATES / "письмо v3.txt"            # модель пишет середину; рамку ставит letter_frame
+LETTER_TEMPLATE = TEMPLATES / "письмо v4.txt"            # середина по форме и длине образца; рамку ставит letter_frame
 INTERVIEW_TEMPLATE = TEMPLATES / "интервью v2.txt"         # истории STAR к собеседованию и вопросы работодателю
 QUESTIONS_TEMPLATE = TEMPLATES / "вопросы работодателю v1.txt"   # только вопросы — к подготовке без них
 STORIES_TEMPLATE = TEMPLATES / "интервью v1.txt"           # только истории — когда вопросы уже есть и остаются

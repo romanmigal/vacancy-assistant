@@ -9,9 +9,11 @@
 
 Личные письма в репозиторий не попадают: эталон читается из профиля, отчёт пишется в профили/<имя>/настройка/.
 
-    python3 razbor.py --profile ИМЯ letter-bench [ПРОМПТ…] [--models local,cloud] [--only 128,130] [--out ФАЙЛ]
+    python3 razbor.py --profile ИМЯ letter-bench [ПРОМПТ…] [--models local,cloud] [--only 128,130] [--example ФАЙЛ] [--out ФАЙЛ]
 
 ПРОМПТ — файл из шаблоны/ («письмо v2.txt» или коротко «v2») или путь; без них — две последние версии.
+--example — образец письма из файла вместо шаблона профиля по умолчанию: проверить, что письмо повторяет
+форму образца (абзац-обзор или список).
 """
 import re
 import time
@@ -24,11 +26,10 @@ from .analysis import HISTORY, SOURCES
 from .errors import AssistantError
 from .files import read_meta, read_vacancy, strengths, vacancy_number
 from .model import ask_local
-from .profile import TEXT_FACTS_HEAD
+from .profile import TEXT_FACTS_HEAD, letter_length
 from .textio import read_text, write_text
 
 REPORT = "Эталон писем.md"
-LIMIT = 800                       # «Объём — не больше 800 знаков» в промпте письма
 SHINGLE = 5                       # повтор между письмами — общие отрезки из стольких слов подряд
 WORD = re.compile(r"[a-zа-яё0-9]+", re.I)
 
@@ -86,9 +87,9 @@ def framed(template):
 
 # ---------- письмо без сохранения ----------
 
-def generate(profile, item, template, ask, resume):
-    """Письмо для вакансии эталона этой версией промпта — как пишет программа, но без файла. (письмо, секунд)."""
-    example = letter_templates.get(profile)["text"]
+def generate(profile, item, template, ask, resume, example):
+    """Письмо для вакансии эталона этой версией промпта по образцу example — как пишет программа, но без файла.
+    (письмо, секунд)."""
     if framed(template):
         greeting, middle = letter_frame.split_example(example, profile)
         prompt = profile.letter_prompt(resume, item["vacancy"], strengths(read_text(item["analysis"])), middle, template)
@@ -204,14 +205,17 @@ def repeats(texts):
 
 # ---------- прогон и отчёт ----------
 
-def run(profile, names=(), wanted=("local", "cloud"), only=None, out=None, log=None, asks=None):
-    """Прогон эталона: пишет отчёт, возвращает его файл. asks — {модель: ask} вместо настоящих (тесты)."""
+def run(profile, names=(), wanted=("local", "cloud"), only=None, out=None, log=None, asks=None, example=None):
+    """Прогон эталона: пишет отчёт, возвращает его файл. example — файл образца письма вместо шаблона профиля,
+    asks — {модель: ask} вместо настоящих (тесты)."""
     log = log or (lambda text: print(text, flush=True))      # ход прогона виден и при выводе в файл
     items = reference(profile, only)
     if not items:
         raise AssistantError("Эталона нет: в профиле нет вакансий со своим или поправленным письмом и разбором.")
     templates, asks = prompt_files(list(names)), asks or models(profile, wanted)
     resume = profile.read_resume()
+    sample = (read_text(example).strip(), Path(example).name) if example else \
+        (letter_templates.get(profile)["text"], f"шаблон «{letter_templates.get(profile)['name']}»")
     source = profile.with_facts(resume, TEXT_FACTS_HEAD)
     results = {}                                    # (промпт, модель) → [{item, letter, seconds, error}]
     for t in templates:
@@ -219,24 +223,26 @@ def run(profile, names=(), wanted=("local", "cloud"), only=None, out=None, log=N
             for item in items:
                 log(f"{t.stem} · {model} · {item['number']}")
                 try:
-                    letter, seconds = generate(profile, item, t, ask, resume)
+                    letter, seconds = generate(profile, item, t, ask, resume, sample[0])
                     row = {"letter": letter, "seconds": seconds}
                 except Exception as e:              # noqa: BLE001 — модель не ответила: в отчёт, прогон идёт дальше
                     row = {"error": str(e) or type(e).__name__}
                 results.setdefault((t.stem, model), []).append({"item": item, **row})
     path = Path(out) if out else profile.dir / "настройка" / REPORT
     path.parent.mkdir(parents=True, exist_ok=True)
-    write_text(path, report(profile, items, results, source))
+    write_text(path, report(profile, items, results, source, sample))
     log(f"Отчёт: {path}")
     return path
 
 
-def measure(row, profile, source):
-    """Показатели письма: знаки, список, рамка, факты не из источника, близость к письму человека."""
+def measure(row, profile, source, length):
+    """Показатели письма: знаки, длина середины как у образца, список, рамка, факты не из источника,
+    близость к письму человека."""
     letter, item = row["letter"], row["item"]
     middle = letter_frame.strip_frame(letter, profile)
     got, total = frame_score(letter, profile)
-    return {"chars": len(letter), "list": has_list(middle), "frame": (got, total),
+    return {"chars": len(letter), "fits": length[0] <= len(middle) <= length[1], "list": has_list(middle),
+            "frame": (got, total),
             "facts": unsupported(middle, source + "\n" + item["vacancy"]),
             "close": closeness(middle, letter_frame.strip_frame(item["human"], profile))}
 
@@ -245,26 +251,27 @@ def _pct(x):
     return f"{round(x * 100)}%"
 
 
-def report(profile, items, results, source):
+def report(profile, items, results, source, sample):
     lines = [f"# Эталон писем — сравнение промптов", "",
              f"Профиль: {profile.name} · {datetime.now():%d.%m.%Y %H:%M} · вакансий в эталоне: {len(items)} · "
-             f"образец письма: «{letter_templates.get(profile)['name']}»", "",
-             "Показатели без модели. **Рамка** — сколько фраз из профиля (готовность, завершение, подпись) есть в письме. "
+             f"образец письма: {sample[1]}", "",
+             "Показатели без модели. **Длина как у образца** — основная часть письма (без рамки) в пределах ± 20% от образца. **Рамка** — сколько фраз из профиля (готовность, завершение, подпись) есть в письме. "
              "**Не из резюме** — числа и названия, которых нет ни в резюме с «Дополнительно о себе», ни в вакансии "
              "(проверять глазами: это кандидаты в выдумку). **Повтор** — доля фраз письма, которые есть и в других письмах "
              "той же версии. **Близость** — общие слова с письмом человека.", "",
              "## Сводка", "",
-             "| Промпт | Модель | Писем | Знаков, ср. | Больше 800 | Со списком «—» | Рамка | Не из резюме, на письмо | "
+             "| Промпт | Модель | Писем | Знаков, ср. | Длина как у образца | Со списком «—» | Рамка | Не из резюме, на письмо | "
              "Повтор | Близость | Секунд, ср. |",
              "|---|---|---|---|---|---|---|---|---|---|---|"]
+    length = letter_length(letter_frame.strip_frame(sample[0], profile))
     humans = [x["human"] for x in items]
     rep, _ = repeats([letter_frame.strip_frame(h, profile) for h in humans])
     lines.append(f"| человек | — | {len(items)} | {round(sum(map(len, humans)) / len(humans))} | "
-                 f"{sum(len(h) > LIMIT for h in humans)} | {sum(has_list(h) for h in humans)} | — | — | {_pct(rep)} | — | — |")
+                 f"{sum(length[0] <= len(letter_frame.strip_frame(h, profile)) <= length[1] for h in humans)} | {sum(has_list(h) for h in humans)} | — | — | {_pct(rep)} | — | — |")
     measured, phrases = {}, {}
     for (prompt, model), rows in results.items():
         ok = [r for r in rows if "letter" in r]
-        m = measured[(prompt, model)] = {id(r): measure(r, profile, source) for r in ok}
+        m = measured[(prompt, model)] = {id(r): measure(r, profile, source, length) for r in ok}
         if not ok:
             lines.append(f"| {prompt} | {model} | 0 из {len(rows)} | — | — | — | — | — | — | — | — |")
             continue
@@ -272,7 +279,7 @@ def report(profile, items, results, source):
         rep, phrases[(prompt, model)] = repeats([letter_frame.strip_frame(r["letter"], profile) for r in ok])
         got, total = sum(v["frame"][0] for v in vals), sum(v["frame"][1] for v in vals)
         lines.append(f"| {prompt} | {model} | {len(ok)}{'' if len(ok) == len(rows) else f' из {len(rows)}'} | "
-                     f"{round(sum(v['chars'] for v in vals) / len(vals))} | {sum(v['chars'] > LIMIT for v in vals)} | "
+                     f"{round(sum(v['chars'] for v in vals) / len(vals))} | {sum(v['fits'] for v in vals)} | "
                      f"{sum(v['list'] for v in vals)} | {_pct(got / total) if total else '—'} | "
                      f"{sum(len(v['facts']) for v in vals) / len(vals):.1f} | {_pct(rep)} | "
                      f"{_pct(sum(v['close'] for v in vals) / len(vals))} | {round(sum(r['seconds'] for r in ok) / len(ok))} |")
@@ -306,17 +313,19 @@ def _quote(text):
 
 
 def parse_args(args):
-    """Аргументы команды: (промпты, модели, номера, файл отчёта)."""
-    names, wanted, only, out = [], ("local", "cloud"), None, None
+    """Аргументы команды: (промпты, модели, номера, файл отчёта, файл образца)."""
+    names, wanted, only, out, example = [], ("local", "cloud"), None, None, None
     it = iter(args)
     for a in it:
         if a == "--models":
             wanted = tuple(x.strip() for x in next(it, "").split(",") if x.strip())
         elif a == "--only":
             only = {int(x) for x in re.findall(r"\d+", next(it, ""))}
+        elif a == "--example":
+            example = next(it, None)
         elif a == "--out":
             out = next(it, None)
         else:
             names.append(a)
-    return names, wanted, only, out
+    return names, wanted, only, out, example
 

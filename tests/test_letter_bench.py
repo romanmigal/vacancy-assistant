@@ -65,8 +65,9 @@ class Bench(unittest.TestCase):
         self.assertAlmostEqual(B.closeness("Руководил ИТ в банке", "руководила ИТ банка"), 1.0)
 
     def test_args(self):
-        self.assertEqual(B.parse_args(["v2", "--models", "local", "--only", "128,130", "письмо v3.txt", "--out", "x.md"]),
-                         (["v2", "письмо v3.txt"], ("local",), {128, 130}, "x.md"))
+        self.assertEqual(B.parse_args(["v2", "--models", "local", "--only", "128,130", "письмо v3.txt", "--out", "x.md",
+                                       "--example", "обзор.txt"]),
+                         (["v2", "письмо v3.txt"], ("local",), {128, 130}, "x.md", "обзор.txt"))
         self.assertEqual([f.name for f in B.prompt_files(["v2", "письмо v3"])], ["письмо v2.txt", "письмо v3.txt"])
 
 

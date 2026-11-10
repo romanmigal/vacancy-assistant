@@ -169,6 +169,12 @@ FACTS_HEAD = ("Дополнительно о себе — этого нет в �
 TEXT_FACTS_HEAD = ("Дополнительно о себе — этого нет в резюме выше, но это тоже правда о моём опыте. Считай эти факты частью "
                    "резюме и используй наравне с ним. Правило «бери факты только из резюме» относится и к этим фактам.")
 
+def letter_length(example):
+    """Объём письма по образцу: ± 20% от длины образца, с шагом 10 знаков (образца нет — 560–840)."""
+    n = len(example.strip()) or 700
+    return int(round(n * 0.8, -1)), int(round(n * 1.2, -1))
+
+
 class Profile:
     """Пути к данным и личные настройки одного человека."""
 
@@ -426,8 +432,10 @@ class Profile:
         l = self.config["письмо"]
         example = (example or read_text(self.letter_example)).strip()
         t = read_text(template or settings.LETTER_TEMPLATE)
+        low, high = letter_length(example)
         for k, v in (("{who}", l["кому_помогаем"]), ("{example}", example), ("{availability}", l["готовность"]),
-                     ("{closing}", l["завершение"]), ("{signature}", l["подпись"])):
+                     ("{closing}", l["завершение"]), ("{signature}", l["подпись"]),
+                     ("{min_chars}", str(low)), ("{max_chars}", str(high))):
             t = t.replace(k, v)
         return (t.replace("{resume}", self.with_facts(resume, TEXT_FACTS_HEAD)).replace("{vac}", vacancy)
                 .replace("{strengths}", strengths_text))

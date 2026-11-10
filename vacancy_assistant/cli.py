@@ -17,7 +17,7 @@
     check-analyses [--all]  проверить разборы: все ли оценки, разделы и решение на месте (--all — все профили)
 
 Для разработки:
-    letter-bench [ПРОМПТ…] [--models local,cloud] [--only НОМЕРА] [--out ФАЙЛ]
+    letter-bench [ПРОМПТ…] [--models local,cloud] [--only НОМЕРА] [--example ФАЙЛ] [--out ФАЙЛ]
                          сравнить версии промпта письма на своих и поправленных письмах профиля (без ПРОМПТ —
                          две последние версии); отчёт — в настройка/Эталон писем.md, письма профиля не меняются
 
@@ -101,8 +101,8 @@ def run(args):
         resume_pdf.resume_from_file(profile, args[1])
     elif command == "letter-bench":
         from . import letter_bench
-        names, wanted, only, out = letter_bench.parse_args(args[1:])
-        letter_bench.run(profile, names, wanted, only, out)
+        names, wanted, only, out, example = letter_bench.parse_args(args[1:])
+        letter_bench.run(profile, names, wanted, only, out, example=example)
     elif command == "prompt":
         vacancy = "<ВАКАНСИЯ>"
         if len(args) > 1:

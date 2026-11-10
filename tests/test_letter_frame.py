@@ -65,6 +65,14 @@ class Frame(unittest.TestCase):
         example = prompts[0].split("=== ОБРАЗЕЦ ===")[1].split("=== КОНЕЦ ОБРАЗЦА ===")[0]
         self.assertNotIn("Буду рад обсудить детали.", example)
 
+    def test_prompt_follows_sample(self):
+        """Форму и длину письма задаёт образец: в промпте нет зашитого списка «— в <компания>», объём — ± 20% от образца."""
+        prompt = self.p.letter_prompt("Резюме", "Вакансия", "- опыт", "x" * 500)
+        self.assertIn("от 400 до 600 знаков", prompt)
+        self.assertNotIn("{min_chars}", prompt)
+        self.assertNotIn("— в <компания>", prompt)
+        self.assertIn("абзацем-обзором", prompt)
+
     def test_wizard_start_off(self):
         self.assertEqual(setup.START["не писать"], "")
         cfg = setup.build_config({"name": "Мария Иванова", "start": "не писать", "field": "финансы"})
