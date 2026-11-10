@@ -1,5 +1,6 @@
 """Резюме против рынка: слова из вакансий с откликом, требования с ❌, проверка на ATS, «было → стало»."""
 import unittest
+from unittest import mock
 from datetime import date
 
 from helpers import TempProfile
@@ -124,7 +125,7 @@ class Advice(unittest.TestCase):
             self.assertEqual(saved["vacancies"], 3)
 
     def test_route_needs_model(self):
-        with TempProfile() as t:
+        with TempProfile() as t, mock.patch.object(W.setup, "ollama_models", return_value=["gemma4:12b"]):
             title, work = W.make_work(t.profile, "market_advice", {})
             self.assertIn("Резюме против рынка", title)
 

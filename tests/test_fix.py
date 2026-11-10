@@ -1,6 +1,7 @@
 """Правка критериев по одной вакансии: «оценка должна быть выше / ниже» — предложение правки, проверка на
 вакансии и на оценённых вакансиях, применение; рабочие критерии не меняются до «Применить»."""
 import unittest
+from unittest import mock
 
 from helpers import TempProfile, answer_for, fake_model
 
@@ -138,9 +139,10 @@ class Fix(unittest.TestCase):
         v = app.handle("GET", "/api/fix", {"profile": ["example"], "n": ["1"]}, {})
         self.assertEqual((v["model"]["score"], v["model"]["decision"], v["reference"], v["state"]), (3, "нет", 0, None))
         self.assertEqual(v["factors"]["criteria"][0]["k"], "1")
-        self.assertIn("Правка критериев", W.make_work(self.t.profile, "fix_suggest", {"n": 1, "direction": "up"})[0])
-        with self.assertRaises(AssistantError):
-            W.make_work(self.t.profile, "fix_suggest", {"n": 1})
+        with mock.patch.object(W.setup, "ollama_models", return_value=["gemma4:12b"]):   # Ollama «запущена»
+            self.assertIn("Правка критериев", W.make_work(self.t.profile, "fix_suggest", {"n": 1, "direction": "up"})[0])
+            with self.assertRaises(AssistantError):
+                W.make_work(self.t.profile, "fix_suggest", {"n": 1})
         self.assertIn("fix_suggest", W.SINGLE)
         self.assertEqual(read_text(self.t.profile.criteria_file).strip(), self.criteria.strip())
 
