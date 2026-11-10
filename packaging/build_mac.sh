@@ -15,7 +15,7 @@ for root, dirs, files in os.walk(sys.argv[1], topdown=False):
         if nfd != name:
             os.rename(os.path.join(root, name), os.path.join(root, nfd))
 PY
-"dist/$NAME.app/Contents/MacOS/VacancyAssistant" --self-check   # https из собранной программы: сертификаты на месте
+"dist/$NAME.app/Contents/MacOS/VacancyAssistant" --self-check   # пробный запуск: окно, скрипты, шаблоны, «Помощь», https
 codesign --force --deep --sign - "dist/$NAME.app"
 codesign --verify --deep --strict "dist/$NAME.app"
 rm -rf dist/dmg && mkdir -p dist/dmg

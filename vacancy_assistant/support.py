@@ -60,7 +60,7 @@ def log(text):
 
 def log_error(where, error=None):
     """Ошибка с трассировкой — в журнал (вызывать внутри except)."""
-    log(f"Ошибка: {where}\n{traceback.format_exc() if error is None else ''.join(traceback.format_exception(error))}")
+    log(f"Ошибка: {where}\n{traceback.format_exc() if error is None else ''.join(traceback.format_exception(type(error), error, error.__traceback__))}")
 
 
 def trim(path=None, keep=KEEP):

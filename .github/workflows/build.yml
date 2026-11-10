@@ -1,13 +1,19 @@
 name: build
 
 # Установщики: Mac (.dmg — Apple Silicon и Intel) и Windows (setup .exe). Запуск вручную или по тегу v*.
+# Порядок: тесты (tests.yml) → сборки с пробным запуском собранной программы (--self-check) → релиз.
+# Упал любой шаг — релиза нет.
 on:
   workflow_dispatch:
   push:
     tags: ["v*"]
 
 jobs:
+  tests:
+    uses: ./.github/workflows/tests.yml
+
   mac:
+    needs: tests
     strategy:
       fail-fast: false
       matrix:
@@ -28,6 +34,7 @@ jobs:
           path: dist/*.dmg
 
   windows:
+    needs: tests
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
@@ -38,6 +45,13 @@ jobs:
         run: |
           python -m pip install "pyinstaller==6.11.1" -r requirements.txt
           pyinstaller --noconfirm --clean --distpath dist --workpath build packaging/vacancy_assistant.spec
+      - name: Пробный запуск
+        shell: pwsh
+        run: |
+          # у программы нет консоли: ждём её завершения и читаем отчёт из файла
+          $p = Start-Process -FilePath dist\VacancyAssistant\VacancyAssistant.exe -ArgumentList "--self-check", "$PWD\self-check.txt" -Wait -PassThru
+          if (Test-Path self-check.txt) { Get-Content self-check.txt -Encoding utf8 } else { "Отчёта нет" }
+          if ($p.ExitCode -ne 0) { throw "Пробный запуск не прошёл (код $($p.ExitCode))" }
       - name: Установщик
         shell: pwsh
         run: |
@@ -54,7 +68,7 @@ jobs:
   # Нужен секрет RELEASES_TOKEN (токен с правом Contents: write на romanmigal/job-search-assistant-releases); без него шаг пропускается.
   publish:
     if: startsWith(github.ref, 'refs/tags/v')
-    needs: [mac, windows]
+    needs: [tests, mac, windows]
     runs-on: ubuntu-latest
     env:
       GH_TOKEN: ${{ secrets.RELEASES_TOKEN }}

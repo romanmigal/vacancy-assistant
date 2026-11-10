@@ -65,22 +65,32 @@ def running_url(port=PORT):
         return None
 
 
-def self_check():
-    """Проверка собранной программы при сборке (build_mac.sh): https открывается — сертификаты на месте."""
+def self_check(argv):
+    """Пробный запуск собранной программы при сборке (build.yml): окно, скрипты, шаблоны, «Помощь», https.
+    --self-check <файл> — отчёт ещё и в файл: у программы для Windows нет консоли, print некуда писать."""
     import tempfile
+    from . import selfcheck
     use_system_roots(tempfile.mkdtemp())
-    from . import updates
+    i = argv.index("--self-check")
+    report = Path(argv[i + 1]) if len(argv) > i + 1 else None
+    lines = []
+
+    def out(line):
+        lines.append(line)
+        if sys.stdout:
+            print(line, flush=True)
+        if report:
+            report.write_text("\n".join(lines) + "\n", encoding="utf-8")
     try:
-        print("https: ok, последняя версия", updates.fetch_latest().get("version"))
-        return 0
-    except Exception as e:                              # noqa: BLE001
-        print("https: ошибка —", e)
+        return selfcheck.run(out=out)
+    except Exception as e:                              # noqa: BLE001 — упал сам пробный запуск: тоже ошибка сборки
+        out(f"ОШИБКА: пробный запуск упал — {e!r}")
         return 1
 
 
 def main():
     if "--self-check" in sys.argv:
-        sys.exit(self_check())
+        sys.exit(self_check(sys.argv))
     home = user_home()
     os.environ["VACANCY_ASSISTANT_HOME"] = str(home)
     prepare(home)
