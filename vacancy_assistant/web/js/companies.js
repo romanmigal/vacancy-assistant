@@ -26,7 +26,7 @@ async function openCompanies() {
   $("coSearch").oninput = () => { companiesFilter.text = $("coSearch").value; renderCompanies(); };
   $("coSort").onchange = () => { companiesFilter.sort = $("coSort").value; renderCompanies(); };
   renderCompanies();
-  $("coSearch").focus();
+  if (!PHONE.matches) $("coSearch").focus();       // на телефоне клавиатура закрыла бы список сразу при открытии
 }
 
 function companyRow(c) {

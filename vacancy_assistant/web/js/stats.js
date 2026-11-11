@@ -3,6 +3,7 @@
 let statStep = {month: "all"}[recall("statStep")] || (["day", "week", "all"].includes(recall("statStep")) ? recall("statStep") : "day"),
     statMetric = recall("statMetric") || "added", statData = null;
 // шаг → [кнопка, «за …», диапазон, «с предыдущими …», «текущий … не закончился»]
+const decRu = v => Number(v).toLocaleString("ru-RU");        // 0,2 — с запятой, как принято по-русски
 const STAT_STEPS = {day: ["Дни", "день", "30 дней", "30 днями", "сегодняшний день ещё не закончился"],
   week: ["Недели", "неделю", "12 недель", "12 неделями", "текущая неделя ещё не закончилась"],
   all: ["Всё время", "месяц", "всё время", "", "текущий месяц ещё не закончился"]};
@@ -36,13 +37,13 @@ function statsHtml(s) {
   const [, per, range, prevRange, partial] = STAT_STEPS[s.step];
   const arrow = t => t.total === t.prev ? `<span class="muted">как раньше</span>`
     : `<span class="${t.total > t.prev ? "up" : "down"}">${t.total > t.prev ? "▲" : "▼"} ${Math.abs(t.total - t.prev)}</span>`;
-  const sp = (x, what) => x.days == null ? `<span class="muted">пока нет данных</span>` : `<b>${x.days}</b> дн. <span class="muted">(${x.count} ${what})</span>`;
+  const sp = (x, what) => x.days == null ? `<span class="muted">пока нет данных</span>` : `<b>${decRu(x.days)}</b> дн. <span class="muted">(${x.count} ${what})</span>`;
   return `
     <div class="lkinds">${Object.entries(STAT_STEPS).map(([k, v]) => `<button type="button" class="lkind ${k === s.step ? "on" : ""}" data-step="${k}">${v[0]}</button>`).join("")}</div>
     <p class="hint">${s.step === "all" ? "Всё время" : `Последние ${range}`}: ${ddmmyyyy(s.start)} — ${ddmmyyyy(s.end)}. Среднее — за ${per}; ${partial}, и среднее считается по прошедшим дням.${prevRange ? ` Стрелка — сравнение с предыдущими ${prevRange}.` : ""} Всё считается по файлам профиля, без модели.</p>
     <div class="stcards">${s.metrics.map(m => { const t = s.totals[m.key]; return `
       <div class="stcard"><div class="muted">${m.label}</div><div class="stnum">${t.total}</div>
-        <div class="small">≈ ${t.avg} за ${per}</div>${t.prev == null ? "" : `<div class="small">${arrow(t)}</div>`}</div>`; }).join("")}</div>
+        <div class="small">≈ ${decRu(t.avg)} за ${per}</div>${t.prev == null ? "" : `<div class="small">${arrow(t)}</div>`}</div>`; }).join("")}</div>
     <h3>По периодам</h3>
     <div class="lkinds">${s.metrics.map(m => `<button type="button" class="lkind ${m.key === statMetric ? "on" : ""}" data-metric="${m.key}">${m.label}</button>`).join("")}</div>
     <div id="stChart">${statChart(s)}</div>
@@ -56,7 +57,7 @@ function statsHtml(s) {
           <td class="bar" title="${f.label}: ${f.count}${f.count ? "\n" + STAT_KINDS.filter(([k]) => f.by_kind?.[k]).map(([k, l]) => `${l} — ${f.by_kind[k]}`).join("\n") : ""}">${funnelBar(f, s.funnel[0].count)}</td>
           <td class="muted">${i ? pct(f.count, s.funnel[i - 1].count) : ""}</td></tr>`).join("")}</table>
         ${statLegend(Object.fromEntries(STAT_KINDS.map(([k]) => [k, s.funnel[0].by_kind?.[k] || 0])))}
-        <p class="small">${s.score.avg == null ? "" : `Средняя оценка этих вакансий — <b>${s.score.avg}</b>, оценка 7+ у ${pct(s.score.good, s.score.count)}.`}</p></div>
+        <p class="small">${s.score.avg == null ? "" : `Средняя оценка этих вакансий — <b>${decRu(s.score.avg)}</b>, оценка 7+ у ${pct(s.score.good, s.score.count)}.`}</p></div>
       <div><h3>Источники</h3><p class="hint">Вакансии, добавленные ${within(s.step)}: докуда дошли. Полоска — от добавленных из этого источника, справа — сколько откликов получили ответ.</p>
         ${s.sources.length ? sourcesChart(s.sources) : `<p class="muted">Вакансий ${within(s.step)} нет.</p>`}</div>
       <div><h3>Отклики с сопроводительным письмом и без</h3>

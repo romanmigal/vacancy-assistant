@@ -215,7 +215,7 @@ function openFilter(key, th) {
         m.querySelectorAll(".flist label").forEach(l => l.hidden = !!q && !l.dataset.v.includes(q));
         $("fAll").textContent = q ? "Только найденные" : "Все";
       };
-      $("fSearch").focus();
+      if (!PHONE.matches) $("fSearch").focus();     // на телефоне фокус открыл бы клавиатуру поверх списка
     }
   } else if (kind === "has") {
     m.querySelectorAll('input[name="fhas"]').forEach(r => r.onchange = () => apply(r.value ? {has: r.value === "true"} : null));
@@ -235,7 +235,7 @@ function openFilter(key, th) {
     }
     if ($("fClosed")) $("fClosed").onchange = () => { hideClosed = $("fClosed").checked; saveFilters(); render(); };
     const first = m.querySelector("input:not([type=checkbox])");
-    if (first) first.focus();
+    if (first && !PHONE.matches) first.focus();
   }
   $("fClear").onclick = () => { delete filters[key]; if (key === "title") hideClosed = false; saveFilters(); m.hidden = true; render(); };
   $("fClose").onclick = () => { m.hidden = true; };

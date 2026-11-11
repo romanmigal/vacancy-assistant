@@ -459,6 +459,7 @@ textarea[readonly] { opacity: .8; }
 .checks.stack { flex-direction: column; gap: 8px; }          /* варианты длинной фразой — друг под другом */
 .checks.stack { flex-direction: column; }
 .checks label { display: inline-flex; align-items: center; gap: 6px; font-weight: 400; }
+label.checks { align-items: center; gap: 6px; }                 /* флажок с подписью в одном label — рядом, без пропуска */
 .checks label.mailrow { align-items: flex-start; line-height: 1.4; }
 .mailrow input { margin-top: 3px; }
 .mailrow .chip { margin-left: 6px; }
@@ -541,6 +542,7 @@ button.chip:hover { background: var(--hover); }
 button.chip.near { border-style: dashed; border-color: var(--line); color: inherit; }
 button.linkbtn { border: 0; background: none; padding: 3px 4px; color: var(--accent); font-size: 12.5px; }
 button.linkbtn:hover { text-decoration: underline; background: none; }
+p button.linkbtn, li button.linkbtn { padding: 0; font-size: inherit; vertical-align: baseline; }   /* ссылка внутри текста — без лишних «пробелов» по краям */
 .people-mark { font-size: 12px; white-space: nowrap; }
 #wbody input.wide { width: 100%; box-sizing: border-box; padding: 6px 8px; }
 .lkinds { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 12px; }
@@ -773,7 +775,7 @@ table.stat tr.link { cursor: pointer; } table.stat tr.link:hover { background: v
 .scring svg { width: 200px; height: 200px; } .scring circle:hover { opacity: .8; }
 .scring .pienum { font-size: 24px; font-weight: 600; fill: var(--text); } .scring .pielbl { font-size: 10.5px; fill: var(--muted); }
 .scscale { justify-content: center; }
-@media (max-width: 600px) { .srcrow { grid-template-columns: minmax(0, 1fr) 30px; } .srcbar { grid-column: 1 / -1; } .srcresp { grid-column: 1 / -1; text-align: left; } }
+@media (max-width: 600px) { .srcrows { gap: 14px; } .srcrow { grid-template-columns: minmax(0, 1fr) 30px; row-gap: 4px; } .srcbar { grid-column: 1 / -1; } .srcresp { grid-column: 1 / -1; text-align: left; } }
 /* «Статусы сейчас»: кольцо и легенда рядом */
 .stpie { display: flex; align-items: flex-start; justify-content: space-between; gap: 32px; flex-wrap: wrap; margin: 4px 0 6px; }
 .stpie > svg { width: 226px; max-width: 100%; height: auto; flex: none; }
@@ -907,6 +909,7 @@ button.salpick:hover { border-color: var(--accent); background: var(--hover); }
   table.contacts td:nth-child(6) { grid-column: 2; grid-row: 1; }
   table.contacts td:nth-child(4) { margin-top: 4px; }
   table.contacts td:empty { display: none; }
+  table.contacts:not(.companies) td:nth-child(5)::before { content: "Вакансии: "; color: var(--muted); font-size: 12px; }   /* номера без заголовка колонки непонятны */
   table.companies td:nth-child(n) { grid-column: 1 / -1; grid-row: auto; }   /* компании — по строке на поле */
   table.companies td:nth-child(4) { margin-top: 0; }
   table.companies td:nth-child(7) { margin-top: 4px; }

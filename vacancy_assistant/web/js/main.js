@@ -1109,7 +1109,12 @@ $("rows").onclick = e => {
   const tr = e.target.closest("tr[data-n]");
   if (!tr) return;
   detailTab = "analysis";
-  if (PHONE.matches) { openPhoneDetail(!document.body.classList.contains("phone-detail")); openVacancy(+tr.dataset.n); return; }
+  if (PHONE.matches) {                         // карточка — во весь экран; пока грузится, видно, что открывается, а не «Выберите вакансию»
+    const r = state.rows.find(x => x.n === +tr.dataset.n);
+    $("detail").innerHTML = `<button type="button" class="backlist" id="backToList">← К списку</button>
+      <div class="dhead"><h2>${esc(r ? r.title : "")}</h2></div><p class="muted">Открываю вакансию…</p>`;
+    openPhoneDetail(!document.body.classList.contains("phone-detail")); openVacancy(+tr.dataset.n); return;
+  }
   openVacancy(+tr.dataset.n).then(() => { if (innerWidth <= 860) $("detail").scrollIntoView({behavior: "smooth"}); });
 };
 
