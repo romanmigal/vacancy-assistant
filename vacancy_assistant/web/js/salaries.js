@@ -19,7 +19,7 @@ function salariesHtml(s) {
   const other = b === "net" ? "до вычета" : "на руки";
   const card = (label, value, sub) => `<div class="stcard"><div class="muted">${label}</div><div class="stnum">${value}</div>${sub ? `<div class="small">${sub}</div>` : ""}</div>`;
   const rates = Object.entries(s.rates || {}).map(([c, r]) => `${c} — ${r.toLocaleString("ru-RU")} ₽`).join(", ");
-  const groups = (title, list) => `<div><h3>${title}</h3><table class="stat"><thead><tr><th></th><th>Вакансий</th><th>Медиана</th><th>Квартили</th></tr></thead>
+  const groups = (title, list) => `<div><h3>${title}</h3><table class="stat saltab"><thead><tr><th></th><th>Вакансий</th><th>Медиана</th><th>Квартили</th></tr></thead>
     ${list.map(g => { const x = g[b]; return `<tr><td>${esc(g.label)}</td><td>${x.count}</td><td>${thous(x.median)}</td>
       <td class="muted">${x.q1 == null ? "мало данных" : `${thous(x.q1)} – ${thous(x.q3)}`}</td></tr>`; }).join("")}</table></div>`;
   return `
@@ -39,8 +39,7 @@ function salariesHtml(s) {
     <div id="salChart">${salChart(s)}</div>
     <p class="hint">Точка — вакансия, нажмите, чтобы открыть карточку. Прямоугольник — средняя половина вакансий (от нижнего до верхнего квартиля), черта в нём — медиана.
       ${s.planka ? "Красная линия — ваша планка из анкеты профиля (шаг «Критерии»)." : "Планка не задана: её можно указать в анкете профиля."}</p>
-    <div class="stcols">${groups("По уровню должности", s.groups.level)}${groups("По городу", s.groups.city)}</div>
-    <div class="stcols">${groups("По формату работы", s.groups.format)}<div></div></div>
+    ${groups("По уровню должности", s.groups.level)}${groups("По городу", s.groups.city)}${groups("По формату работы", s.groups.format)}
     <p class="hint">Уровень — слово из фильтра по названию должности («Редактировать профиль → Поиск»). Формат — из шапки вакансии; у многих вакансий он не указан.</p>`
     : `<p class="muted">Ни в одной вакансии зарплата не указана.</p>`}`;
 }

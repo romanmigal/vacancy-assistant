@@ -774,6 +774,8 @@ table.funnel td.bar { width: 40%; }
 table.funnel .fbar { display: flex; flex-wrap: nowrap; align-items: center; gap: 2px; height: 10px; }                   /* шаг воронки — работодатель, агентство, скрыт */
 table.funnel .fbar i { display: block; height: 10px; min-width: 2px; border-radius: 2px; }
 table.funnel .fbar i.employer { background: var(--s-employer); } table.funnel .fbar i.agency { background: var(--s-agency); } table.funnel .fbar i.hidden { background: var(--s-hidden); }
+table.stat.saltab { table-layout: fixed; }               /* «Зарплаты»: таблицы одна под другой — столбцы ровно */
+table.stat.saltab th:first-child { width: 34%; } table.stat.saltab th:nth-child(2) { width: 16%; } table.stat.saltab th:nth-child(3) { width: 20%; }
 .stcols { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 8px; }
 @media (max-width: 760px) { .stcols { grid-template-columns: 1fr; } }
 .stcol1 { margin-top: 8px; }
