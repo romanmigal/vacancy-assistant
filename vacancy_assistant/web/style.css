@@ -48,7 +48,10 @@ body.dropping main { outline: 2px dashed var(--accent); outline-offset: -6px; }
 .addbox input[type=text] { flex: 1 1 240px; min-width: 0; }
 main { display: grid; grid-template-columns: minmax(0, var(--left, 63%)) 7px minmax(0, 1fr); height: calc(100% - 57px); }
 main.withadd { height: calc(100% - 107px); }
-.list { overflow: auto; background: var(--bg); }
+.list { display: flex; flex-direction: column; overflow: hidden; background: var(--bg); }
+.list > * { flex: none; }
+.list > .vscroll { flex: 1; min-height: 0; overflow: auto; }   /* прокручивается только таблица: вкладки и фильтры на месте */
+.vscroll > .empty { position: sticky; left: 0; }                 /* «Ждут разбора…» под таблицей — не уезжает вбок */
 /* Разделитель панелей: потянуть мышью — ширина меняется и запоминается; двойной щелчок — как было */
 .splitter { cursor: col-resize; background: var(--line); border-left: 3px solid var(--bg); border-right: 3px solid var(--panel); }
 .splitter:hover, .splitter.drag { background: var(--accent); }
@@ -99,7 +102,7 @@ body.resizing { cursor: col-resize; user-select: none; }
 table { width: 100%; border-collapse: collapse; }
 td { padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
 table.vac { font-size: 13px; }
-table.vac th { position: sticky; top: 45px; background: var(--bg); text-align: left; font-weight: 600; font-size: 12px;
+table.vac th { position: sticky; top: 0; background: var(--bg); text-align: left; font-weight: 600; font-size: 12px;
   color: var(--muted); padding: 7px 8px; border-bottom: 1px solid var(--line); cursor: pointer; user-select: none; white-space: nowrap; z-index: 1; }
 table.vac th:hover { color: var(--text); }
 table.vac th.on { color: var(--text); }
@@ -419,7 +422,8 @@ textarea[readonly] { opacity: .8; }
 @media (max-width: 860px) {
   main { grid-template-columns: 1fr; height: auto; }
   main.withadd { height: auto; }
-  .list { max-height: none; }
+  .list { max-height: none; overflow: visible; min-width: 0; }
+  .list > .vscroll { overflow-y: visible; }
   .splitter { display: none; }
   .detail { border-top: 1px solid var(--line); }
 }
