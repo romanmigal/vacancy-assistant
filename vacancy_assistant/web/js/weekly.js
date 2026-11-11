@@ -41,7 +41,7 @@ function weeklyHtml(w) {
         ${w.reasons_total.length ? `<details class="mkmore"><summary>За всё время</summary><table class="stat">${
           w.reasons_total.map(r => `<tr><td>${esc(r.name)}</td><td>${r.count}</td></tr>`).join("")}</table></details>` : ""}</div>
     </div>
-    ${w.title_drops.length || w.salary_filter ? `<h3>Отсеяно при поиске</h3>
+    ${w.title_drops.length || w.salary_filter ? `<h3 class="wksec">Отсеяно при поиске</h3>
       <p class="hint">Найденные поиском hh, которые модель не разбирала: в названии стоп-слово или нет слов про уровень и сферу — причина по нынешним правилам отбора${w.salary_filter ? "; вакансии с низкой зарплатой отсекает сам hh.ru, поэтому их число неизвестно" : ""}. Настроить — «Параметры → Отбор при поиске».</p>
       <table class="stat">${w.title_drops.map(d => `<tr><td>${esc(d.reason)}</td><td>${d.count}</td>
         <td class="muted small">${d.examples.map(esc).join("; ")}</td></tr>`).join("")}

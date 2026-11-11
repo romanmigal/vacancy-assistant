@@ -795,8 +795,9 @@ table.funnel .fbar i { display: block; height: 10px; min-width: 2px; border-radi
 table.funnel .fbar i.employer { background: var(--s-employer); } table.funnel .fbar i.agency { background: var(--s-agency); } table.funnel .fbar i.hidden { background: var(--s-hidden); }
 table.stat.saltab { table-layout: fixed; }               /* «Зарплаты»: таблицы одна под другой — столбцы ровно */
 table.stat.saltab th:first-child { width: 34%; } table.stat.saltab th:nth-child(2) { width: 16%; } table.stat.saltab th:nth-child(3) { width: 20%; }
-.stcols { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 8px; }
-@media (max-width: 760px) { .stcols { grid-template-columns: 1fr; } }
+.stcols { display: grid; grid-template-columns: 1fr; gap: 8px; margin-top: 8px; }   /* «Итоги недели»: таблицы одна под другой */
+.stcols > div, h3.wksec { border-top: 2px solid var(--muted); padding-top: 10px; margin-top: 10px; }   /* разделители — как в «Зарплатах» */
+.stcols > div > h3:first-child { margin-top: 0; }
 .stcol1 { margin-top: 8px; }
 .salrow { display: flex; gap: 18px; align-items: center; flex-wrap: wrap; } .salrow input[type=text] { width: 120px; }   /* профиль: зарплата при поиске на hh.ru */
 .stcol1 > div, .stcards + h3 { border-top: 1px solid var(--line); margin-top: 22px; padding-top: 14px; }   /* разделители между разделами */
