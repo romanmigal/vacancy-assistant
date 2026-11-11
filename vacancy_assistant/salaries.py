@@ -99,6 +99,20 @@ def rates(folder, today=None, fetch=fetch_rates):
         return {}, "", "ЦБ недоступен — зарплаты в валюте не пересчитаны и не вошли в расчёт"
 
 
+# Длинные типы поселений и районов — короче: «посёлок городского типа Новоивановское» → «Новоивановское»,
+# «Новомосковский административный округ» → «Новомосковский АО». Короткие («посёлок», «деревня») — как есть
+PLACE_PREFIX = re.compile(r"^(?:пос[её]лок городского типа|рабочий пос[её]лок|городской округ|город|пгт|рп|г\.)\s+", re.I)
+PLACE_SUFFIX = ((re.compile(r"\s+административный округ$", re.I), " АО"), (re.compile(r"\s+муниципальный округ$", re.I), " МО"),
+                (re.compile(r"\s+городской округ$", re.I), ""))
+
+
+def short_place(name):
+    name = PLACE_PREFIX.sub("", name.strip())
+    for rx, repl in PLACE_SUFFIX:
+        name = rx.sub(repl, name)
+    return name
+
+
 def where_format(text):
     """Город и формат из шапки вакансии («**Где:** Москва, гибрид») и строки «Формат работы:», если она есть."""
     m = re.search(r"\*\*Где:\*\*[ \t]*(.*?)[ \t]*$", text, re.M)
@@ -106,7 +120,7 @@ def where_format(text):
     parts = [x.strip() for x in where.split(",") if x.strip()]
     fmt = re.search(r"Формат работы:?\**[ \t]*([^\n]+)", text)
     found = " ".join(parts[1:] + [fmt.group(1) if fmt else ""]).lower()
-    city = parts[0] if parts and not parts[0].startswith("не указан") else ""
+    city = short_place(parts[0]) if parts and not parts[0].startswith("не указан") else ""
     if city.lower().startswith("удал"):
         city, found = "", found + " удалённо"
     format_ = "удалённо" if "удал" in found else "гибрид" if "гибрид" in found else "офис" if "офис" in found else ""

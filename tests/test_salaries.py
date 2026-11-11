@@ -18,6 +18,14 @@ class Parse(unittest.TestCase):
         self.assertIsNone(S.parse("По договорённости"))
         self.assertEqual(S.parse("до 400 000 ₽ за месяц до вычета налогов")["high"], 400000)
 
+    def test_short_place(self):
+        """Длинные типы поселений и районов в группах «По городу» — короче; короткие и обычные города — как есть."""
+        self.assertEqual(S.where_format("**Где:** посёлок городского типа Новоивановское, офис"), ("Новоивановское", "офис"))
+        self.assertEqual(S.short_place("Новомосковский административный округ"), "Новомосковский АО")
+        self.assertEqual(S.short_place("г. Казань"), "Казань")
+        for same in ("посёлок Шушары", "деревня Раздоры", "Городец", "Санкт-Петербург"):
+            self.assertEqual(S.short_place(same), same)
+
     def test_point(self):
         self.assertEqual(S.point(S.parse("от 300 000 до 600 000 ₽")), 450000)
         self.assertEqual(S.point(S.parse("до 400 000 ₽")), 400000)

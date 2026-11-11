@@ -40,19 +40,83 @@ function salariesHtml(s) {
     <div id="salChart">${salChart(s)}</div>
     <p class="hint">Точка — вакансия, нажмите, чтобы открыть карточку. Прямоугольник — средняя половина вакансий (от нижнего до верхнего квартиля), черта в нём — медиана.
       ${s.planka ? "Красная линия — ваша планка из анкеты профиля (шаг «Критерии»)." : "Планка не задана: её можно указать в анкете профиля."}</p>
-    ${groups("По уровню должности", s.groups.level)}${groups("По городу", s.groups.city)}${groups("По формату работы", s.groups.format)}
+    <h3 class="salh">По группам</h3>
+    ${[["Уровень должности", s.groups.level], ["Город", s.groups.city], ["Формат работы", s.groups.format]]
+      .map(([t, list]) => `<div class="salgrp">${salGroupChart(s, t, list, [...s.groups.level, ...s.groups.city, ...s.groups.format].filter(g => g[b].median != null))}</div>`).join("")}
+    <p class="hint">Полоса — средняя половина вакансий группы, черта — медиана, бледная точка — мало данных для вилки.
+      ${s.planka ? "Красная линия — планка. " : ""}Шкала — общая у этих трёх графиков, медиана — в тысячах. Наведите на строку, чтобы увидеть суммы.</p>
+    <details class="saltables"><summary>Показать таблицей</summary>
+      ${groups("По уровню должности", s.groups.level)}${groups("По городу", s.groups.city)}${groups("По формату работы", s.groups.format)}
+    </details>
     <p class="hint">Уровень — слово из фильтра по названию должности («Редактировать профиль → Поиск»). Формат — из шапки вакансии; у многих вакансий он не указан.</p>`
     : `<p class="muted">Ни в одной вакансии зарплата не указана.</p>`}`;
 }
 
+// Группа (уровень, город, формат) — строка: название, число вакансий, полоса от нижнего до верхнего квартиля,
+// черта — медиана. Шкала общая у трёх графиков групп (all — все группы) и начинается после колонок.
+// Строки — по убыванию медианы; мало данных (нет квартилей) — только бледная точка медианы
+function salGroupChart(s, title, list, all) {
+  const b = salBasis;
+  const rows = list.filter(g => g[b].median != null).sort((p, q) => q[b].median - p[b].median);
+  if (!rows.length) return `<p class="muted"><b>${esc(title)}</b>: нет данных.</p>`;
+  const phone = matchMedia("(max-width: 600px)").matches;           // там текст графиков крупнее (style.css)
+  const row = phone ? 30 : 17, top = phone ? 26 : 15;          // сверху — заголовки колонок
+  // колонки «название», «вакансий», «медиана» и шкала — одни у всех трёх графиков: группы разных разрезов сравнимы на глаз
+  const charW = phone ? 10.5 : 5.8, MAXL = 24;
+  const short = t => t.length > MAXL ? t.slice(0, MAXL - 1).trimEnd() + "…" : t;   // целиком — в подсказке
+  const nameW = Math.min(SAL_W * .35, Math.max("Уровень должности".length * 1.1, ...all.map(g => short(g.label).length)) * charW + 12);
+  const medText = v => Math.round(v / 1000).toLocaleString("ru-RU");
+  const colW = (head, texts) => Math.max(head.length * 1.12, ...texts.map(t => t.length)) * charW;   // заголовки — жирные, шире
+  const countEnd = nameW + colW("вакансий", all.map(g => String(g[b].count)));          // числа — по правому краю
+  const medEnd = countEnd + (phone ? 22 : 14) + colW("медиана", all.map(g => medText(g[b].median)));
+  const left = medEnd + 18;
+  const vals = all.flatMap(g => [g[b].q1, g[b].q3, g[b].median]).filter(v => v != null).concat(s.planka ? [s.planka] : []);
+  let min = Math.min(...vals), max = Math.max(...vals);
+  const padV = (max - min) * .08 || max * .1;
+  min -= padV; max += padV;
+  const step = [50, 100, 200, 250, 500, 1000].find(k => (max - min) / 1000 / k <= (phone ? 4 : 6)) || 2000;
+  const ticks = [];
+  for (let t = Math.ceil(min / 1000 / step) * step; t * 1000 <= max; t += step) ticks.push(t);
+  const x = v => left + (v - min) / (max - min || 1) * (SAL_W - SAL_PAD - left);
+  const base = top + rows.length * row + 1, H = base + (phone ? 22 : 13);
+  const tip = (g, v) => `${g.label} — ${v.count} ${plural(v.count, "вакансия", "вакансии", "вакансий")}, медиана ${thous(v.median)}${
+    v.q1 == null ? ", мало данных для вилки" : `, у половины ${thous(v.q1)} – ${thous(v.q3)}`}`;
+  return `<svg class="stchart salchart salgroups" viewBox="0 0 ${SAL_W} ${H}" role="img" aria-label="Зарплаты по группам">
+    <text class="colh" x="0" y="${top - (phone ? 9 : 5)}">${esc(title)}</text>
+    <text class="colh" x="${countEnd}" y="${top - (phone ? 9 : 5)}" text-anchor="end">вакансий</text>
+    <text class="colh" x="${medEnd}" y="${top - (phone ? 9 : 5)}" text-anchor="end">медиана</text>
+    <text class="colh" x="${left}" y="${top - (phone ? 9 : 5)}">вилка</text>
+    <line class="colline" x1="0" x2="${SAL_W - SAL_PAD}" y1="${top - 1}" y2="${top - 1}"/>
+    ${rows.map((g, i) => { const v = g[b], y = top + i * row, mid = y + row / 2;
+      return `<g class="grow"><title>${esc(tip(g, v))}</title>
+        <rect class="hit" x="0" y="${y}" width="${SAL_W}" height="${row}"/>
+        <text x="0" y="${mid + (phone ? 6 : 3.5)}">${esc(short(g.label))}</text>
+        <text class="cnt" x="${countEnd}" y="${mid + (phone ? 6 : 3.5)}" text-anchor="end">${v.count}</text>
+        <text x="${medEnd}" y="${mid + (phone ? 6 : 3.5)}" text-anchor="end">${medText(v.median)}</text>
+        ${v.q1 == null ? `<circle class="few" cx="${x(v.median)}" cy="${mid}" r="4"/>`
+          : `<rect class="box" x="${x(v.q1)}" y="${mid - 4}" width="${Math.max(x(v.q3) - x(v.q1), 2)}" height="8" rx="2"/>
+             <line class="med" x1="${x(v.median)}" x2="${x(v.median)}" y1="${mid - 6.5}" y2="${mid + 6.5}"/>`}</g>`; }).join("")}
+    ${s.planka ? `<line class="planka" x1="${x(s.planka)}" x2="${x(s.planka)}" y1="${top - 2}" y2="${base}"/>` : ""}
+    <line x1="${left}" x2="${SAL_W - SAL_PAD}" y1="${base}" y2="${base}"/>
+    ${ticks.map(t => `<text class="axis" x="${x(t * 1000)}" y="${base + (phone ? 19 : 11)}" text-anchor="middle">${t}</text>`).join("")}
+  </svg>`;
+}
+
 // Полоса с точками вакансий, квартилями и планкой
-function salChart(s) {
-  const b = salBasis, st = s[b], W = 720, H = 120, pad = 20, mid = 52;
+// Шкала, общая у графика вакансий и графиков групп: одна и та же сумма — в одном и том же месте
+const SAL_W = 720, SAL_PAD = 20;
+function salScale(s) {
+  const st = s[salBasis];
   const max = Math.max(st.max, s.planka || 0) * 1.05, min = Math.min(st.min, s.planka || st.min) * .9;
-  const x = v => pad + (v - min) / (max - min || 1) * (W - pad * 2);
   const step = [50, 100, 200, 250, 500, 1000].find(k => (max - min) / 1000 / k <= 8) || 2000;
   const ticks = [];
   for (let t = Math.ceil(min / 1000 / step) * step; t * 1000 <= max; t += step) ticks.push(t);
+  return {min, max, ticks, x: v => SAL_PAD + (v - min) / (max - min || 1) * (SAL_W - SAL_PAD * 2)};
+}
+
+function salChart(s) {
+  const b = salBasis, st = s[b], W = SAL_W, H = 120, pad = SAL_PAD, mid = 52;
+  const {x, ticks} = salScale(s);
   return `<svg class="stchart salchart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Зарплаты по вакансиям">
     ${st.q1 != null ? `<rect class="box" x="${x(st.q1)}" y="${mid - 22}" width="${x(st.q3) - x(st.q1)}" height="44" rx="4"/>` : ""}
     <line class="med" x1="${x(st.median)}" x2="${x(st.median)}" y1="${mid - 26}" y2="${mid + 26}"/>

@@ -812,6 +812,14 @@ h3.sec .fixbtn:hover { background: var(--accent); color: var(--accent-text); }
 .salchart .pt { fill: var(--accent); opacity: .7; cursor: pointer; } .salchart .pt:hover { opacity: 1; r: 7; }
 .salchart line.planka { stroke: var(--bad); stroke-width: 2; stroke-dasharray: 5 3; }
 .salchart text.planka { fill: var(--bad); }
+.salgroups .box { opacity: .35; } .salgroups .grow:hover .box { opacity: .55; } .salgroups .grow:hover .hit { fill: var(--hover); }
+.salgroups text.cnt { fill: var(--muted); } .salgroups .few { fill: var(--accent); opacity: .35; }
+.salgroups line.planka { stroke-width: 1.5; }
+.salgroups text { font-size: 10px; } .salgroups .med { stroke-width: 2.5; }
+@media (max-width: 600px) { .salgroups text { font-size: 19px; } }   /* ширина 720: как .stchart text на телефоне, чуть мельче */
+.saltables { margin-top: 10px; } .salgroups { margin-bottom: 4px; } h3.salh { margin: 16px 0 2px; }
+.salgrp { border-top: 2px solid var(--muted); padding-top: 10px; margin-top: 18px; }   /* между графиками групп — заметнее линий внутри */ h3.salh + .salgrp { border-top: 0; margin-top: 0; }
+.salgroups text.colh { font-weight: 600; fill: var(--text); } .salgroups line.colline { stroke: var(--line); } .saltables > summary { cursor: pointer; color: var(--link); font-size: 13px; }
 
 /* Есть новая версия */
 .updbar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; padding: 8px 16px; background: var(--panel); border-bottom: 1px solid var(--line); }
