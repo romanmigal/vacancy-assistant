@@ -67,6 +67,32 @@ def to_gross(net_month):
         prev, net_prev = top, net_top
 
 
+def months(gross_month):
+    """Помесячно за год с января: ставка растёт, когда доход с начала года переходит ступень шкалы.
+    → периоды подряд идущих месяцев с одинаковой суммой на руки: [{"from": 1, "to": 3, "net": …, "rates": [13]}]."""
+    out = []
+    for k in range(1, 13):
+        before, after = gross_month * (k - 1), gross_month * k
+        net = round(gross_month - (tax(after) - tax(before)))
+        bottoms = [0] + [top for top, _ in NDFL[:-1]]
+        rates = [round(rate * 100) for (top, rate), bottom in zip(NDFL, bottoms) if after > bottom and before < top]
+        if out and out[-1]["net"] == net and out[-1]["rates"] == rates:
+            out[-1]["to"] = k
+        else:
+            out.append({"from": k, "to": k, "net": net, "rates": rates})
+    return out
+
+
+def calc(amount, net=False, year=False, currency="RUB", rate=None):
+    """Калькулятор окна «Зарплаты»: сумма «до вычета» или «на руки», за месяц или за год, в рублях или валюте
+    (rate — {валюта: курс}). → в рублях до вычета и на руки за месяц (в среднем за год) и за год, помесячно."""
+    value = amount * (1 if currency == "RUB" else (rate or {})[currency]) / (12 if year else 1)
+    gross = to_gross(value) if net else value
+    net_month = to_net(gross)
+    return {"gross": round(gross), "net": round(net_month), "gross_year": round(gross * 12), "net_year": round(net_month * 12),
+            "tax_year": round(tax(gross * 12)), "months": months(gross)}
+
+
 def point(s):
     """Одно число вилки: середина «от–до», иначе «от» или «до»."""
     if s["low"] and s["high"]:

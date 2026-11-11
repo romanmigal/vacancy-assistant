@@ -50,7 +50,77 @@ function salariesHtml(s) {
       ${groups("По уровню должности", s.groups.level)}${groups("По городу", s.groups.city)}${groups("По формату работы", s.groups.format)}
     </details>
     <p class="hint">Уровень — слово из фильтра по названию должности («Редактировать профиль → Поиск»). Формат — из шапки вакансии; у многих вакансий он не указан.</p>`
-    : `<p class="muted">Ни в одной вакансии зарплата не указана.</p>`}`;
+    : `<p class="muted">Ни в одной вакансии зарплата не указана.</p>`}
+    ${salCalcHtml()}`;
+}
+
+// Калькулятор: своя сумма (оклад от рекрутёра, планка) «до вычета» ↔ «на руки», за месяц и за год, валюта — по курсу ЦБ.
+// Считает сервер (salaries.calc) — те же формулы, что у вилок в окне. Поля помнятся, пока открыта программа
+let salCalc = {amount: "", net: "0", period: "month", currency: "RUB"}, salCalcTimer = null;
+const SAL_CUR = ["RUB", "USD", "EUR", "KZT", "UZS", "BYN"];
+const SAL_MONTHS = ["январь", "февраль", "март", "апрель", "май", "июнь", "июль", "август", "сентябрь", "октябрь", "ноябрь", "декабрь"];
+const SAL_CALC_HINT = `<p class="hint">Введите сумму — оклад, который назвал рекрутёр, или свою планку: программа покажет, сколько это до вычета и на руки, в месяц и за год.</p>`;
+const rub = v => `${Math.round(v).toLocaleString("ru-RU")} ₽`;
+// «800 тыс.», «1,2 млн», «250k», «300 000» → число; не число — null
+function salAmount(text) {
+  const t = String(text).toLowerCase().replace(/[\s\u00a0]/g, "").replace(",", ".");
+  const m = t.match(/^(\d+(?:\.\d+)?)(тыс\.?|т|k|к|млн\.?|m|м)?(?:₽|руб\.?|\$|€)?$/);
+  if (!m) return null;
+  const mult = !m[2] ? 1 : /^(млн|m|м)/.test(m[2]) ? 1e6 : 1e3;
+  return +m[1] * mult;
+}
+function salCalcHtml() {
+  const c = salCalc, opt = (v, label, cur) => `<option value="${v}" ${v === cur ? "selected" : ""}>${label}</option>`;
+  return `<h3 class="salh salcalch">Калькулятор</h3>
+    <div class="salcalc">
+      <input type="text" id="salAmount" inputmode="decimal" placeholder="Сумма, например 400 тыс." value="${esc(c.amount)}" aria-label="Сумма">
+      <select id="salCur" aria-label="Валюта">${SAL_CUR.map(v => opt(v, v === "RUB" ? "₽" : v, c.currency)).join("")}</select>
+      <select id="salNet" aria-label="До вычета или на руки">${opt("0", "до вычета", c.net)}${opt("1", "на руки", c.net)}</select>
+      <select id="salPeriod" aria-label="За месяц или за год">${opt("month", "в месяц", c.period)}${opt("year", "в год", c.period)}</select>
+    </div>
+    <div id="salCalcOut">${SAL_CALC_HINT}</div>`;
+}
+function bindSalCalc() {
+  const read = () => {
+    salCalc = {amount: $("salAmount").value, net: $("salNet").value, period: $("salPeriod").value, currency: $("salCur").value};
+    clearTimeout(salCalcTimer);
+    salCalcTimer = setTimeout(runSalCalc, 300);
+  };
+  $("salAmount").oninput = read;
+  ["salNet", "salPeriod", "salCur"].forEach(id => $(id).onchange = read);
+  if (salCalc.amount) runSalCalc();
+}
+async function runSalCalc() {
+  const out = $("salCalcOut"), c = salCalc, amount = salAmount(c.amount);
+  if (!out) return;
+  if (!c.amount.trim()) { out.innerHTML = SAL_CALC_HINT; return; }
+  if (amount == null || amount <= 0) { out.innerHTML = `<p class="cwarn">Не понял сумму: напишите число, например 400000, 400 тыс. или 1,2 млн.</p>`; return; }
+  const q = new URLSearchParams({profile: state.profile, amount, net: c.net, period: c.period, currency: c.currency});
+  let r;
+  try { r = await api(`/api/salaries/calc?${q}`); }
+  catch (e) { out.innerHTML = `<p class="cwarn">${esc(e.message || String(e))}</p>`; return; }
+  if (salCalc !== c) return;                            // пока считали, поля поменялись
+  out.innerHTML = salCalcResult(r);
+}
+function salCalcResult(r) {
+  const b = salBasis, value = r[b], st = salData && salData[b], word = b === "net" ? "на руки" : "до вычета";
+  const diff = (label, x) => {
+    const d = value - x, pct = Math.round(Math.abs(d) / x * 100);
+    return `<li>${label} ${thous(x)}: ${Math.abs(d) < 500 ? "столько же" : `${d > 0 ? "выше" : "ниже"} на ${thous(Math.abs(d))} (${pct}%)`}</li>`;
+  };
+  const range = m => m.from === m.to ? SAL_MONTHS[m.from - 1] : `${SAL_MONTHS[m.from - 1]} – ${SAL_MONTHS[m.to - 1]}`;
+  const compare = [salData && salData.planka ? diff("Ваша планка", salData.planka) : "", st ? diff("Типичная зарплата по вакансиям", st.median) : ""].filter(Boolean);
+  return `<div class="stcards salcards calcards">
+      <div class="stcard"><div class="muted">До вычета</div><div class="stnum">${rub(r.gross)}</div><div class="small">в месяц · ${rub(r.gross_year)} за год</div></div>
+      <div class="stcard"><div class="muted">На руки</div><div class="stnum">${rub(r.net)}</div><div class="small">в месяц в среднем · ${rub(r.net_year)} за год</div></div>
+      <div class="stcard"><div class="muted">НДФЛ за год</div><div class="stnum">${rub(r.tax_year)}</div><div class="small">${(r.gross_year ? Math.round(r.tax_year / r.gross_year * 1000) / 10 : 0).toLocaleString("ru-RU")}% от дохода</div></div>
+    </div>
+    ${r.rate ? `<p class="hint">Курс ЦБ на ${ddmmyyyy(r.rate_date)}: 1 ${esc(salCalc.currency)} = ${r.rate.toLocaleString("ru-RU")} ₽.${r.note ? " " + esc(r.note) + "." : ""}</p>` : ""}
+    ${r.months.length > 1 ? `<table class="stat saltab calcmonths"><thead><tr><th>Месяцы</th><th>На руки в месяц</th><th>Ставка НДФЛ</th></tr></thead>
+      ${r.months.map(m => `<tr><td>${range(m)}</td><td>${rub(m.net)}</td><td class="muted">${m.rates.join(" и ")}%</td></tr>`).join("")}</table>
+      <p class="hint">Ставка растёт, когда доход с начала года переходит ступень: до 2,4 млн — 13%, до 5 млн — 15%, до 20 млн — 18%, до 50 млн — 20%, выше — 22%.
+        Здесь — если работать весь год с января; доход у прежнего работодателя в этом году тоже считается.</p>` : ""}
+    ${compare.length ? `<p class="small calcmp">Сравнение ${word}, как выбрано вверху окна:</p><ul class="small calcmp">${compare.join("")}</ul>` : ""}`;
 }
 
 // Группа (уровень, город, формат) — строка: название, число вакансий, полоса от нижнего до верхнего квартиля,
@@ -138,6 +208,7 @@ function bindSalaries() {
   });
   document.querySelectorAll("#salBody [data-pick]").forEach(c => c.onclick = () => salPick(c.dataset.pick));
   document.querySelectorAll("#salBody [data-gkey]").forEach(c => c.onclick = () => salPickGroup(c.dataset.gkey, c.dataset.glabel));
+  bindSalCalc();
   document.querySelectorAll("#salBody [data-vac]").forEach(c => c.onclick = () => {
     closeWizard();
     goToVacancy(+c.dataset.vac);

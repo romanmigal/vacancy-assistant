@@ -29,5 +29,20 @@ class Names(unittest.TestCase):
         self.assertEqual(sorted(called - defined - params - BUILTINS - NOT_CALLS), [])
 
 
+    def test_no_duplicate_globals(self):
+        """Скрипты окна делят одно пространство имён: одно имя верхнего уровня в двух файлах — SyntaxError,
+        и второй файл не загружается целиком (так «Зарплаты» чуть не потеряли окно из-за MONTHS из «Статистики»)."""
+        seen, dupes = {}, []
+        for f in sorted(JS.glob("*.js")):
+            text = f.read_text(encoding="utf-8")
+            names = re.findall(r"^(?:async\s+)?(?:function\s+|const\s+|let\s+|var\s+|class\s+)([A-Za-z_$][\w$]*)", text, re.M)
+            names += re.findall(r"^(?:let|var)\s+[^\n;]*?,\s*([A-Za-z_$][\w$]*)\s*=", text, re.M)   # let a = 1, b = 2
+            for name in names:
+                if name in seen and seen[name] != f.name:
+                    dupes.append(f"{name}: {seen[name]} и {f.name}")
+                seen.setdefault(name, f.name)
+        self.assertEqual(dupes, [])
+
+
 if __name__ == "__main__":
     unittest.main()

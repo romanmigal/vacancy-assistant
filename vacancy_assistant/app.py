@@ -451,6 +451,23 @@ class App:
         planka = int(re.sub(r"\D", "", str(setup.answers_from_profile(p).get("salary") or "")) or 0)
         return salaries.report(p, self.config_dir, planka, **({"fetch": self.fetch_rates} if self.fetch_rates else {}))
 
+    @route("/api/salaries/calc")                       # калькулятор «на руки / до вычета» в окне «Зарплаты»
+    def api_salaries_calc(self, p, a):
+        try:
+            amount = float(str(a.get("amount") or "").replace(" ", "").replace(",", "."))
+        except ValueError:
+            raise AssistantError("Сумма — число, например 300000")
+        currency = a.get("currency") or "RUB"
+        if currency not in [c for c, _ in salaries.CURRENCIES]:
+            raise AssistantError(f"Нет такой валюты: {currency}")
+        rate, rate_date, note = ({}, "", "")
+        if currency != "RUB":
+            rate, rate_date, note = salaries.rates(self.config_dir, fetch=self.fetch_rates or salaries.fetch_rates)
+            if currency not in rate:
+                raise AssistantError("Курс ЦБ сейчас недоступен — посчитайте в рублях")
+        res = salaries.calc(amount, a.get("net") == "1", a.get("period") == "year", currency, rate)
+        return {**res, "rate": round(rate[currency], 2) if currency != "RUB" else None, "rate_date": rate_date, "note": note}
+
     @route("/api/links")
     def api_links(self, p, a):
         return links.for_profile(p)

@@ -38,6 +38,21 @@ class Parse(unittest.TestCase):
             self.assertAlmostEqual(S.to_gross(S.to_net(gross)), gross, places=4)
 
 
+    def test_calc(self):
+        r = S.calc(800_000)                                                  # «800 тыс. до вычета» в месяц
+        self.assertEqual((r["gross"], r["net"], r["tax_year"]), (800_000, 672_500, 1_530_000))
+        self.assertEqual(r["net_year"], 8_070_000)
+        self.assertEqual(r["net"], round(S.to_net(800_000)))                 # те же числа, что у вилок в окне
+        self.assertEqual([(m["from"], m["to"], m["net"], m["rates"]) for m in r["months"]],
+                         [(1, 3, 696_000, [13]), (4, 6, 680_000, [15]), (7, 7, 662_000, [15, 18]), (8, 12, 656_000, [18])])
+        self.assertEqual(sum(m["net"] * (m["to"] - m["from"] + 1) for m in r["months"]), r["net_year"])
+        back = S.calc(672_500, net=True)                                     # и наоборот: на руки → до вычета
+        self.assertEqual((back["gross"], back["net"]), (800_000, 672_500))
+        self.assertEqual(S.calc(9_600_000, year=True)["gross"], 800_000)
+        self.assertEqual(S.calc(10_000, currency="USD", rate={"USD": 80.0})["gross"], 800_000)
+        self.assertEqual(S.calc(100_000)["months"], [{"from": 1, "to": 12, "net": 87_000, "rates": [13]}])
+
+
 class Rates(unittest.TestCase):
     def setUp(self):
         self.t = TempProfile().__enter__()
@@ -108,6 +123,28 @@ class Report(unittest.TestCase):
         self.app.fetch_rates = lambda: self.fail("курс не нужен")
         self.assertEqual(self.report()["rates"], {})
 
+    def calc(self, **a):
+        return self.app.handle("GET", "/api/salaries/calc", {"profile": ["example"], **{k: [v] for k, v in a.items()}}, {})
+
+    def test_calc_route(self):
+        self.assertEqual(self.calc(amount="800000")["net"], 672_500)
+        self.assertEqual(self.calc(amount="672500", net="1")["gross"], 800_000)
+        r = self.calc(amount="120000", currency="USD", period="year")           # $10 000 в месяц по 80 ₽
+        self.assertEqual((r["gross"], r["rate"]), (800_000, 80.0))
+        self.app.fetch_rates = lambda: self.fail("курс не нужен")
+        self.assertIsNone(self.calc(amount="800000")["rate"])
+
+    def test_calc_errors(self):
+        with self.assertRaisesRegex(Exception, "число"):
+            self.calc(amount="много")
+        with self.assertRaisesRegex(Exception, "валюты"):
+            self.calc(amount="1000", currency="XYZ")
+        def down():
+            raise OSError("нет сети")
+        self.app.fetch_rates = down
+        with self.assertRaisesRegex(Exception, "Курс ЦБ"):
+            self.calc(amount="1000", currency="EUR")
+
     def test_planka(self):
         r = S.compute(S.items(self.t.profile), planka=400_000, rate={"USD": 80.0})
         self.assertEqual(r["planka"], 400_000)
@@ -116,3 +153,23 @@ class Report(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class Amount(unittest.TestCase):
+    """Сумма в калькуляторе окна: salAmount в web/js/salaries.js — через node, если он есть."""
+
+    def test_amount(self):
+        import json
+        import shutil
+        import subprocess
+        node = shutil.which("node")
+        if not node:
+            self.skipTest("нет node")
+        import re
+        js = (Path(S.__file__).parent / "web" / "js" / "salaries.js").read_text(encoding="utf-8")
+        js = re.search(r"^function salAmount\(.*?^}", js, re.S | re.M).group(0)          # остальное — про страницу
+        cases = {"300000": 300000, "300 000": 300000, "300 000 ₽": 300000, "400 тыс.": 400000, "400тыс": 400000,
+                 "250k": 250000, "1,2 млн": 1200000, "1.5m": 1500000, "$5000": None, "много": None, "": None}
+        script = js + f"\nconsole.log(JSON.stringify({json.dumps(list(cases))}.map(salAmount)));"
+        out = subprocess.run([node, "-e", script], capture_output=True, text=True).stdout
+        self.assertEqual(dict(zip(cases, json.loads(out))), cases)

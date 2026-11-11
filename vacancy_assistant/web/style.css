@@ -822,6 +822,9 @@ h3.sec .fixbtn:hover { background: var(--accent); color: var(--accent-text); }
 .salgroups line.planka { stroke-width: 1.5; }
 .salgroups text { font-size: 10px; } .salgroups .med { stroke-width: 2.5; }
 @media (max-width: 600px) { .salgroups text { font-size: 19px; } }   /* ширина 720: как .stchart text на телефоне, чуть мельче */
+.salcalc { display: flex; gap: 8px; flex-wrap: wrap; margin: 6px 0 10px; } .salcalc input { flex: 1 1 200px; min-width: 0; }
+h3.salcalch { border-top: 2px solid var(--muted); padding-top: 12px; margin-top: 22px; }
+.calcards .stnum { font-size: 20px; } table.calcmonths { margin: 4px 0; } ul.calcmp { margin: 2px 0 0; padding-left: 20px; } p.calcmp { margin: 8px 0 0; }
 .saltables { margin-top: 10px; } .salgroups { margin-bottom: 4px; } h3.salh { margin: 16px 0 2px; }
 .salgrp { border-top: 2px solid var(--muted); padding-top: 10px; margin-top: 18px; }   /* между графиками групп — заметнее линий внутри */ h3.salh + .salgrp { border-top: 0; margin-top: 0; }
 button.salpick { font: inherit; color: inherit; text-align: left; background: none; cursor: pointer; display: block; width: 100%; }
