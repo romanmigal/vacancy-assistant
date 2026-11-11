@@ -661,6 +661,11 @@ button.icon.tool { gap: 5px; font-size: 12.5px; }
 .stcard { border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; min-width: 0; }
 .stcard > .muted:first-child, .stcard .small { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .stcard .stnum { font-size: 24px; font-weight: 600; }
+/* «Зарплаты»: карточки шире, подписи переносятся, а не обрезаются */
+.salcards { grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); }
+.salcards .stcard > .muted:first-child, .salcards .stcard .small { white-space: normal; overflow: visible; }
+.salcards .stcard .small { color: var(--muted); line-height: 1.35; margin-top: 2px; }
+.salcards .stnum { white-space: nowrap; } .stunit { font-size: 14px; font-weight: 500; color: var(--muted); }
 .stcard .up { color: var(--good); } .stcard .down { color: var(--bad); }
 .wktable td.nowrap { white-space: nowrap; } .wktable .up { color: var(--good); font-size: 12px; } .wktable .down { color: var(--bad); font-size: 12px; }
 .wkadvice { margin: 8px 0 12px; padding-left: 20px; } .wkadvice li { margin: 4px 0; }

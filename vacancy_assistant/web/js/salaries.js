@@ -17,6 +17,8 @@ async function openSalaries() {
 function salariesHtml(s) {
   const b = salBasis, st = s[b];
   const other = b === "net" ? "до вычета" : "на руки";
+  // сумма или диапазон в тысячах: число крупно, «тыс.» мелко — помещается и «416–624 тыс.»
+  const tys = (a, c) => `${Math.round(a / 1000).toLocaleString("ru-RU")}${c == null ? "" : "–" + Math.round(c / 1000).toLocaleString("ru-RU")}<span class="stunit"> тыс.</span>`;
   const card = (label, value, sub) => `<div class="stcard"><div class="muted">${label}</div><div class="stnum">${value}</div>${sub ? `<div class="small">${sub}</div>` : ""}</div>`;
   const rates = Object.entries(s.rates || {}).map(([c, r]) => `${c} — ${r.toLocaleString("ru-RU")} ₽`).join(", ");
   const groups = (title, list) => `<div><h3>${title}</h3><table class="stat saltab"><thead><tr><th></th><th>Вакансий</th><th>Медиана</th><th>Квартили</th></tr></thead>
@@ -28,13 +30,12 @@ function salariesHtml(s) {
       Вилка «от–до» считается по середине, «от» и «до» — как есть, всё за месяц. Суммы ${other} пересчитаны по прогрессивному НДФЛ
       (13–22 % от годового дохода)${rates ? `, валюта — по курсу ЦБ на ${ddmmyyyy(s.rate_date)}: ${rates}` : ""}.</p>
     ${s.note ? `<p class="hint">${esc(s.note)}${s.skipped.length ? ` (${s.skipped.length} ${plural(s.skipped.length, "вакансия", "вакансии", "вакансий")})` : ""}.</p>` : ""}
-    ${st ? `<div class="stcards">
-      ${card("Медиана", thous(st.median), `по ${st.count} ${plural(st.count, "вакансии", "вакансиям", "вакансиям")}`)}
-      ${card("Нижний квартиль", thous(st.q1), "четверть вакансий ниже")}
-      ${card("Верхний квартиль", thous(st.q3), "четверть вакансий выше")}
-      ${card("Разброс", `${Math.round(st.min / 1000)}–${Math.round(st.max / 1000)}`, "тыс., от мин. до макс.")}
-      ${card("Без зарплаты", share(s.without, s.total), `${s.without} из ${s.total}`)}
-      ${s.planka ? card("Не ниже планки", share(s.above[b], st.count), `${s.above[b]} из ${st.count}, планка ${thous(s.planka)}`) : ""}
+    ${st ? `<div class="stcards salcards">
+      ${card("Типичная зарплата", tys(st.median), `медиана по ${st.count} ${plural(st.count, "вакансии", "вакансиям", "вакансиям")}: у половины выше, у половины ниже`)}
+      ${st.q1 != null ? card("У половины вакансий", tys(st.q1, st.q3), "средняя половина: четверть вакансий ниже, четверть выше") : ""}
+      ${card("Разброс", tys(st.min, st.max), "от самой низкой зарплаты до самой высокой")}
+      ${s.planka ? card("Не ниже вашей планки", share(s.above[b], st.count), `${s.above[b]} из ${st.count} ${plural(st.count, "вакансии", "вакансий", "вакансий")}, планка ${thous(s.planka)}`) : ""}
+      ${card("Зарплата не указана", share(s.without, s.total), `в ${s.without} из ${s.total} ${plural(s.total, "вакансии", "вакансий", "вакансий")} — их нет в расчёте`)}
     </div>
     <div id="salChart">${salChart(s)}</div>
     <p class="hint">Точка — вакансия, нажмите, чтобы открыть карточку. Прямоугольник — средняя половина вакансий (от нижнего до верхнего квартиля), черта в нём — медиана.
