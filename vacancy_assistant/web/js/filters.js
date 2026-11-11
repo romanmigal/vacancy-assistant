@@ -3,7 +3,8 @@
 // вакансии — флажок «Скрыть закрытые» в фильтре колонки «Вакансия». Отбор строк (filterRows и соседи) не трогает страницу —
 // его проверяет тест через node (tests/test_filters.py).
 const FILTER_KIND = {decision: "list", status: "list", mine: "list", source: "list", stage: "list", company: "list", score: "range", salary: "salary",
-                     added: "date", posted: "date", updated: "date", flag: "has", referrer: "has", note: "has", artifacts: "has", title: "text"};
+                     added: "date", posted: "date", updated: "date", flag: "has", referrer: "has", note: "has", artifacts: "has", title: "text",
+                     n: "nums"};        // n — вакансии по номерам: из окна «Зарплаты» (карточка, группа), подпись — label
 const EMPTY_VALUE = "(пусто)";
 const RANGES = [["score", "Оценка ИИ"], ["can", "Могу"], ["want", "Хочу"]];
 let filters = {}, hideClosed = false, filtersFor = null, filtersKind = "status";
@@ -51,6 +52,7 @@ function passes(key, f, r, today) {
     }
     case "has": return !!(key === "flag" ? r.flag : r[key]) === f.has;
     case "text": return r.title.toLowerCase().includes(f.text.trim().toLowerCase());
+    case "nums": return f.nums.includes(+r.n);
   }
   return true;
 }
@@ -65,6 +67,7 @@ function filterOn(key, f) {
     case "date": return num(f.days) != null || !!f.from || !!f.to;
     case "has": return typeof f.has === "boolean";
     case "text": return !!(f.text || "").trim();
+    case "nums": return Array.isArray(f.nums);
   }
   return false;
 }
@@ -95,6 +98,7 @@ function filterText(key, f, rows) {
       : `${name}${f.from ? " с " + ddmmIso(f.from) : ""}${f.to ? " по " + ddmmIso(f.to) : ""}`;
     case "has": return `${name}: ${f.has ? "есть" : "нет"}`;
     case "text": return `${name}: «${f.text.trim()}»`;
+    case "nums": return f.label || `вакансии: ${f.nums.length}`;
   }
   return name;
 }

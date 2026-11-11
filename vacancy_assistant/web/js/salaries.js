@@ -19,7 +19,8 @@ function salariesHtml(s) {
   const other = b === "net" ? "до вычета" : "на руки";
   // сумма или диапазон в тысячах: число крупно, «тыс.» мелко — помещается и «416–624 тыс.»
   const tys = (a, c) => `${Math.round(a / 1000).toLocaleString("ru-RU")}${c == null ? "" : "–" + Math.round(c / 1000).toLocaleString("ru-RU")}<span class="stunit"> тыс.</span>`;
-  const card = (label, value, sub) => `<div class="stcard"><div class="muted">${label}</div><div class="stnum">${value}</div>${sub ? `<div class="small">${sub}</div>` : ""}</div>`;
+  // карточка — кнопка: по щелчку вкладка «Фильтр» с этими вакансиями (salPick)
+  const card = (label, value, sub, pick) => `<button type="button" class="stcard salpick" data-pick="${pick}" title="Показать эти вакансии в таблице"><div class="muted">${label}</div><div class="stnum">${value}</div>${sub ? `<div class="small">${sub}</div>` : ""}</button>`;
   const rates = Object.entries(s.rates || {}).map(([c, r]) => `${c} — ${r.toLocaleString("ru-RU")} ₽`).join(", ");
   const groups = (title, list) => `<div><h3>${title}</h3><table class="stat saltab"><thead><tr><th></th><th>Вакансий</th><th>Медиана</th><th>Квартили</th></tr></thead>
     ${list.map(g => { const x = g[b]; return `<tr><td>${esc(g.label)}</td><td>${x.count}</td><td>${thous(x.median)}</td>
@@ -31,18 +32,18 @@ function salariesHtml(s) {
       (13–22 % от годового дохода)${rates ? `, валюта — по курсу ЦБ на ${ddmmyyyy(s.rate_date)}: ${rates}` : ""}.</p>
     ${s.note ? `<p class="hint">${esc(s.note)}${s.skipped.length ? ` (${s.skipped.length} ${plural(s.skipped.length, "вакансия", "вакансии", "вакансий")})` : ""}.</p>` : ""}
     ${st ? `<div class="stcards salcards">
-      ${card("Типичная зарплата", tys(st.median), `медиана по ${st.count} ${plural(st.count, "вакансии", "вакансиям", "вакансиям")}: у половины выше, у половины ниже`)}
-      ${st.q1 != null ? card("У половины вакансий", tys(st.q1, st.q3), "средняя половина: четверть вакансий ниже, четверть выше") : ""}
-      ${card("Разброс", tys(st.min, st.max), "от самой низкой зарплаты до самой высокой")}
-      ${s.planka ? card("Не ниже вашей планки", share(s.above[b], st.count), `${s.above[b]} из ${st.count} ${plural(st.count, "вакансии", "вакансий", "вакансий")}, планка ${thous(s.planka)}`) : ""}
-      ${card("Зарплата не указана", share(s.without, s.total), `в ${s.without} из ${s.total} ${plural(s.total, "вакансии", "вакансий", "вакансий")} — их нет в расчёте`)}
+      ${card("Типичная зарплата", tys(st.median), `медиана по ${st.count} ${plural(st.count, "вакансии", "вакансиям", "вакансиям")}: у половины выше, у половины ниже`, "median")}
+      ${st.q1 != null ? card("У половины вакансий", tys(st.q1, st.q3), "средняя половина: четверть вакансий ниже, четверть выше", "half") : ""}
+      ${card("Разброс", tys(st.min, st.max), "от самой низкой зарплаты до самой высокой", "all")}
+      ${s.planka ? card("Не ниже вашей планки", share(s.above[b], st.count), `${s.above[b]} из ${st.count} ${plural(st.count, "вакансии", "вакансий", "вакансий")}, планка ${thous(s.planka)}`, "planka") : ""}
+      ${card("Зарплата не указана", share(s.without, s.total), `в ${s.without} из ${s.total} ${plural(s.total, "вакансии", "вакансий", "вакансий")} — их нет в расчёте`, "none")}
     </div>
     <div id="salChart">${salChart(s)}</div>
     <p class="hint">Точка — вакансия, нажмите, чтобы открыть карточку. Прямоугольник — средняя половина вакансий (от нижнего до верхнего квартиля), черта в нём — медиана.
       ${s.planka ? "Красная линия — ваша планка из анкеты профиля (шаг «Критерии»)." : "Планка не задана: её можно указать в анкете профиля."}</p>
     <h3 class="salh">По группам</h3>
-    ${[["Уровень должности", s.groups.level], ["Город", s.groups.city], ["Формат работы", s.groups.format]]
-      .map(([t, list]) => `<div class="salgrp">${salGroupChart(s, t, list, [...s.groups.level, ...s.groups.city, ...s.groups.format].filter(g => g[b].median != null))}</div>`).join("")}
+    ${[["Уровень должности", s.groups.level, "level"], ["Город", s.groups.city, "city"], ["Формат работы", s.groups.format, "format"]]
+      .map(([t, list, key]) => `<div class="salgrp">${salGroupChart(s, t, key, list, [...s.groups.level, ...s.groups.city, ...s.groups.format].filter(g => g[b].median != null))}</div>`).join("")}
     <p class="hint">Полоса — средняя половина вакансий группы, черта — медиана, бледная точка — мало данных для вилки.
       ${s.planka ? "Красная линия — планка. " : ""}Шкала — общая у этих трёх графиков, медиана — в тысячах. Наведите на строку, чтобы увидеть суммы.</p>
     <details class="saltables"><summary>Показать таблицей</summary>
@@ -55,7 +56,7 @@ function salariesHtml(s) {
 // Группа (уровень, город, формат) — строка: название, число вакансий, полоса от нижнего до верхнего квартиля,
 // черта — медиана. Шкала общая у трёх графиков групп (all — все группы) и начинается после колонок.
 // Строки — по убыванию медианы; мало данных (нет квартилей) — только бледная точка медианы
-function salGroupChart(s, title, list, all) {
+function salGroupChart(s, title, key, list, all) {
   const b = salBasis;
   const rows = list.filter(g => g[b].median != null).sort((p, q) => q[b].median - p[b].median);
   if (!rows.length) return `<p class="muted"><b>${esc(title)}</b>: нет данных.</p>`;
@@ -90,7 +91,7 @@ function salGroupChart(s, title, list, all) {
     ${rows.map((g, i) => { const v = g[b], y = top + i * row, mid = y + row / 2;
       return `<g class="grow"><title>${esc(tip(g, v))}</title>
         <rect class="hit" x="0" y="${y}" width="${SAL_W}" height="${row}"/>
-        <text x="0" y="${mid + (phone ? 6 : 3.5)}">${esc(short(g.label))}</text>
+        <text class="glink" data-gkey="${key}" data-glabel="${esc(g.label)}" x="0" y="${mid + (phone ? 6 : 3.5)}">${esc(short(g.label))}</text>
         <text class="cnt" x="${countEnd}" y="${mid + (phone ? 6 : 3.5)}" text-anchor="end">${v.count}</text>
         <text x="${medEnd}" y="${mid + (phone ? 6 : 3.5)}" text-anchor="end">${medText(v.median)}</text>
         ${v.q1 == null ? `<circle class="few" cx="${x(v.median)}" cy="${mid}" r="4"/>`
@@ -135,10 +136,33 @@ function bindSalaries() {
     $("salBody").innerHTML = salariesHtml(salData);
     bindSalaries();
   });
+  document.querySelectorAll("#salBody [data-pick]").forEach(c => c.onclick = () => salPick(c.dataset.pick));
+  document.querySelectorAll("#salBody [data-gkey]").forEach(c => c.onclick = () => salPickGroup(c.dataset.gkey, c.dataset.glabel));
   document.querySelectorAll("#salBody [data-vac]").forEach(c => c.onclick = () => {
     closeWizard();
     goToVacancy(+c.dataset.vac);
   });
+}
+
+// Карточка или группа → вкладка «Фильтр» ровно с теми вакансиями, по которым она посчитана (по номерам: города,
+// формата и уровня в таблице нет, а суммы — с пересчётом «на руки» и валюты, как в окне)
+const SAL_GROUP = {level: ["Уровень", "другое"], city: ["Город", "не указан"], format: ["Формат", "не указан"]};
+function salFilter(nums, label) {
+  closeWizard();
+  openTabFilter({n: {nums: nums.map(Number), label}}, label);
+}
+function salPick(kind) {
+  const s = salData, b = salBasis, st = s[b], basis = b === "net" ? "на руки" : "до вычета";
+  const pts = (test, label) => salFilter(s.points.filter(p => test(p[b])).map(p => p.n), `Зарплата ${label}`);
+  if (kind === "median") pts(v => v >= st.median, `не ниже типичной — от ${thous(st.median)} ${basis}`);
+  else if (kind === "half") pts(v => v >= st.q1 && v <= st.q3, `у средней половины — ${thous(st.q1)} – ${thous(st.q3)} ${basis}`);
+  else if (kind === "all") pts(() => true, "указана");
+  else if (kind === "planka") pts(v => v >= s.planka, `не ниже планки — от ${thous(s.planka)} ${basis}`);
+  else if (kind === "none") salFilter(s.without_n || [], "Зарплата не указана");
+}
+function salPickGroup(key, label) {
+  const [name, empty] = SAL_GROUP[key];
+  salFilter(salData.points.filter(p => (p[key] || empty) === label).map(p => p.n), `${name}: ${label}, зарплата указана`);
 }
 
 $("mSalaries").onclick = openSalaries;

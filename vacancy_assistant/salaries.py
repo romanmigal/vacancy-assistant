@@ -153,10 +153,11 @@ def compute(items, planka=0, rate=None, note=""):
     """items — [{"n", "title", "company", "salary", "city", "format", "level"}]; rate — {валюта: курс}.
     → итоги на руки и до вычета, группы, точки для графика, планка."""
     rate = rate or {}
-    points, skipped = [], []
+    points, skipped, without = [], [], []
     for it in items:
         s = parse(it["salary"])
         if not s:
+            without.append(it["n"])
             continue
         value = point(s)
         if s["currency"] != "RUB":
@@ -175,7 +176,7 @@ def compute(items, planka=0, rate=None, note=""):
         return sorted(({"label": k, "net": summary([p["net"] for p in ps]), "gross": summary([p["gross"] for p in ps])}
                        for k, ps in out.items()), key=lambda g: (-g["net"]["count"], g["label"]))
 
-    return {"total": len(items), "with_salary": len(points), "without": len(items) - len(points) - len(skipped),
+    return {"total": len(items), "with_salary": len(points), "without": len(without), "without_n": without,
             "skipped": skipped, "note": note, "planka": planka,
             "net": summary([p["net"] for p in points]), "gross": summary([p["gross"] for p in points]),
             "above": {"net": sum(p["net"] >= planka for p in points) if planka else None,

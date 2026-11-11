@@ -819,6 +819,9 @@ h3.sec .fixbtn:hover { background: var(--accent); color: var(--accent-text); }
 @media (max-width: 600px) { .salgroups text { font-size: 19px; } }   /* ширина 720: как .stchart text на телефоне, чуть мельче */
 .saltables { margin-top: 10px; } .salgroups { margin-bottom: 4px; } h3.salh { margin: 16px 0 2px; }
 .salgrp { border-top: 2px solid var(--muted); padding-top: 10px; margin-top: 18px; }   /* между графиками групп — заметнее линий внутри */ h3.salh + .salgrp { border-top: 0; margin-top: 0; }
+button.salpick { font: inherit; color: inherit; text-align: left; background: none; cursor: pointer; display: block; width: 100%; }
+button.salpick:hover { border-color: var(--accent); background: var(--hover); }
+.salgroups text.glink { cursor: pointer; } .salgroups text.glink:hover { fill: var(--link); text-decoration: underline; }
 .salgroups text.colh { font-weight: 600; fill: var(--text); } .salgroups line.colline { stroke: var(--line); } .saltables > summary { cursor: pointer; color: var(--link); font-size: 13px; }
 
 /* Есть новая версия */
