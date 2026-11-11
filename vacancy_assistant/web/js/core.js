@@ -22,13 +22,13 @@ const DECISION_RANK = d => !d ? null : d.startsWith("да,") ? 2 : d.startsWith(
 const MY_RANK = {"нет": 1, "возможно": 2, "да": 3};
 const myKey = r => r.my_decision ? `${r.my_date || "0000-00-00"}|${MY_RANK[r.my_decision]}|${String(r.my_score ?? 0).padStart(2, "0")}` : null;
 const COLUMNS = [
+  ["title", "Вакансия", r => r.title.toLowerCase(), ""],
+  ["company", "Компания", r => r.company.toLowerCase(), ""],
   ["flag", "⚑", r => r.flag ? 1 : null, "num"],
   ["score", "Оценка ИИ", r => r.score, "num"],
   ["decision", "Решение ИИ", r => DECISION_RANK(r.decision), ""],
   ["mine", "Моя оценка", r => myKey(r), ""],                                // своя оценка: дата → решение → оценка
-  ["title", "Вакансия", r => r.title.toLowerCase(), ""],
   ["status", "Статус", r => state.statuses.findIndex(([v]) => v === r.status), ""],   // только во вкладке «Фильтр»
-  ["company", "Компания", r => r.company.toLowerCase(), ""],
   ["source", "Источник", r => (r.source || "").toLowerCase(), ""],
   ["posted", "Опубликовано", r => r.posted_key || null, ""],                 // дата публикации на сайте
   ["salary", "Зарплата", r => r.salary_value, ""],
@@ -58,17 +58,20 @@ function goToVacancy(n) {
   return true;
 }
 const columnHere = k => k !== "status" || tab === FILTER_TAB;
-const LOCKED_COLUMN = "title";
+// «Вакансия» и «Компания» — всегда первые и видны: по ним узнают строку, при прокрутке вбок они остаются на месте.
+// Их не скрыть и не переставить
+const PINNED = ["title", "company"];
 const DEFAULT_HIDDEN = ["posted", "mine", "referrer", "artifacts", "city", "format"];
 const customColumns = () => !!(state && state.columns && state.columns.order.length);
 function tableColumns() {
   const cfg = customColumns() ? state.columns : {order: [], hidden: DEFAULT_HIDDEN}, keys = COLUMNS.map(c => c[0]);
-  const order = cfg.order.filter(k => keys.includes(k));
-  keys.forEach((k, i) => { if (!order.includes(k)) order.splice(i ? order.indexOf(keys[i - 1]) + 1 : 0, 0, k); });
+  const order = cfg.order.filter(k => keys.includes(k) && !PINNED.includes(k));
+  keys.forEach((k, i) => { if (!PINNED.includes(k) && !order.includes(k)) order.splice(Math.max(0, order.indexOf(keys[i - 1]) + 1), 0, k); });
+  order.unshift(...PINNED);
   // колонка, которой не было, когда настраивали таблицу, — как по умолчанию (новые необязательные — скрыты)
   const isNew = k => customColumns() && !cfg.order.includes(k);
   return order.map(k => ({col: COLUMNS.find(c => c[0] === k),
-                          hidden: k !== LOCKED_COLUMN && (cfg.hidden.includes(k) || (isNew(k) && DEFAULT_HIDDEN.includes(k)))}));
+                          hidden: !PINNED.includes(k) && (cfg.hidden.includes(k) || (isNew(k) && DEFAULT_HIDDEN.includes(k)))}));
 }
 const shownColumns = () => tableColumns().filter(x => !x.hidden && columnHere(x.col[0])).map(x => x.col);
 let sort = {key: "score", dir: -1};

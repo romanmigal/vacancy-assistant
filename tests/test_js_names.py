@@ -9,7 +9,7 @@ BUILTINS = set("""if for while switch catch function return typeof new await asy
 Date Set Map Promise setTimeout clearTimeout setInterval clearInterval fetch encodeURIComponent decodeURIComponent parseInt
 parseFloat isNaN isFinite alert confirm prompt requestAnimationFrame URL URLSearchParams Blob FileReader FormData Error RegExp
 structuredClone Intl open atob btoa queueMicrotask getComputedStyle matchMedia Symbol WeakMap Event CustomEvent super import
-addEventListener scrollTo Uint8Array""".split())
+addEventListener scrollTo Uint8Array ResizeObserver""".split())
 NOT_CALLS = {"GigaChat"}          # «… в GigaChat (Сбер)» во вложенном шаблоне строки — не вызов
 
 

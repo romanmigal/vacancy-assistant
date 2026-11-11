@@ -1,6 +1,6 @@
 :root {
   --bg: #f6f6f3; --panel: #ffffff; --text: #1d1d1b; --muted: #6b6b66; --line: #e3e2dc;
-  --accent: #2f5d50; --accent-text: #ffffff; --hover: #f0efe9; --sel: #e6eee9;
+  --accent: #2f5d50; --accent-text: #ffffff; --hover: #f0efe9; --sel: #e6eee9; --pin: #ecebe3; --pin-hover: #e4e2d8;
   --link: #1f63b8; --good: #2f7a4f; --mid: #c06a00; --bad: #a33a32; --chip: #efeee8; --log: #1f2421; --log-text: #d9e2dc; --log-line: #1f2421;
   --s-employer: #2a78d6; --s-agency: #eb6834; --s-hidden: #1baf7a; --s-letter: #6a4fb8; --s-noletter: #c9bdeb; --s-src0: #e4e1d8; --s-src1: #9fbdb1; --s-src2: #4f8a74; --s-src3: #1f4a3d; --s-model: #2a78d6; --s-mine: #e07b1f; --s-model2: #1f9a8f; --s-mine2: #c2417f; --pie-new: #8aa0b8; --pie-yes: #c99a00; --pie-interview: var(--accent); --pie-no: #b4b0a6; --pie-c0: #8a5cd6; --pie-c1: #d6488a; --pie-c2: #0e9aa7; --pie-c3: #c9971c; --pie-c4: #5d6d7e; --pie-c5: #a0522d; --pie-blue: #3b78d0; --pie-violet: #8a55c9; --pie-orange: #e07b1f; --pie-teal: #1f9a8f; --pie-pink: #d9478a;   /* части столбиков «Статистики» — проверено на различимость */
   color-scheme: light;
@@ -9,7 +9,7 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --bg: #131413; --panel: #262826; --text: #e8e8e3; --muted: #9c9c95; --line: #3a3c38;
-    --accent: #7fb59f; --accent-text: #10201a; --hover: #2c2f2c; --sel: #24382f;
+    --accent: #7fb59f; --accent-text: #10201a; --hover: #2c2f2c; --sel: #24382f; --pin: #222622; --pin-hover: #2e322e;
     --link: #84b6f0; --good: #79c79a; --mid: #e0a64a; --bad: #e88077; --chip: #30332f; --log: #2f3b36; --log-text: #dfe8e3; --log-line: #56705f;
     --s-employer: #3987e5; --s-agency: #d95926; --s-hidden: #199e70; --s-letter: #a48ef0; --s-noletter: #4f4677; --s-src0: #3a3d3a; --s-src1: #4f7a68; --s-src2: #7fb59f; --s-src3: #c4e6d6; --s-model: #5a9be8; --s-mine: #ef9446; --s-model2: #3bb5aa; --s-mine2: #e86ea5; --pie-new: #6f8399; --pie-yes: #e6c04f; --pie-interview: var(--accent); --pie-no: #6b6e69; --pie-c0: #9b74e6; --pie-c1: #e0609a; --pie-c2: #22adb9; --pie-c3: #d4a63a; --pie-c4: #8496a8; --pie-c5: #c06c44; --pie-blue: #79a8ec; --pie-violet: #a47ae0; --pie-orange: #ef9446; --pie-teal: #3bb5aa; --pie-pink: #e86ea5;
     color-scheme: dark;
@@ -17,7 +17,7 @@
 }
 :root[data-theme="dark"] {
     --bg: #131413; --panel: #262826; --text: #e8e8e3; --muted: #9c9c95; --line: #3a3c38;
-    --accent: #7fb59f; --accent-text: #10201a; --hover: #2c2f2c; --sel: #24382f;
+    --accent: #7fb59f; --accent-text: #10201a; --hover: #2c2f2c; --sel: #24382f; --pin: #222622; --pin-hover: #2e322e;
     --link: #84b6f0; --good: #79c79a; --mid: #e0a64a; --bad: #e88077; --chip: #30332f; --log: #2f3b36; --log-text: #dfe8e3; --log-line: #56705f;
     --s-employer: #3987e5; --s-agency: #d95926; --s-hidden: #199e70; --s-letter: #a48ef0; --s-noletter: #4f4677; --s-src0: #3a3d3a; --s-src1: #4f7a68; --s-src2: #7fb59f; --s-src3: #c4e6d6; --s-model: #5a9be8; --s-mine: #ef9446; --s-model2: #3bb5aa; --s-mine2: #e86ea5; --pie-new: #6f8399; --pie-yes: #e6c04f; --pie-interview: var(--accent); --pie-no: #6b6e69; --pie-c0: #9b74e6; --pie-c1: #e0609a; --pie-c2: #22adb9; --pie-c3: #d4a63a; --pie-c4: #8496a8; --pie-c5: #c06c44; --pie-blue: #79a8ec; --pie-violet: #a47ae0; --pie-orange: #ef9446; --pie-teal: #3bb5aa; --pie-pink: #e86ea5;
   color-scheme: dark;
@@ -138,6 +138,12 @@ table.vac td.sal { width: 13ch; min-width: 13ch; max-width: 13ch; }    /* дли
 tr.row { cursor: pointer; }
 tr.row:hover td { background: var(--hover); }
 tr.row.sel td { background: var(--sel); }
+/* «Вакансия» и «Компания»: свой фон и на месте при прокрутке таблицы вбок */
+table.vac .pin { position: sticky; left: 0; background: var(--pin); z-index: 1; }
+table.vac th.pin { z-index: 3; }
+table.vac .pin-company { left: var(--pin-left, 0); box-shadow: inset -1px 0 var(--line); }
+table.vac tr.row:hover td.pin { background: var(--pin-hover); }
+table.vac tr.row.sel td.pin { background: var(--sel); }
 .score { font-weight: 700; font-size: 16px; width: 44px; text-align: center; }
 .score small { display: block; font-weight: 400; font-size: 11px; color: var(--muted); }
 .s-good { color: var(--good); } .s-mid { color: var(--mid); } .s-bad { color: var(--bad); }
@@ -588,6 +594,9 @@ button.icon.refopen { padding: 5px 7px; color: var(--accent); }
 .menu.cols .grip { cursor: grab; color: var(--muted); padding: 0 2px; user-select: none; }
 .menu.cols label { flex: 1; display: flex; gap: 8px; align-items: center; cursor: pointer; }
 .menu.cols .crow.off label { color: var(--muted); }
+.menu.cols .crow.pinned { background: var(--pin); margin-bottom: 2px; } .menu.cols .crow.pinned:hover { background: var(--pin); }
+.menu.cols .crow.pinned label { cursor: default; } .menu.cols .crow.pinned .grip { cursor: default; width: 1ch; }
+.menu.cols .pinnote { font-size: 11.5px; padding-right: 6px; }
 .menu.cols button.mv { display: inline-flex !important; width: auto; border: 0; background: none; padding: 2px 5px; color: var(--muted); }
 .menu.cols button.mv:hover { color: var(--text); background: var(--chip); }
 .menu.cols button.mv:disabled { visibility: hidden; }

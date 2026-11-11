@@ -93,12 +93,13 @@ function render() {
   renderSavedBar();
   renderFilterBar(tabRows);
   $("heads").innerHTML = cols.map(([key, name, , cls]) =>
-    `<th class="${cls} ${key === sort.key ? "on" : ""} ${columnFiltered(key) ? "filtered" : ""}" data-sort="${key}" title="${{flag: "Флаг"}[key] || ""}">${name}${key === sort.key ? `<span class="arr">${sort.dir > 0 ? "▲" : "▼"}</span>` : ""}${filterButton(key)}</th>`).join("");
+    `<th class="${cls} ${PINNED.includes(key) ? `pin pin-${key}` : ""} ${key === sort.key ? "on" : ""} ${columnFiltered(key) ? "filtered" : ""}" data-sort="${key}" title="${{flag: "Флаг"}[key] || ""}">${name}${key === sort.key ? `<span class="arr">${sort.dir > 0 ? "▲" : "▼"}</span>` : ""}${filterButton(key)}</th>`).join("");
   $("rows").innerHTML = rows.map(r => PHONE.matches     // на телефоне — карточкой во всю ширину, без колонок
     ? `<tr class="row card ${r.n === selected ? "sel" : ""}" data-n="${r.n}"><td>${phoneCard(r)}</td></tr>`
     : `<tr class="row ${r.n === selected ? "sel" : ""}" data-n="${r.n}">${cols.map(([key]) => CELLS[key](r)).join("")}
     </tr>`).join("");
   renderPhoneSort(cols);
+  pinWidth();
   // Кнопка ↻ в шапке — всегда, кроме «Без модели»; число — сколько вакансий оценено по прежним данным
   const stale = state.rows.filter(r => r.criteria_changed).length, raw = state.rows.filter(r => !r.analyzed || r.stage === "none").length;
   $("btnRescore").hidden = state.no_model;
@@ -131,6 +132,23 @@ function render() {
   }
 }
 
+// «Компания» закреплена сразу за «Вакансией»: её отступ слева — ширина колонки «Вакансия», а она зависит от текста
+// и ширины панели — поэтому мерим после отрисовки и при изменении размера
+// (отступ меняем на следующем кадре и только если изменился — иначе ResizeObserver жалуется на цикл)
+const pinObserver = window.ResizeObserver ? new ResizeObserver(() => requestAnimationFrame(setPinLeft)) : null;
+let pinWatched = null;
+function setPinLeft() {
+  const th = document.querySelector("#heads th.pin-title"), table = document.querySelector("table.vac");
+  if (!th) return;
+  const w = th.getBoundingClientRect().width + "px";
+  if (table.style.getPropertyValue("--pin-left") !== w) table.style.setProperty("--pin-left", w);
+}
+function pinWidth() {
+  setPinLeft();
+  const th = document.querySelector("#heads th.pin-title");
+  if (pinObserver && th && th !== pinWatched) { pinObserver.disconnect(); pinObserver.observe(th); pinWatched = th; }
+}
+
 // Ячейки таблицы по ключу колонки (COLUMNS в core.js): набор и порядок колонок пользователь выбирает сам
 const CELLS = {
   flag: r => `<td class="num">${r.flag ? '<span class="flag" title="С флагом">⚑</span>' : ""}</td>`,
@@ -140,9 +158,9 @@ const CELLS = {
   mine: r => r.my_decision ? `<td class="nowrap" title="${esc(myTip(r))}"><div class="mine"><span class="big ${scoreClass(r.my_score)}">${r.my_score ?? "?"}<small>${r.my_can ?? "?"}/${r.my_want ?? "?"}</small></span>`
     + `<span class="mydec"><span class="${MY_TONE[r.my_decision]}">${r.my_decision}</span>${r.my_date ? `<small class="muted">${ddmm(r.my_date)}</small>` : ""}</span></div></td>` : "<td></td>",
   status: r => `<td class="nowrap stcell">${statusIcon(r.status)}${esc((state.statuses.find(([v]) => v === r.status) || [, r.status])[1])}</td>`,
-  title: r => `<td class="t-title">${r.actual?.closed ? `<span class="closedtitle">${esc(r.title)}</span> <span class="closedtag" title="Вакансия закрыта">закрыта</span>`
+  title: r => `<td class="t-title pin pin-title">${r.actual?.closed ? `<span class="closedtitle">${esc(r.title)}</span> <span class="closedtag" title="Вакансия закрыта">закрыта</span>`
     : esc(r.title)}</td>`,
-  company: r => `<td class="co">${esc(r.company)}${agencyChip(r)}${r.contacts ? ` <span class="people-mark" title="В контактах — ${r.contacts} ${plural(r.contacts, "человек", "человека", "человек")} из этой компании">👥${r.contacts > 1 ? r.contacts : ""}</span>` : ""}</td>`,
+  company: r => `<td class="co pin pin-company">${esc(r.company)}${agencyChip(r)}${r.contacts ? ` <span class="people-mark" title="В контактах — ${r.contacts} ${plural(r.contacts, "человек", "человека", "человек")} из этой компании">👥${r.contacts > 1 ? r.contacts : ""}</span>` : ""}</td>`,
   source: r => `<td class="src">${esc([r.source, ...(r.more_links || []).map(l => l.source)].filter((x, i, all) => x && all.indexOf(x) === i).join(" · "))}</td>`,
   salary: r => `<td class="sal ${r.salary_value == null ? "muted" : ""}">${esc(r.salary)}</td>`,
   city: r => `<td class="city" title="${esc(r.city)}">${esc(r.city)}</td>`,
