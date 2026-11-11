@@ -7,7 +7,7 @@ import re
 import sys
 from datetime import datetime
 
-from . import actual, analysis, answer, artifacts, company, contacts, fact_check, funnel, letter_templates, ratings, similar, sites, summary
+from . import actual, analysis, answer, artifacts, company, contacts, fact_check, funnel, letter_templates, ratings, salaries, similar, sites, summary
 from .errors import AssistantError
 from .files import (REFERRER_ID_PROP, REFERRER_PROP, analysis_body, numbered_files, read_meta, read_note, read_prop,
                     read_vacancy, strip_service)
@@ -89,6 +89,7 @@ def vacancy_rows(profile):
         info = meta or vacancy_info
         is_agency, agency_why, agency_what = company.agency(firms, info.get("company", ""), vacancy_text, company.employer_id(vacancy_info))
         progress = funnel.read(result) if meta else None
+        city, work_format = salaries.where_format(vacancy_text)       # как в окне «Зарплаты»
         rows.append({
             "n": n,
             "flag": n in flags,
@@ -99,6 +100,7 @@ def vacancy_rows(profile):
             "people_query": sites.people_query(info.get("company", "")),                 # поиск людей в LinkedIn и Сетке
             "salary": summary.short_salary(info.get("salary")),
             "salary_value": salary_value(info.get("salary")),
+            "city": city, "format": work_format,                       # колонки «Город» и «Формат работы»
             "added_key": date_key(vacancy_info["saved"]),
             "link": info.get("link", ""),
             "added": vacancy_info["saved"][:10],

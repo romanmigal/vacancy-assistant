@@ -145,6 +145,8 @@ const CELLS = {
   company: r => `<td class="co">${esc(r.company)}${agencyChip(r)}${r.contacts ? ` <span class="people-mark" title="В контактах — ${r.contacts} ${plural(r.contacts, "человек", "человека", "человек")} из этой компании">👥${r.contacts > 1 ? r.contacts : ""}</span>` : ""}</td>`,
   source: r => `<td class="src">${esc([r.source, ...(r.more_links || []).map(l => l.source)].filter((x, i, all) => x && all.indexOf(x) === i).join(" · "))}</td>`,
   salary: r => `<td class="sal ${r.salary_value == null ? "muted" : ""}">${esc(r.salary)}</td>`,
+  city: r => `<td class="city" title="${esc(r.city)}">${esc(r.city)}</td>`,
+  format: r => `<td class="nowrap">${esc(r.format)}</td>`,
   posted: r => `<td class="nowrap">${esc(r.posted)}</td>`,
   added: r => `<td class="nowrap">${esc(r.added)}</td>`,
   updated: r => `<td class="nowrap">${r.updated ? ddmmyyyy(r.updated) : ""}</td>`,
@@ -192,6 +194,8 @@ function phoneCard(r) {
     f.stage ? `<span class="stagecell ${STAGE_TONE[f.stage] || ""}">${esc(stageName(f.stage))}</span>` : "",
     `<span class="muted">${esc(r.added)}</span>`,
     r.posted && shownColumns().some(c => c[0] === "posted") ? `<span class="muted">опубликована ${esc(r.posted)}</span>` : "",
+    r.city && shownColumns().some(c => c[0] === "city") ? esc(r.city) : "",
+    r.format && shownColumns().some(c => c[0] === "format") ? esc(r.format) : "",
     r.my_decision && shownColumns().some(c => c[0] === "mine") ? `<span>моя ${myRating(r)}</span>` : ""].filter(Boolean);   // колонка включена — и в карточке
   return `<div class="ctop"><div class="ctitle">${r.flag ? '<span class="flag" title="С флагом">⚑</span> ' : ""}${r.actual?.closed
       ? `<span class="closedtitle">${esc(r.title)}</span> <span class="closedtag">закрыта</span>` : esc(r.title)}</div>${score}</div>

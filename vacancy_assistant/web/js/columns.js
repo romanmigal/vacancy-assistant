@@ -23,7 +23,7 @@ function renderColumns() {
       <button type="button" class="mv" data-up="${i}" ${i ? "" : "disabled"} title="Выше — левее в таблице" aria-label="Выше">↑</button>
       <button type="button" class="mv" data-down="${i}" ${i < last ? "" : "disabled"} title="Ниже — правее в таблице" aria-label="Ниже">↓</button>
     </div>`).join("") + `
-    <div class="cfoot"><span class="hint">Сверху вниз — слева направо</span><button type="button" id="colsReset" ${list.some(({col: [key], hidden}, i) => key !== COLUMNS[i][0] || hidden !== DEFAULT_HIDDEN.includes(key)) ? "" : "disabled"} title="Колонки и порядок по умолчанию: всё, кроме «Опубликовано», «Моей оценки», «Референсера» и «Артефактов»">По умолчанию</button></div>`;
+    <div class="cfoot"><span class="hint">Сверху вниз — слева направо</span><button type="button" id="colsReset" ${list.some(({col: [key], hidden}, i) => key !== COLUMNS[i][0] || hidden !== DEFAULT_HIDDEN.includes(key)) ? "" : "disabled"} title="Колонки и порядок по умолчанию: всё, кроме «Опубликовано», «Моей оценки», «Города», «Формата работы», «Референсера» и «Артефактов»">По умолчанию</button></div>`;
 }
 
 const columnKeys = () => tableColumns().map(x => x.col[0]);

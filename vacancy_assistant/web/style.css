@@ -114,6 +114,7 @@ button.reflink { border: 0; background: none; padding: 0; text-align: left; colo
   text-decoration: underline dotted; text-underline-offset: 3px; font: inherit; }
 button.reflink:hover { background: none; text-decoration-style: solid; }
 table.vac td.src { max-width: 14ch; color: var(--muted); }
+table.vac td.city { max-width: 16ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 table.vac td.sal { width: 13ch; min-width: 13ch; max-width: 13ch; }    /* длинная зарплата — по словам на строки */
 .mail { color: var(--accent); font-size: 17px; }
 .flag { color: var(--bad); font-size: 17px; }

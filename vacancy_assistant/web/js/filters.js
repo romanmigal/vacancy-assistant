@@ -2,7 +2,7 @@
 // профиля: это временный вид, а не настройка, Сводку.md он не меняет. Фильтры складываются (И); закрытые
 // вакансии — флажок «Скрыть закрытые» в фильтре колонки «Вакансия». Отбор строк (filterRows и соседи) не трогает страницу —
 // его проверяет тест через node (tests/test_filters.py).
-const FILTER_KIND = {decision: "list", status: "list", mine: "list", source: "list", stage: "list", company: "list", score: "range", salary: "salary",
+const FILTER_KIND = {decision: "list", status: "list", mine: "list", source: "list", stage: "list", company: "list", city: "list", format: "list", score: "range", salary: "salary",
                      added: "date", posted: "date", updated: "date", flag: "has", referrer: "has", note: "has", artifacts: "has", title: "text",
                      n: "nums"};        // n — вакансии по номерам: из окна «Зарплаты» (карточка, группа), подпись — label
 const EMPTY_VALUE = "(пусто)";

@@ -32,6 +32,8 @@ const COLUMNS = [
   ["source", "Источник", r => (r.source || "").toLowerCase(), ""],
   ["posted", "Опубликовано", r => r.posted_key || null, ""],                 // дата публикации на сайте
   ["salary", "Зарплата", r => r.salary_value, ""],
+  ["city", "Город", r => r.city ? r.city.toLowerCase() : null, ""],
+  ["format", "Формат работы", r => r.format || null, ""],                   // офис / гибрид / удалённо
   ["added", "Сохранено", r => r.added_key || null, ""],
   ["updated", "Обновлено", r => r.updated || null, ""],                     // смена этапа или правка комментария
   ["stage", "Этап", r => r.funnel && r.funnel.stage ? state.stages.findIndex(s => s[0] === r.funnel.stage) : null, ""],   // по ходу воронки
@@ -57,7 +59,7 @@ function goToVacancy(n) {
 }
 const columnHere = k => k !== "status" || tab === FILTER_TAB;
 const LOCKED_COLUMN = "title";
-const DEFAULT_HIDDEN = ["posted", "mine", "referrer", "artifacts"];
+const DEFAULT_HIDDEN = ["posted", "mine", "referrer", "artifacts", "city", "format"];
 const customColumns = () => !!(state && state.columns && state.columns.order.length);
 function tableColumns() {
   const cfg = customColumns() ? state.columns : {order: [], hidden: DEFAULT_HIDDEN}, keys = COLUMNS.map(c => c[0]);
