@@ -640,12 +640,11 @@ table.vac th.filtered { color: var(--accent); }
 .fmenu .flist { max-height: 280px; overflow: auto; display: grid; gap: 2px; }
 .fmenu .flist label { display: flex; gap: 6px; align-items: center; padding: 2px 0; }
 .fmenu .flist label span:first-of-type { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.fmenu .fquick { display: flex; gap: 12px; font-size: 12px; }
 .fmenu .frow { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .fmenu .frow > span:first-child { width: 52px; }
 .fmenu input[type=number] { width: 64px; }
 .fmenu .ffoot { display: flex; justify-content: space-between; align-items: center; padding: 4px 10px 6px; }
-.fmenu .fquick button, .fmenu .ffoot button { width: auto; padding: 3px 6px; }
+.fmenu .ffoot button { width: auto; padding: 3px 6px; }
 .fmenu input[type=search] { width: 100%; box-sizing: border-box; }
 
 /* История разборов */

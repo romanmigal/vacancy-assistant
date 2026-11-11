@@ -145,16 +145,33 @@ function renderFilterBar(tabRows) {
   if (hideClosed) parts.push(closedHere ? `без закрытых (скрыто: ${closedHere})` : "без закрытых");
   $("fbar").hidden = !parts.length;
   $("fbar").innerHTML = parts.length ? `<span class="grow ftext">Фильтр: ${esc(parts.join(", "))}</span><button type="button" class="linkbtn" id="fReset">Сбросить</button>` : "";
-  if ($("fReset")) $("fReset").onclick = () => { filters = {}; hideClosed = false; saveFilters(); $("fmenu").hidden = true; render(); };
+  if ($("fReset")) $("fReset").onclick = () => { filters = {}; hideClosed = false; saveFilters(); dropFilterMenu(); render(); };
 }
 
 const FUNNEL = '<svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 4h18l-7 8.5V19l-4 2v-8.5z"/></svg>';
 const filterButton = key => FILTER_KIND[key]
   ? `<button type="button" class="fbtn ${columnFiltered(key) ? "on" : ""}" data-filter="${key}" title="Фильтр по колонке" aria-label="Фильтр по колонке">${FUNNEL}</button>` : "";
 
+// Окошко фильтра: таблица меняется сразу, пока печатают и ставят флажки, а запоминает фильтр только «Готово».
+// Закрыли иначе (щелчок мимо, Esc, другая вкладка или воронка) — фильтр возвращается к тому, что был до окошка.
+let filterBefore = null;                            // {f, closed} на момент открытия окошка; null — окошко закрыто
+function closeFilterMenu(commit) {
+  const m = $("fmenu");
+  if (m.hidden) return;
+  m.hidden = true;
+  const before = filterBefore;
+  filterBefore = null;
+  if (commit) { saveFilters(); render(); }
+  else if (before) { filters = before.f; hideClosed = before.closed; render(); }
+}
+// Фильтр уже задан заново (сброс, сохранённый фильтр, вкладка «Фильтр» из карточки) — окошко закрыть, ничего не возвращая
+function dropFilterMenu() { filterBefore = null; $("fmenu").hidden = true; }
+
 function openFilter(key, th) {
   const m = $("fmenu");
-  if (!m.hidden && m.dataset.key === key) { m.hidden = true; return; }
+  if (!m.hidden && m.dataset.key === key) { closeFilterMenu(false); return; }
+  closeFilterMenu(false);                           // открыта воронка другой колонки — её правки не запомнены
+  filterBefore = {f: JSON.parse(JSON.stringify(filters)), closed: hideClosed};
   m.dataset.key = key;
   const f = filters[key] || {}, kind = FILTER_KIND[key];
   const tabRows = currentTabRows();
@@ -166,7 +183,6 @@ function openFilter(key, th) {
     [...(f.out || []), ...(f.only || [])].forEach(v => { if (!counts.has(v)) counts.set(v, 0); });      // снятое, которого во вкладке нет, — чтобы вернуть
     const values = [...counts.keys()].sort((a, b) => key === "decision" || key === "stage" || key === "status" ? counts.get(b) - counts.get(a) : a.localeCompare(b, "ru"));
     body = `${key === "company" ? `<input type="search" id="fSearch" placeholder="Поиск компании">` : ""}
-      <div class="fquick"><button type="button" class="linkbtn" id="fAll">Все</button><button type="button" class="linkbtn" id="fNone">Ни одного</button></div>
       <div class="flist">${values.map(v => `<label data-v="${esc(v.toLowerCase())}"><input type="checkbox" value="${esc(v)}" ${(Array.isArray(f.only) ? f.only.includes(v) : !(f.out || []).includes(v)) ? "checked" : ""}> <span>${esc(v)}</span> <span class="muted">${counts.get(v)}</span></label>`).join("")
         || '<p class="hint">Во вкладке нет значений</p>'}</div>`;
   } else if (kind === "range") {
@@ -194,27 +210,29 @@ function openFilter(key, th) {
   m.style.top = Math.min(b.bottom + 4, innerHeight - m.offsetHeight - 8) + "px";
   m.style.left = Math.max(8, Math.min(b.left, innerWidth - m.offsetWidth - 8)) + "px";
 
-  const apply = next => {
+  const apply = next => {                           // предпросмотр: таблица меняется, а запоминает фильтр «Готово»
     if (next && filterOn(key, next)) filters[key] = next; else delete filters[key];
-    saveFilters(); render();
+    render();
   };
   if (kind === "list") {
+    // Выбрано — отмеченное и найденное поиском: набрали «пла» — в таблице только компании с «пла»,
+    // сняли флажок у одной из них — осталась другая. Найденное поиском прячется из списка, но флажок не теряет
     const read = () => {
-      const boxes = [...m.querySelectorAll(".flist input")];
-      const out = boxes.filter(c => !c.checked).map(c => c.value), kept = boxes.filter(c => c.checked).map(c => c.value);
+      const labels = [...m.querySelectorAll(".flist label")];
+      const on = l => !l.hidden && l.querySelector("input").checked;
+      const out = labels.filter(l => !on(l)).map(l => l.querySelector("input").value);
+      const kept = labels.filter(on).map(l => l.querySelector("input").value);
       // вкладка «Фильтр»: выбрали меньше, чем сняли, — «только эти», чтобы сохранённый фильтр не пропускал новые компании
       apply(!out.length ? null : tab === FILTER_TAB && kept.length < out.length ? {only: kept} : {out});
     };
     m.querySelectorAll(".flist input").forEach(c => c.onchange = read);
-    // «Все» при поиске — только найденные (как в Excel): так выбирают одну компанию; «Ни одного» — снять все
-    $("fAll").onclick = () => { m.querySelectorAll(".flist label").forEach(l => l.querySelector("input").checked = !l.hidden); read(); };
-    $("fNone").onclick = () => { m.querySelectorAll(".flist input").forEach(c => c.checked = false); read(); };
     if ($("fSearch")) {
       $("fSearch").oninput = () => {
         const q = $("fSearch").value.trim().toLowerCase();
         m.querySelectorAll(".flist label").forEach(l => l.hidden = !!q && !l.dataset.v.includes(q));
-        $("fAll").textContent = q ? "Только найденные" : "Все";
+        read();
       };
+      $("fSearch").onkeydown = e => { if (e.key === "Enter") closeFilterMenu(true); };
       if (!PHONE.matches) $("fSearch").focus();     // на телефоне фокус открыл бы клавиатуру поверх списка
     }
   } else if (kind === "has") {
@@ -233,12 +251,12 @@ function openFilter(key, th) {
       };
       m.querySelectorAll('input[type="date"]').forEach(d => d.onchange = d.oninput = () => { m.querySelector('[data-f="days"]').value = ""; read(); });
     }
-    if ($("fClosed")) $("fClosed").onchange = () => { hideClosed = $("fClosed").checked; saveFilters(); render(); };
+    if ($("fClosed")) $("fClosed").onchange = () => { hideClosed = $("fClosed").checked; render(); };
     const first = m.querySelector("input:not([type=checkbox])");
     if (first && !PHONE.matches) first.focus();
   }
-  $("fClear").onclick = () => { delete filters[key]; if (key === "title") hideClosed = false; saveFilters(); m.hidden = true; render(); };
-  $("fClose").onclick = () => { m.hidden = true; };
+  $("fClear").onclick = () => { delete filters[key]; if (key === "title") hideClosed = false; closeFilterMenu(true); };
+  $("fClose").onclick = () => closeFilterMenu(true);
 }
 
 // ---------- сохранённые фильтры вкладки «Фильтр»: хранятся в профиле, выбираются в строке над таблицей ----------
@@ -264,7 +282,7 @@ function renderSavedBar() {
     const s = list[+e.target.value];
     if (!s) return;
     filters = JSON.parse(JSON.stringify(s.f)); hideClosed = !!s.closed;
-    saveFilters(); $("fmenu").hidden = true; render();
+    saveFilters(); dropFilterMenu(); render();
   };
   $("sfSave").onclick = saveFilterDialog;
   if ($("sfDel")) $("sfDel").onclick = () => storeSaved(list.filter(s => s !== cur), `Фильтр «${cur.name}» удалён из сохранённых`);
@@ -295,7 +313,7 @@ function saveFilterDialog() {
 }
 
 // Компания в карточке вакансии: вкладка «Фильтр» с вакансиями всех компаний, где в названии есть это имя
-// (как поиск в фильтре колонки «Компания» и «Только найденные»). Фильтр только открывается: его можно поменять и сохранить
+// (как поиск в фильтре колонки «Компания»). Фильтр только открывается: его можно поменять и сохранить
 // Формы — те же, что legal.FORMS на сервере (тест сверяет)
 const companyTerm = name => name.replace(/^(?:ООО|ПАО|ОАО|АО|ЗАО|НАО|АНО|ИП|ГК|ФГУП|МУП|Группа компаний|LLC|Ltd|Inc|JSC)\.?\s+/i, "").replace(/[«»"„“”]/g, "").trim();
 // names — одно название или несколько (в окне «Компании» у компании бывают разные написания в разных вакансиях)
@@ -316,7 +334,7 @@ function openTabFilter(next, what) {
   tab = FILTER_TAB;
   restoreFilters();                                  // набор условий вкладки «Фильтр» — его и заменяем
   filters = next; hideClosed = false;
-  saveFilters(); $("fmenu").hidden = true; render();
+  saveFilters(); dropFilterMenu(); render();
   const n = filterRows(state.rows, filters, false, new Date()).length;
   toast(`${what}: ${n}. Фильтр можно поменять и сохранить`);
 }

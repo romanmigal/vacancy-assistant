@@ -1101,7 +1101,7 @@ $("heads").onclick = e => {
 };
 $("tabs").onclick = e => {
   if (e.target.closest("#addStatus")) return openStatuses();
-  const b = e.target.closest("[data-tab]"); if (b) { tab = b.dataset.tab; $("fmenu").hidden = true; render(); }
+  const b = e.target.closest("[data-tab]"); if (b) { closeFilterMenu(false); tab = b.dataset.tab; render(); }
 };
 $("rows").onclick = e => {
   const ref = e.target.closest("[data-ref]");          // референсер в таблице — сразу карточка контакта

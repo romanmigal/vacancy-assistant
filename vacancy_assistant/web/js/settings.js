@@ -17,10 +17,10 @@ $("btnInfo").onclick = e => {
   m.hidden = !m.hidden;
   if (!m.hidden) fitMenu(m);
 };
-document.addEventListener("keydown", e => { if (e.key === "Escape") closeMenus(); });
+document.addEventListener("keydown", e => { if (e.key === "Escape") { closeMenus(); closeFilterMenu(false); } });
 document.addEventListener("click", e => {
   closeMenus("colsMenu");
-  if (!e.target.closest("#fmenu")) $("fmenu").hidden = true;        // окошко фильтра колонки — щелчок мимо закрывает
+  if (!e.target.closest("#fmenu")) closeFilterMenu(false);          // окошко фильтра колонки — щелчок мимо закрывает без изменений
 });
 $("mEdit").onclick = () => { $("paramsMenu").hidden = true; openEditProfile(); };
 if (REMOTE) $("mQuit").hidden = true;    // выключить программу можно только на основном компьютере
