@@ -12,7 +12,7 @@ import urllib.request
 import webbrowser
 from pathlib import Path
 
-from . import datadir, settings, support
+from . import datadir, support
 from .app import PORT
 
 APP_NAME = "Помощник по вакансиям"

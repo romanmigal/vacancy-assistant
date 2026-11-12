@@ -3,7 +3,7 @@
 import unittest
 from datetime import date
 
-from helpers import FIXTURES, SEARCH_HTML, TempProfile, VACANCY_HTML, fake_model, vacancy_page
+from helpers import FIXTURES, SEARCH_HTML, TempProfile, fake_model, vacancy_page
 
 from vacancy_assistant import app as A, hh, setup, sites, work as W
 from vacancy_assistant.errors import AssistantError

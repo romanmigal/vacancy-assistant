@@ -17,7 +17,8 @@ ANSWERS = {"name": "Мария Иванова", "female": True, "field": "фин
 
 class Setup(unittest.TestCase):
     def test_pull_model_shows_progress_of_whole_model(self):
-        import io, json
+        import io
+        import json
         from unittest import mock
         GB = 2**30
         events = [{"status": "pulling manifest"},

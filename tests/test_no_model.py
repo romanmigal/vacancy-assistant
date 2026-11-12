@@ -4,7 +4,7 @@ import unittest
 
 from helpers import TempProfile, fake_model
 
-from vacancy_assistant import analysis, app as A, funnel, setup, stats, summary, vacancies as V, work as W
+from vacancy_assistant import app as A, funnel, setup, stats, summary, vacancies as V, work as W
 from vacancy_assistant.errors import AssistantError
 from vacancy_assistant.files import read_meta, set_prop
 from vacancy_assistant.profile import Profile

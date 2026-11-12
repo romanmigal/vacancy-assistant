@@ -10,7 +10,6 @@
 «Вернуть как было» (undo) восстанавливает их.
 """
 import difflib
-import re
 from datetime import datetime
 
 from . import analysis, answer, criteria_history, settings, setup

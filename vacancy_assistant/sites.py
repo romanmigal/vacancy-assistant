@@ -410,8 +410,8 @@ def add_pages(profile, urls, log=None, fetch_page=fetch, ask=None, via=""):
             continue
         info, jp = page_info(page, url)
         if len(info["text"]) < MIN_TEXT or not info["title"]:
-            log(f"      На странице почти нет текста вакансии — сайт показывает её только в браузере или после входа. "
-                f"Добавьте вакансию, вставив её текст.")
+            log("      На странице почти нет текста вакансии — сайт показывает её только в браузере или после входа. "
+                "Добавьте вакансию, вставив её текст.")
             continue
         info["text"] = info["text"][:MAX_TEXT]
         if via:

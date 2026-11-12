@@ -3,7 +3,7 @@ import unittest
 
 from helpers import TempProfile, fake_model
 
-from vacancy_assistant import analysis, app as A, funnel
+from vacancy_assistant import analysis, app as A
 from vacancy_assistant.profile import Profile
 from vacancy_assistant.textio import read_text, write_text
 
