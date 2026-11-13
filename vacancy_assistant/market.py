@@ -18,6 +18,7 @@ import time
 from datetime import date
 
 from . import answer, gaps, settings, setup
+from .hh import skills_tail
 from .files import analysis_body, numbered_files, read_vacancy
 from .textio import read_json, read_text, write_json
 
@@ -66,8 +67,15 @@ def _body(text):
 def terms(text):
     """Ключевые слова текста: {ключ: как написано}. Слова латиницей подряд, через пробел, — одно
     («Power BI», «disaster recovery», «open source»), до трёх; общие слова (and, experience, team) разрывают
-    и не считаются. Аббревиатуры кириллицей (ИБ, ЦОД, МСФО)."""
+    и не считаются. Аббревиатуры кириллицей (ИБ, ЦОД, МСФО). «Ключевые навыки» вакансии hh — каждый целиком,
+    и по-русски («Управление проектами»): работодатель сам назвал их навыками."""
     out = {}
+    tail = skills_tail(text)
+    if tail:
+        for skill in filter(None, (s.strip() for s in tail.group(1).split(","))):
+            key = "".join(WORD.findall(norm_text(skill)))     # как в _squash — чтобы найти в резюме
+            if len(key) >= 2:
+                out.setdefault(key, skill)
     text = re.sub(r"\b(CI)/(CD)\b", r"\1\2", text, flags=re.I)
     words = [(m.group(0), m.start(), m.end()) for m in LATIN.finditer(text)]
     run = []

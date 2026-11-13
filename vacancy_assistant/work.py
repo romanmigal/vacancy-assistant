@@ -203,7 +203,8 @@ def _refresh_card(profile, data, env):      # кнопка в карточке: 
         if "hh.ru/" in link:                                          # hh.ru: только актуальность, текст прежний
             seen["actual"] = actual.check_hh(profile, link, env.fetch_page or hh.fetch, log,
                                              on_page=lambda page, get: (company.from_page(profile, path, page, get, log),
-                                                                        hh.set_posted(path, hh.posted(page))))
+                                                                        hh.set_posted(path, hh.posted(page)),
+                                                                        hh.set_skills(path, page)))
         else:                                                         # другой сайт: перечитать страницу
             sites.refresh(profile, path, log, env.fetch_page or sites.fetch, env.ask, seen)
         state = seen.get("actual")

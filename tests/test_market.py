@@ -42,6 +42,19 @@ class Terms(unittest.TestCase):
         self.assertEqual(set(found), {"cicd", "itsm", "itil", "powerbi", "disasterrecovery", "docker", "kubernetes", "цод",
                                       "информационнаябезопасность"})
 
+    def test_key_skills(self):
+        found = market.terms("Описание про Agile.\n\n**Ключевые навыки:** Управление проектами, 1С: Бухгалтерия, Power BI, agile\n")
+        self.assertEqual(found, {"управлениепроектами": "Управление проектами", "1cбухгалтерия": "1С: Бухгалтерия",
+                                 "powerbi": "Power BI", "agile": "agile", "1c": "1С"})
+        resume = "Руководил ИТ. Управление проектами, внедрение Power BI."
+        rkeys, rsq = set(market.terms(resume)), market._squash(resume)
+        self.assertTrue(market.has("управлениепроектами", rkeys, rsq))
+        self.assertTrue(market.has("powerbi", rkeys, rsq))
+        self.assertFalse(market.has("1cбухгалтерия", rkeys, rsq))
+
+    def test_key_skills_heading_in_description(self):    # заголовок работодателя в описании — не строка навыков
+        self.assertEqual(market.terms("**Ключевые навыки:** Excel, работа в команде\n\nОписание дальше\n"), {"excel": "Excel"})
+
     def test_synonyms(self):
         self.assertEqual(market.norm("итил"), "itil")
         self.assertEqual(market.norm("PnL"), "p&l")

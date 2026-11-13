@@ -153,6 +153,21 @@ def page_description(page):
     return parser.text()
 
 
+SKILLS_FIELD = "Ключевые навыки"
+
+
+def page_skills(page):
+    """«Ключевые навыки» вакансии — теги, которые работодатель отметил отдельно от описания."""
+    items = re.findall(r'data-qa="skills-element"[^>]*>(.*?)</li>', page, re.S)
+    skills = (re.sub(r"\s+", " ", html.unescape(re.sub(r"<[^>]+>", " ", i))).strip() for i in items)
+    return list(dict.fromkeys(s for s in skills if s))
+
+
+def skills_line(page):
+    skills = page_skills(page)
+    return f"\n**{SKILLS_FIELD}:** {', '.join(skills)}\n" if skills else ""
+
+
 MONTHS = ("января", "февраля", "марта", "апреля", "мая", "июня", "июля", "августа", "сентября", "октября", "ноября", "декабря")
 POSTED_FIELD = "Опубликовано"
 DATE_POSTED = re.compile(r'"datePosted"\s*:\s*"(\d{4})-(\d{2})-(\d{2})')
@@ -190,6 +205,26 @@ def set_posted(path, value):
     return True
 
 
+def skills_tail(text):
+    """Строка навыков в файле вакансии — только последняя строка файла: такой же жирный заголовок
+    «Ключевые навыки:» бывает и в описании работодателя, его не трогаем."""
+    return re.search(rf"^\*\*{SKILLS_FIELD}:\*\*(.*)$(?=\s*\Z)", text, re.M)
+
+
+def set_skills(path, page):
+    """Дописать или обновить «Ключевые навыки» в сохранённой вакансии (файлы до 13.11.2026 их не имеют). True — если поменялось."""
+    line = skills_line(page).strip()
+    if not line:
+        return False
+    text = read_text(path)
+    old = skills_tail(text)
+    if old and old.group(0) == line:
+        return False
+    text = text[:old.start()] + line + text[old.end():] if old else text.rstrip("\n") + "\n\n" + line + "\n"
+    write_text(path, text)
+    return True
+
+
 def vacancy_markdown(page, vid, saved=None):
     """Файл вакансии: шапка (название, компания, зарплата…) и описание. None — если страница не прочиталась."""
     title = page_field(page, "vacancy-title")
@@ -213,7 +248,8 @@ def vacancy_markdown(page, vid, saved=None):
             + (f"**{ARCHIVED_FIELD}:** вакансия в архиве  \n" if archived else "")
             + posted_line(posted(page))
             + f"**Сохранено:** {saved}\n\n---\n\n"
-            f"{page_description(page)}\n")
+            f"{page_description(page)}\n"
+            + skills_line(page))
     return title, company, text
 
 

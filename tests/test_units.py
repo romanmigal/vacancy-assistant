@@ -71,6 +71,40 @@ class HH(unittest.TestCase):
         self.assertIn("Вложенный блок", text)
         self.assertNotIn("после описания", text)
 
+    def test_key_skills(self):
+        self.assertFalse(hh.page_skills(VACANCY_HTML))
+        page = VACANCY_HTML.replace("</body>", '<ul><li data-qa="skills-element"><div><div>Учет ТМЦ</div></div></li>'
+                                    '<li data-qa="skills-element"><div>1С: &quot;Бухгалтерия&quot;</div></li>'
+                                    '<li data-qa="skills-element"><div>Учет ТМЦ</div></li></ul></body>')
+        text = hh.vacancy_markdown(page, "1")[2]
+        self.assertTrue(text.endswith('\n\n**Ключевые навыки:** Учет ТМЦ, 1С: "Бухгалтерия"\n'))
+
+    def test_set_skills(self):
+        with TempProfile() as tp:
+            path = tp.tmp / "v.md"
+            write_text(path, "# Т\n\n---\n\nОписание\n")
+            page = '<li data-qa="skills-element"><div>Учет ТМЦ</div></li><li data-qa="skills-element"><div>Excel</div></li>'
+            self.assertTrue(hh.set_skills(path, page))
+            self.assertEqual(read_text(path), "# Т\n\n---\n\nОписание\n\n**Ключевые навыки:** Учет ТМЦ, Excel\n")
+            self.assertFalse(hh.set_skills(path, page))                       # повтор — без изменений
+            self.assertTrue(hh.set_skills(path, page.replace("Excel", "1С")))  # навыки поменялись — строка заменена
+            self.assertEqual(read_text(path).count("Ключевые навыки"), 1)
+            self.assertFalse(hh.set_skills(path, "<html></html>"))           # навыков на странице нет — файл не трогаем
+
+    def test_set_skills_keeps_description(self):
+        with TempProfile() as tp:
+            path = tp.tmp / "v.md"
+            write_text(path, "# Т\n\n---\n\n**Ключевые навыки:** из описания\n\nОписание\n\n**Ключевые навыки:** старое\n")
+            page = '<li data-qa="skills-element"><div>Учет ТМЦ</div></li><li data-qa="skills-element"><div>Excel</div></li>'
+            self.assertTrue(hh.set_skills(path, page))
+            text = read_text(path)                                           # заголовок из описания цел, обновлён хвост
+            self.assertEqual(text, "# Т\n\n---\n\n**Ключевые навыки:** из описания\n\nОписание\n\n**Ключевые навыки:** Учет ТМЦ, Excel\n")
+            self.assertEqual(text.count("**Ключевые навыки:**"), 2)
+            # навыков ещё нет, а в описании такой заголовок — дописать в конец, заголовок не трогать
+            write_text(path, "# Т\n\n---\n\n**Ключевые навыки:**\n\n- считать\n")
+            self.assertTrue(hh.set_skills(path, page))
+            self.assertEqual(read_text(path), "# Т\n\n---\n\n**Ключевые навыки:**\n\n- считать\n\n**Ключевые навыки:** Учет ТМЦ, Excel\n")
+
     def test_anonymous_and_unreadable(self):
         page = VACANCY_HTML.replace('data-qa="vacancy-company-name"', 'data-qa="other"')
         self.assertEqual(hh.vacancy_markdown(page, "1")[1], hh.ANONYMOUS)
