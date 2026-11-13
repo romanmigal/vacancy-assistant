@@ -80,6 +80,8 @@ function marketHtml(m) {
     ${missing.length ? `<table class="stat mktable">${missing.map(wordRow).join("")}</table>` : `<p class="muted">Таких нет — все частые слова вакансий в резюме есть.</p>`}
     ${have.length ? `<details class="mkmore"><summary>Уже есть в резюме — ${have.length}</summary><p>${have.map(w => `${esc(w.term)} <span class="muted">${w.count}</span>`).join(" · ")}</p></details>` : ""}
 
+    ${mkSkillsHtml(m.skills, vacs)}
+
     <h3>Что прокачать</h3>
     <p class="hint">Модель сгруппирует недостающее и для каждой компетенции скажет: есть ли опора в резюме или «о себе» — тогда «было → стало» и куда дописать;
       или опыта нет — тогда что нарастить и как быстро (проект, курс, сертификат). Ничего не придумывает.</p>
@@ -110,6 +112,30 @@ function marketHtml(m) {
       <p class="hint">Модель переоценивает — это скорее к критериям, чем к резюме: откройте вакансию и нажмите «Поставить свои оценки» → «Поправлю сам»
         или «Подобрать правку критериев». Если вакансий много — калибровка.</p>
       <div class="gplist">${own.over.map(v => mkCard(v, false)).join("")}</div></details>` : ""}`;
+}
+
+// Ключевые навыки hh по всем вакансиям, кроме архива без отклика: всего, с откликом, с высокой оценкой ИИ
+function mkSkillsHtml(sk, vacs) {
+  if (!sk.rows.length) return `<h3>Ключевые навыки из вакансий hh</h3>
+    <p class="muted">Навыков пока нет: у сохранённых вакансий их нет в тексте. «Разобрать заново» у вакансии с hh допишет их со страницы.</p>`;
+  const pct = n => sk.with_skills ? Math.round(100 * n / sk.with_skills) : 0;
+  const row = s => `<tr><td>${s.in_resume ? esc(s.term) : `<b>${esc(s.term)}</b>`}</td>
+    <td class="num">${s.all} <span class="muted">${pct(s.all)}%</span></td><td class="num">${s.applied || ""}</td><td class="num">${s.high || ""}</td>
+    <td>${s.in_resume ? "есть" : '<span class="s-bad">нет</span>'}</td>
+    <td><details><summary class="muted">какие</summary>${vacs(s.vacancies)}</details></td></tr>`;
+  const head = `<tr><th>Навык</th><th class="num">Все<div class="muted small">${sk.with_skills}</div></th>
+    <th class="num">С откликом<div class="muted small">${sk.applied}</div></th><th class="num">ИИ ${sk.high_score}+<div class="muted small">${sk.high}</div></th>
+    <th>В резюме</th><th></th></tr>`;
+  const main = sk.rows.filter(s => s.all >= sk.min), rest = sk.rows.filter(s => s.all < sk.min);
+  return `<h3>Ключевые навыки из вакансий hh</h3>
+    <p class="hint">Навыки, которые работодатель отметил отдельно от описания, — по ним hh подбирает резюме к вакансии.
+      Навыки есть у <b>${sk.with_skills}</b> из ${nvac(sk.pool)}: у остальных работодатель их не указал или вакансия сохранена раньше —
+      «Разобрать заново» допишет их со страницы. Архив без отклика не учитывается.
+      Под названием колонки — сколько в ней вакансий с навыками.</p>
+    <p class="hint">«Нет» в резюме — нет такой формулировки, а не обязательно навыка: «MS Excel» не найдётся, если в резюме просто Excel.
+      Добавляйте в «Ключевые навыки» резюме на hh только то, что правда умеете.</p>
+    ${main.length ? `<table class="stat mkskills">${head}${main.map(row).join("")}</table>` : `<p class="muted">Ни один навык не встретился ${sk.min} раза и чаще.</p>`}
+    ${rest.length ? `<details class="mkmore"><summary>Встречались реже — ${rest.length}</summary><table class="stat mkskills">${head}${rest.map(row).join("")}</table></details>` : ""}`;
 }
 
 // Прогресс с прошлой проверки: сколько частых слов вакансий не хватает резюме — и почему число изменилось

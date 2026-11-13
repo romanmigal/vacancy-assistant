@@ -526,6 +526,9 @@ table.companies .linkbtn { display: block; padding: 0; text-align: left; font-si
 .coanonhelp summary { cursor: pointer; color: var(--link); }
 .mktable td:nth-child(2) { white-space: nowrap; color: var(--muted); text-align: left !important; }
 .mktable td:nth-child(3) { width: 40%; text-align: left !important; } .mktable summary { cursor: pointer; font-size: 12px; }
+table.stat.mkskills td.num, table.stat.mkskills th.num { white-space: nowrap; }     /* «Ключевые навыки»: числа вправо, остальное влево */
+table.stat.mkskills td:nth-child(n+5), table.stat.mkskills th:nth-child(n+5) { text-align: left; } .mkskills summary { cursor: pointer; font-size: 12px; }
+table.stat.mkskills th { white-space: nowrap; } .mkskills .linkbtn { display: block; padding: 0; text-align: left; font-size: inherit; }
 .mkmore { margin: 6px 0 0; font-size: 13px; } .mkmore > summary { cursor: pointer; color: var(--link); }
 .mkats { list-style: none; padding: 0; margin: 4px 0; display: flex; flex-direction: column; gap: 3px; font-size: 13px; }
 .mkats span { color: var(--text); }
@@ -801,7 +804,7 @@ table.stat.saltab th:first-child { width: 34%; } table.stat.saltab th:nth-child(
 .stcols > div > h3:first-child { margin-top: 0; }
 .stcol1 { margin-top: 8px; }
 .salrow { display: flex; gap: 18px; align-items: center; flex-wrap: wrap; } .salrow input[type=text] { width: 120px; }   /* профиль: зарплата при поиске на hh.ru */
-.stcol1 > div, .stcards + h3 { border-top: 1px solid var(--line); margin-top: 22px; padding-top: 14px; }   /* разделители между разделами */
+.stcol1 > div, .stcards + h3, #mkBody > h3 { border-top: 1px solid var(--line); margin-top: 22px; padding-top: 14px; }   /* разделители между разделами — «Статистика» и «Резюме против рынка» */
 .stcol1 > div > h3:first-child, .stcards + h3 { margin-top: 0; }
 .stcol1 > div.stalltime { border-top: 3px solid var(--text); margin-top: 32px; padding-top: 12px; }   /* дальше — не по периоду */
 .stalltime h2 { margin: 0 0 4px; font-size: 18px; } .stalltime + div { border-top: none; margin-top: 8px; }                                          /* «Статистика»: блоки друг под другом, в одну колонку */

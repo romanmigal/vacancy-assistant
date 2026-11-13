@@ -25,6 +25,8 @@ from .textio import read_json, read_text, write_json
 FILE = gaps.FILE             # «рынок.json»: {"history": [{date, missing, gaps, vacancies}], "advice": {…}, "recheck": {…}}
 MIN_SHARE = 0.15             # слово показываем, если оно есть хотя бы в такой доле вакансий (и не меньше чем в двух)
 TOP_GAPS = 8                 # сколько пробелов отдаём модели
+SKILLS_MIN = 3               # навык в основной таблице — если встречается хотя бы в стольких вакансиях
+HIGH_SCORE = 7               # «высокая» оценка модели — как зелёная в окне
 TOP_VACANCIES = 15           # и сколько вакансий «модель — нет, вы — да»
 
 LATIN = re.compile(r"(?<![\w@.])[A-Za-z][A-Za-z0-9+#&]*(?:[.-][A-Za-z0-9+#&]+)*")
@@ -64,18 +66,43 @@ def _body(text):
     return re.sub(r"https?://\S+|[\w.+-]+@[\w-]+(?:\.[\w-]+)+", " ", body)
 
 
+def skills(text):
+    """«Ключевые навыки» вакансии hh из последней строки файла: {ключ: как написано}."""
+    out = {}
+    tail = skills_tail(text)
+    for skill in filter(None, (s.strip() for s in tail.group(1).split(","))) if tail else ():
+        key = "".join(WORD.findall(norm_text(skill)))     # как в _squash — чтобы найти в резюме
+        if len(key) >= 2:
+            out.setdefault(key, skill)
+    return out
+
+
+def skill_table(rows, files, rkeys, rsq):
+    """Ключевые навыки hh по всем вакансиям, кроме архива без отклика: сколько раз встречается всего,
+    в вакансиях с откликом и с оценкой модели от HIGH_SCORE. Сначала то, чего нет в резюме."""
+    pool = [r for r in rows if r.get("status") != "no" or (r.get("funnel") or {}).get("stage")]
+    found, sizes = {}, {"with_skills": 0, "applied": 0, "high": 0}    # вакансий с навыками — всего и в каждой колонке
+    for r in pool:
+        path = files.get(r["n"])
+        keys = skills(read_text(path)) if path else {}
+        applied, high = bool((r.get("funnel") or {}).get("stage")), (r.get("score") or 0) >= HIGH_SCORE
+        if keys:
+            sizes["with_skills"] += 1; sizes["applied"] += applied; sizes["high"] += high
+        for key, shown in keys.items():
+            f = found.setdefault(key, {"term": shown, "all": 0, "applied": 0, "high": 0, "vacancies": []})
+            f["all"] += 1; f["applied"] += applied; f["high"] += high
+            f["vacancies"].append(r["n"])
+    table = [dict(f, in_resume=has(k, rkeys, rsq)) for k, f in found.items()]
+    table.sort(key=lambda f: (f["in_resume"], -f["all"], f["term"].lower()))
+    return dict(sizes, pool=len(pool), high_score=HIGH_SCORE, min=SKILLS_MIN, rows=table)
+
+
 def terms(text):
     """Ключевые слова текста: {ключ: как написано}. Слова латиницей подряд, через пробел, — одно
     («Power BI», «disaster recovery», «open source»), до трёх; общие слова (and, experience, team) разрывают
     и не считаются. Аббревиатуры кириллицей (ИБ, ЦОД, МСФО). «Ключевые навыки» вакансии hh — каждый целиком,
     и по-русски («Управление проектами»): работодатель сам назвал их навыками."""
-    out = {}
-    tail = skills_tail(text)
-    if tail:
-        for skill in filter(None, (s.strip() for s in tail.group(1).split(","))):
-            key = "".join(WORD.findall(norm_text(skill)))     # как в _squash — чтобы найти в резюме
-            if len(key) >= 2:
-                out.setdefault(key, skill)
+    out = skills(text)
     text = re.sub(r"\b(CI)/(CD)\b", r"\1\2", text, flags=re.I)
     words = [(m.group(0), m.start(), m.end()) for m in LATIN.finditer(text)]
     run = []
@@ -207,7 +234,7 @@ def report(profile, rows, since=None):
     data = read_json(profile.dir / FILE, {})
     profiled = setup.answers_from_profile(profile)
     return {"vacancies": len(good), "total": len(rows), "need": need,
-            "words": words, "missing": sum(1 for w in words if not w["in_resume"]), "gaps": gaps_[:15], "rare": rare[:30],
+            "words": words, "skills": skill_table(rows, files, rkeys, rsq), "missing": sum(1 for w in words if not w["in_resume"]), "gaps": gaps_[:15], "rare": rare[:30],
             "ats": ats(profile.read_resume() if profile.resume.exists() else ""),
             "history": data.get("history", [])[-6:], "advice": data.get("advice"), "own": own, "recheck": data.get("recheck"),
             "resume": profiled["resume"], "facts": profiled["facts"], "resume_editable": profiled["resume_editable"],

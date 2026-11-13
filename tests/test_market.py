@@ -54,6 +54,24 @@ class Terms(unittest.TestCase):
 
     def test_key_skills_heading_in_description(self):    # заголовок работодателя в описании — не строка навыков
         self.assertEqual(market.terms("**Ключевые навыки:** Excel, работа в команде\n\nОписание дальше\n"), {"excel": "Excel"})
+        # и строка в описании, и строка навыков в конце файла — навыки только из последней
+        found = market.terms("**Ключевые навыки:** работа в команде\n\nОписание\n\n**Ключевые навыки:** Учет ТМЦ\n")
+        self.assertEqual(found, {"учеттмц": "Учет ТМЦ", "тмц": "ТМЦ"})
+
+    def test_skill_table(self):
+        with TempProfile() as t:
+            files = {}
+            for n, line in [(1, "Учет ТМЦ, Excel"), (2, "Учет ТМЦ"), (3, "Учет ТМЦ, Excel"), (4, "")]:
+                files[n] = t.tmp / f"{n}.md"
+                write_text(files[n], f"# В{n}\n\n---\n\nОписание\n" + (f"\n**Ключевые навыки:** {line}\n" if line else ""))
+            rows = [{"n": 1, "status": "new", "score": 8},
+                    {"n": 2, "status": "no", "score": 9, "funnel": {"stage": "applied"}},   # архив после отклика — считаем
+                    {"n": 3, "status": "no", "score": 8},                                  # архив без отклика — нет
+                    {"n": 4, "status": "yes", "score": 8}]                                 # навыков нет — только в выборке
+            sk = market.skill_table(rows, files, {"excel"}, "excel")
+            self.assertEqual((sk["pool"], sk["with_skills"], sk["applied"], sk["high"]), (3, 2, 1, 2))   # №4 без навыков — не в колонках
+            self.assertEqual([(s["term"], s["all"], s["applied"], s["high"], s["in_resume"], s["vacancies"]) for s in sk["rows"]],
+                             [("Учет ТМЦ", 2, 1, 2, False, [1, 2]), ("Excel", 1, 0, 1, True, [1])])
 
     def test_synonyms(self):
         self.assertEqual(market.norm("итил"), "itil")
